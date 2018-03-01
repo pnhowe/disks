@@ -1,0 +1,33 @@
+#!/bin/sh
+
+set -e
+
+. /tmp/config_file
+
+/bin/postMessage "Starting BIOS Config..."
+
+if [ ! -f /config.json ];
+then
+  echo "Nothing to do."
+  /bin/postMessage "BIOS Config Skipped."
+  /bin/signalComplete
+  exit 0
+fi
+
+./bioscfg && rc=0 || rc=$?
+
+if [ "$rc" -eq "20" ];
+then
+  exit 20
+fi
+
+if [ "$rc" -ne "0" ];
+then
+  /bin/signalAlert "BIOS Config Failed."
+  exit 10
+fi
+
+/bin/postMessage "BIOS Config Complete."
+/bin/signalComplete
+
+exit 0

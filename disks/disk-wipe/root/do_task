@@ -1,0 +1,70 @@
+#!/bin/sh
+
+set -e
+
+/bin/postMessage "Starting Disk Wipe..."
+
+# setup vars
+MODE="mbr"
+
+. /tmp/config_file
+
+wrk_list=`for i in /sys/block/[hs]d* ; do echo $i | awk '{ split( $0, a, "/" ); print a[4] }'; done`
+drive_list=""
+
+for drive in $wrk_list;
+do
+  wipedrive -q --check --trim /dev/$drive && rc=0 || rc=$?
+  if [ "$rc" -eq "0" ];
+  then
+    drive_list="$drive_list $drive:trim"
+  else
+    wipedrive -q --check /dev/$drive && rc=0 || rc=$?
+    if [ "$rc" -eq "0" ];
+    then
+      drive_list="$drive_list $drive:wipedrive"
+    else
+      drive_list="$drive_list $drive:dd"
+    fi
+  fi
+done
+
+echo "Doing mode '$MODE'"
+echo "Doing Drives:"
+echo $drive_list
+
+case $MODE in
+  partition_tables)
+    /partition_tables $drive_list && rc=0 || rc=$?
+  ;;
+  mbr)
+    /mbr $drive_list && rc=0 || rc=$?
+  ;;
+  extnd_part_or_trim_all)
+    /extnd_part_or_trim_all $drive_list && rc=0 || rc=$?
+  ;;
+  extended_partition_tables)
+    /extended_partition_tables $drive_list && rc=0 || rc=$?
+  ;;
+  single_pass)
+    /single_pass $drive_list && rc=0 || rc=$?
+  ;;
+  multi_pass)
+    /multi_pass $drive_list && rc=0 || rc=$?
+  ;;
+  *)
+    echo "Unknown wipe mode '$MODE'"
+    rc=1
+  ;;
+esac
+
+if [ "$rc" -ne "0" ];
+then
+  /bin/signalAlert "Disk Wipe Failed."
+  exit 10
+fi
+
+/bin/postMessage "Disk Wipe Complete."
+/bin/signalComplete
+
+exit 0

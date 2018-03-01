@@ -1,0 +1,108 @@
+from ctypes import *
+
+
+
+class drive_info(Structure):
+    pass
+
+# values for enumeration 'driver_type'
+DRIVER_TYPE_UNKNOWN = 0
+DRIVER_TYPE_IDE = 1
+DRIVER_TYPE_SGIO = 2
+DRIVER_TYPE_SAT = 3
+DRIVER_TYPE_3WARE = 16
+DRIVER_TYPE_MEGADEV = 17
+DRIVER_TYPE_MEGASAS = 18
+driver_type = c_int # enum
+
+# values for enumeration 'protocol_type'
+PROTOCOL_TYPE_UNKNOWN = 0
+PROTOCOL_TYPE_ATA = 1
+PROTOCOL_TYPE_SCSI = 2
+protocol_type = c_int # enum
+drive_info._fields_ = [
+    ('driver', driver_type),
+    ('protocol', protocol_type),
+    ('model', c_char * 42),
+    ('serial', c_char * 34),
+    ('SMARTSupport', c_char),
+    ('SMARTEnabled', c_char),
+    ('supportsSelfTest', c_char),
+    ('supportsLBA', c_char),
+    ('supportsWriteSame', c_char),
+    ('supportsTrim', c_char),
+    ('isSSD', c_char),
+    ('RPM', c_int),
+    ('LogicalSectorSize', c_int),
+    ('PhysicalSectorSize', c_int),
+    ('LBACount', c_ulonglong),
+    ('WWN', c_ulonglong),
+    ('firmware_rev', c_char * 10),
+    ('ATA_major_version', c_int),
+    ('ATA_minor_version', c_int),
+    ('bit48LBA', c_char),
+    ('supportsDMA', c_char),
+    ('supportsSCT', c_char),
+    ('supportsSETMAX', c_char),
+    ('vendor_id', c_char * 9),
+    ('version', c_char * 5),
+    ('SCSI_version', c_int),
+    ('hasLogPageErrorWrite', c_char),
+    ('hasLogPageErrorRead', c_char),
+    ('hasLogPageErrorVerify', c_char),
+    ('hasLogPageErrorNonMedium', c_char),
+    ('hasLogPageTemperature', c_char),
+    ('hasLogPageStartStop', c_char),
+    ('hasLogPageSelfTest', c_char),
+    ('hasLogPageSSD', c_char),
+    ('hasLogPageBackgroundScan', c_char),
+    ('hasLogPageFactoryLog', c_char),
+    ('hasLogPageInfoExcept', c_char),
+    ('hasVPDPageSerial', c_char),
+    ('hasVPDPageIdentification', c_char),
+    ('hasVPDPageBlockLimits', c_char),
+    ('hasVPDPageBlockDeviceCharacteristics', c_char),
+    ('maxUnmapLBACount', c_uint),
+    ('maxUnmapDescriptorCount', c_uint),
+    ('maxWriteSameLength', c_ulonglong),
+]
+class smart_attribs(Structure):
+    pass
+class N13smart_attribs3DOT_3E(Union):
+    pass
+class smart_attrib_ata(Structure):
+    pass
+smart_attrib_ata._pack_ = 1
+smart_attrib_ata._fields_ = [
+    ('id', c_ubyte),
+    ('current', c_ubyte),
+    ('max', c_ubyte),
+    ('threshold', c_ubyte),
+    ('raw', c_ulonglong),
+]
+class smart_attrib_scsi(Structure):
+    pass
+smart_attrib_scsi._pack_ = 1
+smart_attrib_scsi._fields_ = [
+    ('page_code', c_ubyte),
+    ('parm_code', c_ubyte),
+    ('value', c_ulonglong),
+]
+N13smart_attribs3DOT_3E._fields_ = [
+    ('raw', c_ubyte * 500),
+    ('ata', smart_attrib_ata * 41),
+    ('scsi', smart_attrib_scsi * 50),
+]
+smart_attribs._fields_ = [
+    ('protocol', protocol_type),
+    ('count', c_ubyte),
+    ('data', N13smart_attribs3DOT_3E),
+]
+__all__ = ['PROTOCOL_TYPE_ATA', 'driver_type', 'smart_attrib_scsi',
+           'N13smart_attribs3DOT_3E', 'smart_attribs',
+           'DRIVER_TYPE_SGIO', 'DRIVER_TYPE_IDE',
+           'PROTOCOL_TYPE_SCSI', 'DRIVER_TYPE_MEGASAS',
+           'DRIVER_TYPE_SAT', 'PROTOCOL_TYPE_UNKNOWN',
+           'DRIVER_TYPE_UNKNOWN', 'DRIVER_TYPE_MEGADEV',
+           'DRIVER_TYPE_3WARE', 'drive_info', 'protocol_type',
+           'smart_attrib_ata']

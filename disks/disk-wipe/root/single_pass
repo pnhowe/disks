@@ -1,0 +1,25 @@
+#!/bin/sh
+
+echo "Doing zeros"
+
+for item in $@;
+do
+  drive="$( echo $item | cut -d ':' -f 1 )"
+  proc="$( echo $item | cut -d ':' -f 2 )"
+  if [ "$proc" == "wipedrive" ];
+  then
+    $( wipedrive -q /dev/$drive > /dev/null ) &
+  elif [ "$proc" == "trim" ];
+  then
+    $( wipedrive -q -r /dev/$drive > /dev/null ) &
+  else
+    $( dd if=/dev/zero of=/dev/$drive bs=4194304 2> /dev/null ) &
+  fi
+done
+
+echo "Waiting..."
+wait
+
+echo "Done"
+
+exit 0

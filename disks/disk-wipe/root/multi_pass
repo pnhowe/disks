@@ -1,0 +1,85 @@
+#!/bin/sh
+
+echo "Doing zeros"
+
+for item in $@;
+do
+  drive="$( echo $item | cut -d ':' -f 1 )"
+  proc="$( echo $item | cut -d ':' -f 2 )"
+  if [ "$proc" == "wipedrive" ];
+  then
+    $( wipedrive -q /dev/$drive > /dev/null ) &
+  elif [ "$proc" == "trim" ];
+  then
+    $( wipedrive -q -r /dev/$drive > /dev/null ) &
+  else
+    $( dd if=/dev/zero of=/dev/$drive bs=4194304 2> /dev/null ) &
+  fi
+done
+
+echo "Waiting..."
+wait
+
+echo "Doing Pattern"
+
+for item in $@;
+do
+  drive="$( echo $item | cut -d ':' -f 1 )"
+  proc="$( echo $item | cut -d ':' -f 2 )"
+  if [ "$proc" == "wipedrive" ];
+  then
+    $( wipedrive -q --value 175 /dev/$drive > /dev/null ) &
+  elif [ "$proc" == "trim" ];
+  then
+    echo -n "" # trim drives don't need multipass
+  else
+    $( tr '\000' '\257'\ < /dev/zero | dd of=/dev/$drive bs=4194304 2> /dev/null ) &
+  fi
+done
+
+echo "Waiting..."
+wait
+
+echo "Doing ones"
+
+for item in $@;
+do
+  drive="$( echo $item | cut -d ':' -f 1 )"
+  proc="$( echo $item | cut -d ':' -f 2 )"
+  if [ "$proc" == "wipedrive" ];
+  then
+    $( wipedrive -q --value 255 /dev/$drive > /dev/null ) &
+  elif [ "$proc" == "trim" ];
+  then
+    echo -n "" # trim drives don't need multipass
+  else
+    $( tr '\000' '\377'\ < /dev/zero | dd of=/dev/$drive bs=4194304 2> /dev/null ) &
+  fi
+done
+
+echo "Waiting..."
+wait
+
+echo "Doing zeros"
+
+for drive in $@;
+do
+  drive="$( echo $item | cut -d ':' -f 1 )"
+  proc="$( echo $item | cut -d ':' -f 2 )"
+  if [ "$proc" == "wipedrive" ];
+  then
+    $( wipedrive -q $drive > /dev/null ) &
+  elif [ "$proc" == "trim" ];
+  then
+    echo -n "" # trim drives don't need multipass
+  else
+    $( dd if=/dev/zero of=/dev/$drive bs=4194304 2> /dev/null ) &
+  fi
+done
+
+echo "Waiting..."
+wait
+
+echo "Done"
+
+exit 0

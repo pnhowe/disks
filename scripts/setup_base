@@ -1,0 +1,50 @@
+#!/bin/sh
+
+set -e
+set -x
+
+# install base tools
+cp $3/busybox/busybox $1/bin
+cp $2/ttytee/ttytee $1/sbin
+cp $2/nscd/nscd $1/sbin
+
+# install udev
+DESTDIR=$1 make -C $3/udev install
+$1/sbin/udevadm hwdb --update --root=$1
+sed s/#udev_log=\"info\"/udev_log=\"info\"/ -i $1/etc/udev/udev.conf
+rm -fr $1/etc/udev/hwdb.d
+
+
+# install required libraries
+# TODO compile libc and install that instead of taking it from the host system
+cp /lib64/ld-linux-x86-64.so.2 $1/lib64
+cp `which ldconfig.real` $1/sbin/ldconfig
+
+for LIB in /lib/x86_64-linux-gnu/libc-2.26.so /lib/x86_64-linux-gnu/libm-2.26.so \
+/lib/x86_64-linux-gnu/libutil-2.26.so /lib/x86_64-linux-gnu/libdl-2.26.so \
+/lib/x86_64-linux-gnu/libpthread-2.26.so /lib/x86_64-linux-gnu/libnsl-2.26.so \
+/lib/x86_64-linux-gnu/libnss_compat-2.26.so /lib/x86_64-linux-gnu/libnss_files-2.26.so \
+/lib/x86_64-linux-gnu/libnss_dns-2.26.so
+do
+  cp -L $LIB $1/lib
+done
+
+ln -sf libc-2.26.so $1/lib/libc.so.6
+ln -sf libm-2.26.so $1/lib/libm.so.6
+
+# now install python
+cp $3/python/python  $1/bin/
+# we don't need everything, so only these subdirs
+# lib2to3 is there b/c the install with out it, going to remove that later
+DESTDIR=$1 LIBSUBDIRS="encodings serial json config ctypes logging sqlite3 lib2to3" make -C $3/python -e libinstall
+DESTDIR=$1 LIBSUBDIRS="encodings serial json config ctypes logging sqlite3 lib2to3" make -C $3/python -e sharedinstall
+
+rm -fr $1/lib/python3.6/lib2to3
+rm $1/bin/2to3-3.6
+rm $1/bin/idle3.6
+rm $1/bin/pydoc3.6
+rm $1/bin/pyvenv-3.6
+find $1/lib/ -name *.py -exec rm {} \;
+
+# udev and python setup pkgconfig, we don't need that
+rm -fr $1/lib/pkgconfig

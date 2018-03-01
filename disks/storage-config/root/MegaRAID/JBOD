@@ -1,0 +1,47 @@
+#!/bin/sh
+
+/bin/postMessage "Setting MegaRAID Controller(s) to JBOD...."
+
+. /config
+
+C_LIST=`$STORCLI_CLI show | awk '/^[ ]*[0-9]* / { print "c" \$1 }'`
+echo "MegaRAID Controller List: $C_LIST"
+
+echo "Removing Foreign Configs..."
+for c in $C_LIST;
+do
+  echo "Removing Foreign Configs on controller $c..."
+  $STORCLI_CLI /$c/fall delete
+  if [ "$?" -ne "0" ];
+  then
+    echo "Error Removing Foreign Configs on $c."
+    exit 1
+  fi
+done
+
+echo "Removing Existing VDs on all controllers..."
+for c in $C_LIST;
+do
+  echo "Removing Existing VDs on controller $c..."
+  $STORCLI_CLI /$c/vall delete force
+  if [ "$?" -ne "0" ];
+  then
+    echo "Error Existing VDs on $c."
+    exit 1
+  fi
+done
+
+echo "Enabeling JBOD..."
+for c in $C_LIST;
+do
+  echo "Enabeling JBOD on controller $c..."
+  $STORCLI_CLI /$c set jbod=on
+  if [ "$?" -ne "0" ];
+  then
+    echo "Error Enabeling JBOD on $c."
+    #don't exit 1, some controllers don't support JBOD
+  fi
+done
+
+echo "Done."
+exit 0

@@ -1,0 +1,7 @@
+PROMPT 1
+TIMEOUT 10
+DEFAULT disk-test
+
+LABEL disk-test
+KERNEL /vmlinuz.img
+APPEND initrd=/initrd.img

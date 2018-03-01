@@ -1,0 +1,44 @@
+#!/bin/sh
+
+set -e
+
+. /tmp/config_file
+
+/bin/postMessage "Starting Provision Check..."
+
+ARGS=""
+if [ "x$EXPECTED_DISKS" != "x" ];
+then
+  ARGS="$ARGS --expected-disks=$EXPECTED_DISKS"
+fi
+
+if [ "x$ALLOWED_MISSING" != "x" ];
+then
+  ARGS="$ARGS --allowed-missing=$ALLOWED_MISSING"
+fi
+
+if [ "x$ALLOW_NON_THRASHED" == "xyes" ];
+then
+  ARGS="$ARGS --allow-non-thrashed"
+fi
+
+/checkdisks.py $ARGS && rc=0 || rc=$?
+
+while [ "$rc" -eq "2" ];
+do
+  /bin/signalAlert "Drives need to be Fixed!"
+  echo "Fix drive problems and press <enter> to re-check"
+  read TMPBUFF
+  /checkdisks $ARGS && rc=0 || rc=$?
+done
+
+if [ "$rc" -ne "0" ];
+then
+  /bin/signalAlert "Provision Check Failed."
+  exit 10
+fi
+
+/bin/postMessage "Provision Check Complete."
+/bin/signalComplete
+
+exit 0

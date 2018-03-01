@@ -1,0 +1,96 @@
+#!/bin/bash
+set -e
+
+#size in 1k blocks, default is 60k ie 60meg disk
+DISK_SIZE="60k"
+
+MOUNT_POINT="build.images/mnt"
+
+if [ ! -d $MOUNT_POINT ]
+then
+  mkdir -p $MOUNT_POINT
+fi
+
+for item in "/usr/lib/syslinux/mbr.bin" "/usr/lib/syslinux-legacy/mbr.bin" "/usr/lib/syslinux/mbr/mbr.bin"
+do
+  if [ -f $item ]
+  then
+    MBR_BIN=$item
+  fi
+done
+
+if [ "x$MBR_BIN" == "x" ]
+then
+  echo "mbr.bin not found install syslinux-common"
+  exit 1
+fi
+
+if [ ! -f /usr/bin/extlinux ]
+then
+  echo "extlinux not found install extlinux"
+  exit 1
+fi
+
+if [ $( id -u ) != 0 ]
+then
+  echo "Must be root"
+  exit 1
+fi
+
+rm -f $1
+
+echo "Creating image..."
+dd if=/dev/zero of=$1 bs=1k count=$DISK_SIZE
+drive_loop=$(losetup -f --show $1)
+echo "Using loop device '$drive_loop' for image..."
+
+echo "Partitioning image..."
+sfdisk $drive_loop << EOF
+,,L,*
+EOF
+
+partition_loop=$(losetup -f --show -o 512 $drive_loop)
+echo "Using loop device '$partition_loop' for partition..."
+
+echo "Formatting partition..."
+mke2fs -m 0 -I 128 $partition_loop
+tune2fs -c 0 -i 0 $partition_loop
+
+echo "Mounting partition..."
+mount $partition_loop $MOUNT_POINT
+
+echo "Copying in kernel and image..."
+cp $2 $MOUNT_POINT/vmlinuz.img
+
+if [ "x$5" != "x" ];
+then
+  echo "Injecting custom config file..."
+  cp -f $5 ./config_file
+  cat $3 | gunzip > /tmp/initrd.img
+  echo "./config_file" | cpio -H newc -o -A -F /tmp/initrd.img
+  rm ./config_file
+  cat /tmp/initrd.img | gzip -9 > $MOUNT_POINT/initrd.img
+else
+  cp $3 $MOUNT_POINT/initrd.img
+fi
+
+echo "Copying in boot config..."
+cp -f $4 $MOUNT_POINT/extlinux.conf
+
+if [ "x$6" != "x" ];
+then
+  echo "Injecting custom menu..."
+  cp -f $6 $MOUNT_POINT/extlinux.menu
+fi
+
+echo "Installing bootloader..."
+extlinux -i $MOUNT_POINT
+umount $MOUNT_POINT
+losetup -d $partition_loop
+
+echo "Installing MBR..."
+dd if=$MBR_BIN of=$drive_loop
+sleep 1
+sync
+losetup -d $drive_loop
+echo "Done!"

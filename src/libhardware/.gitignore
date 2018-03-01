@@ -1,0 +1,7 @@
+libhardware.xml
+hardwareinfo
+libhardware_h.py
+*.so
+*.so.*
+*.pyc
+*.o

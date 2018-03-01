@@ -1,0 +1,70 @@
+#!/bin/sh
+
+/bin/postMessage "Configuring ISMS Controller(s)...."
+
+. /config
+
+echo "Stopping existing raids..." # don't nuke anyhting, just stop them, incase they are still wanted
+for i in /dev/md*;
+do
+  if [ -e "$i" ];
+  then
+    mdadm --stop $i
+  fi
+done
+
+DIRTY=0
+
+if [ "$1" == "mirror" ];
+then
+  echo "Creating ISMS container..."
+  mdadm --create imsm --run --force -e imsm -n 2 /dev/sda /dev/sdb
+  if [ "$?" -ne "0" ];
+  then
+    echo "Error Creating ISMS container"
+    exit 1
+  fi
+  echo "Creating ISMS RAID1 (vol0)..."
+  mdadm --create vol0 --run --force -n 2 -l 1 /dev/md/imsm
+  if [ "$?" -ne "0" ];
+  then
+    echo "Error Creating ISMS vol0"
+    exit 1
+  fi
+  DIRTY="1"
+
+elif [ "$1" == "stripe" ];
+then
+  echo "Creating ISMS container..."
+  mdadm --create imsm --run --force -e imsm -n 2 /dev/sda /dev/sdb
+  if [ "$?" -ne "0" ];
+  then
+    echo "Error Creating ISMS container"
+    exit 1
+  fi
+  echo "Creating ISMS RAID0 (vol0)..."
+  mdadm --create vol0 --run --force -n 2 -l 0 /dev/md/imsm
+  if [ "$?" -ne "0" ];
+  then
+    echo "Error Creating ISMS vol0"
+    exit 1
+  fi
+  DIRTY="1"
+
+fi
+
+if [ "x$DIRTY" == "x1" ];
+then
+  /bin/postMessage "Letting ISMS RAID sync...."
+  cat /proc/mdstat
+  echo 500000000 > /proc/sys/dev/raid/speed_limit_min
+  echo 500000000 > /proc/sys/dev/raid/speed_limit_max
+  echo "Letting it sync for 10 min..."
+  sleep 600
+  cat /proc/mdstat
+  echo "Stopping..."
+  mdadm --wait-clean --scan
+fi
+
+echo "Done."
+exit 0

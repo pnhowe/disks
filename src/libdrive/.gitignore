@@ -1,0 +1,16 @@
+drive.xml
+enclosure.xml
+muncher
+selftest
+wipedrive
+driveinfo
+enclosureinfo
+drivepower
+diskcopy
+smartinfo
+libdrive_h.py
+libenclosure_h.py
+*.so
+*.so.*
+*.pyc
+*.o

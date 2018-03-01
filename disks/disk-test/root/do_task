@@ -1,0 +1,226 @@
+#!/bin/sh
+
+set -e
+
+DESTRUCTIVE=0
+LENGTH="short"
+TESTARGS=""
+MUNCHER_DMA=0
+THRASHER=0
+NO_PARTITION_CHECK=0
+REPORT=0
+PROMPT=1
+NO_SAVERESULTS=0
+NO_LIGHTUP=0
+ASDATADISKS=0
+LOG=0
+
+if [ -r /tmp/config_file ]; # Plato is going to tell us what to do
+then
+  DESTRUCTIVE=1
+  REPORT=1
+  PROMPT=0
+  NO_PARTITION_CHECK=1
+  NO_LIGHTUP=1
+
+  . /tmp/config_file
+else
+  for x in $(cat /proc/cmdline); do
+    case $x in
+      length=*)
+        LENGTH=${x#length=}
+        ;;
+      destructive*)
+        DESTRUCTIVE=1
+        ;;
+      report)
+        REPORT=1
+        ;;
+      muncher-dma)
+        MUNCHER_DMA=1
+        ;;
+      thrasher)
+        THRASHER=1
+        ;;
+      nopartitioncheck)
+        NO_PARTITION_CHECK=1
+        ;;
+      noprompt)
+        PROMPT=0
+        ;;
+      nolightup)
+        NO_LIGHTUP=1
+        ;;
+      log)
+        LOG=1
+        ;;
+    esac
+  done
+fi
+
+echo -e "\n\n\n\n\n"
+
+if [ "x$LENGTH" == "xdisabled" ];
+then
+  /bin/postMessage "Drive Test Disabled, skipped."
+  /bin/signalComplete
+  exit 0
+fi
+
+case $LENGTH in
+  none|conveyance|quick|short|medium|long|epic)
+    ;;
+  med)
+    LENGTH=medium
+    ;;
+  *)
+    LENGTH=short
+    ;;
+esac
+
+
+echo "Running '$LENGTH' Test"
+case $LENGTH in
+  none)
+    TESTARGS="--round1=0 --rdelay=0 --round2=0 --pdelay=0 --bonnie=0 --no-wipe --no-conveyancetest --no-selftest --fdelay=2"
+    ;;
+  conveyance)
+    TESTARGS="--round1=0 --rdelay=0 --round2=0 --pdelay=0 --bonnie=0 --no-wipe --no-selftest --fdelay=2"
+    ;;
+  quick)
+    TESTARGS="--round1=2000 --rdelay=0 --round2=0 --pdelay=0 --bonnie=0 --no-wipe --no-conveyancetest --no-selftest --fdelay=2"
+    ;;
+  short)
+    TESTARGS="--round1=20000 --rdelay=10 --round2=20000 --pdelay=10 --bonnie=\"-s 500 -n 2:10000:100:2 -x 1\" --bonnie-time=40 --bdelay=10 --no-wipe --short-selftest --fdelay=10"
+    ;;
+  medium)
+    TESTARGS="--round1=400000 --rdelay=30 --round2=400000 --pdelay=30 --bonnie=\"-s 2000 -n 10:200000:100:50 -x 4\" --bonnie-time=360 --bdelay=30 --wdelay=30 --fdelay=30"
+    ;;
+  long)
+    TESTARGS="--round1=3750000 --rdelay=300 --round2=1250000 --pdelay=300 --bonnie=\"-s 5000 -n 20:2000000:1000:100 -x 5\" --bonnie-time=3600 --bdelay=300 --wdelay=300 --fdelay=300"
+    ;;
+  epic)
+    TESTARGS="--round1=7500000 --rdelay=300 --round2=2500000 --pdelay=300 --bonnie=\"-s 10000 -n 20:2000000:1000:100 -x 10\" --bonnie-time=7200 --bdelay=3600 --wdelay=300 --fdelay=300"
+    ;;
+esac
+
+if [ "$THRASHER" == "1" ] ; then
+  echo "Using Thrash instead of Munch"
+  TESTARGS="$TESTARGS --thrash"
+  # time = count * 0.00033333 for 24 SATA Drives
+  case $LENGTH in
+    conveyance)
+      TESTARGS="$TESTARGS --thrash"
+      ;;
+    quick)
+      TESTARGS="$TESTARGS --thrash --round1-time=10"
+      ;;
+    short)
+      TESTARGS="$TESTARGS --thrash --round1-time=10 --round2-time=10"
+      ;;
+    medium)
+      TESTARGS="$TESTARGS --thrash --round1-time=150 --round2-time=150"
+      ;;
+    long)
+      TESTARGS="$TESTARGS --thrash --round1-time=1250 --round2-time=420"
+      ;;
+    epic)
+      TESTARGS="$TESTARGS --thrash --round1-time=0 --round2-time=0"
+      ;;
+  esac
+else
+  # time = count * 0.002 for 24 SATA Drives,
+  # for 24 drives min iop/s 8 ??
+  # NOTE: 24 drives on a 9211 seems to take longer ie for shared IO card 3
+  case $LENGTH in
+    conveyance)
+      TESTARGS="$TESTARGS"
+      ;;
+    quick)
+      TESTARGS="$TESTARGS --round1-time=700"
+      ;;
+    short)
+      TESTARGS="$TESTARGS --round1-time=700 --round2-time=700"
+      ;;
+    medium)
+      TESTARGS="$TESTARGS --round1-time=140000 --round2-time=140000"
+      ;;
+    long)
+      TESTARGS="$TESTARGS --round1-time=1250000 --round2-time=1250000"
+      ;;
+    epic)
+      TESTARGS="$TESTARGS --round1-time=0 --round2-time=0"
+      ;;
+  esac
+
+  if [ "$MUNCHER_DMA" == "1" ] ; then
+    echo "Using DMA"
+    TESTARGS="$TESTARGS --muncher-dma"
+  fi
+fi
+
+if [ "$NO_PARTITION_CHECK" == "1" ] ; then
+  echo "*** Skipping Parition Safety Check ***"
+  TESTARGS="$TESTARGS --no-partition-check"
+fi
+
+if [ "$DESTRUCTIVE" == "1" ] ; then
+  echo "### Running DESTRUCTIVE Drive test ###"
+  TESTARGS="$TESTARGS -d"
+else
+  TESTARGS="$TESTARGS --no-saveresults"
+fi
+
+if [ "$REPORT" == "1" ] ; then
+  echo "=== Reporting Results ==="
+  TESTARGS="$TESTARGS -r"
+  if [ "x$plato_proxy" != "x" ];
+  then
+    TESTARGS="$TESTARGS -p $plato_proxy"
+  fi
+fi
+
+if [ "$NO_LIGHTUP" == "1" ] ; then
+  echo "Not lighting up drives"
+  TESTARGS="$TESTARGS --no-lightup"
+fi
+
+if [ "$LOG" == "1" ];
+then
+  TESTARGS="$TESTARGS --log"
+fi
+
+echo -e "\n\n"
+
+if [ "$PROMPT" == "1"  ] ; then
+  /bin/postMessage "Waiting for BURNINATE..."
+  TMPBUFF=""
+  while [ "$TMPBUFF" != "BURNINATE" ] ; do
+    echo "Type 'BURNINATE' and press <enter> to continue"
+    read TMPBUFF
+  done
+fi
+
+echo "testargs: $TESTARGS"
+/bin/postMessage "Starting Drive Test..."
+
+./drivetest $TESTARGS && rc=0 || rc=$?
+
+if [ "$LOG" == "1" ];
+then
+  /bin/postMessage "Logs saved, waiting at prompt."
+  echo "drivetest ended with '$rc'"
+  echo "Dropping to shell, type 'exit' to continue..."
+  /bin/cttyhack /bin/sh -l
+fi
+
+if [ "$rc" -ne "0" ];
+then
+  /bin/signalAlert "Drive Test Failed."
+  exit 10
+fi
+
+/bin/postMessage "Drive Test Complete."
+/bin/signalComplete
+
+exit 0

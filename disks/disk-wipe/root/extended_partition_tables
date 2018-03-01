@@ -1,0 +1,45 @@
+#!/bin/sh
+
+echo "Doing front"
+
+for item in $@;
+do
+  drive="$( echo $item | cut -d ':' -f 1 )"
+  proc="$( echo $item | cut -d ':' -f 2 )"
+  if [ "$proc" == "wipedrive" ];
+  then
+    $( wipedrive -q -i 10 --count 1048576 /dev/$drive > /dev/null ) &
+  elif [ "$proc" == "trim" ];
+  then
+    $( wipedrive -q -r -i 10 --count 1048576 /dev/$drive > /dev/null ) &
+  else
+    $( dd if=/dev/zero of=/dev/$drive bs=512 count=1024k 2> /dev/null ) &
+  fi
+done
+
+echo "Waiting..."
+wait
+
+echo "Doing back"
+
+for item in $@;
+do
+  drive="$( echo $item | cut -d ':' -f 1 )"
+  proc="$( echo $item | cut -d ':' -f 2 )"
+  if [ "$proc" == "wipedrive" ];
+  then
+    $( wipedrive -q -i 10 --start $(( `driveinfo /dev/$drive | grep "^LBA Count:" | cut -d: -f2` - 1048576 )) /dev/$drive > /dev/null ) &
+  elif [ "$proc" == "trim" ];
+  then
+    $( wipedrive -q -r -i 10 --start $(( `driveinfo /dev/$drive | grep "^LBA Count:" | cut -d: -f2` - 1048576 )) /dev/$drive > /dev/null ) &
+  else
+    $( dd if=/dev/zero of=/dev/$drive bs=512 count=1024k skip=$(( `fdisk -s /dev/$drive` - 1048576 )) 2> /dev/null ) &
+  fi
+done
+
+echo "Waiting..."
+wait
+
+echo "Done"
+
+exit 0

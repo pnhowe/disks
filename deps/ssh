@@ -1,0 +1,11 @@
+#!/bin/sh
+#SOURCE: https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-7.6p1.tar.gz
+#FILE: openssh-7.6p1.tar.gz
+#HASH: a6984bc2c72192bed015c8b879b35dd9f5350b3b
+
+set -e
+set -x
+
+tar --strip-components=1 -xzf $1
+./configure --prefix= --sysconfdir=/etc/ssh
+make -j4

@@ -1,0 +1,7 @@
+PROMPT 1
+TIMEOUT 10
+DEFAULT hardware-test
+
+LABEL hardware-test
+KERNEL /vmlinuz.img
+APPEND initrd=/initrd.img

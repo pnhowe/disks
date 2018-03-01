@@ -1,0 +1,62 @@
+#!/usr/bin/python -u
+
+import sys
+import optparse
+import os
+from platoclient.libdrive import DriveManager, setCLIs
+from platoclient.libplato import Plato
+
+oparser = optparse.OptionParser( description='Verify all disks are healthy', usage='usage: %prog [options]' )
+
+oparser.add_option( '--expected-disks', help='Total number Expected disks', dest='expected_disks', default=0, type="int" )
+oparser.add_option( '--allowed-missing', help='Number disks allowed to be missing', dest='missing_disks', default=0, type="int" )
+oparser.add_option( '--allow-non-thrashed', help='Allow disks that haven\'t passed thrashing to remain', dest='allow_non_thrashed', default=False, action='store_true' )
+
+( options, args ) = oparser.parse_args()
+
+if 'plato_proxy' in os.environ:
+  plato = Plato( host='plato', proxy=os.environ['plato_proxy'] )
+else:
+  plato = Plato( host='plato' )
+
+bad_list = []
+unknown_list = []
+total = 0
+
+setCLIs( tw_cli='/usr/sbin/tw_cli', megaraid='/usr/sbin/MegaCli64' )
+
+dm = DriveManager()
+
+for port in dm.port_list:
+  port.setFault( True )
+
+for drive in dm.drive_list:
+  total += 1
+  stat = plato.checkDriveThrashed( drive ) # none = not found, true = thrashed, false = not thrashed
+  if stat is None:
+    unknown_list.append( drive )
+  elif not stat:
+    bad_list.append( drive )
+  else:
+    drive.setFault( False )
+
+if len( bad_list ) > 0:
+  print 'The Following disks are bad and must be replaced...'
+  for drive in bad_list:
+    print '%s(%s) - %s - %s' % ( drive.name, drive.location, drive.model, drive.serial )
+  sys.exit( 2 )
+
+if not options.allow_non_thrashed and len( unknown_list ) > 0:
+  print 'The Following disks have not been tested and must be replaced...'
+  for drive in unknown_list:
+    print '%s(%s) - %s - %s' % ( drive.name, drive.location, drive.model, drive.serial )
+  sys.exit( 2 )
+
+if total < options.expected_disks - options.missing_disks:
+  if options.missing_disks:
+    print 'Expected %s disks, but found only %s, allowing for %s disks to be missing' % ( options.expected_disks, total, options.missing.disks )
+  else:
+    print 'Expected %s disks, but found only %s' % ( options.expected_disks, total )
+  sys.exit( 2 )
+
+sys.exit( 0 )

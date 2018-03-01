@@ -1,0 +1,281 @@
+#!/bin/sh
+
+/bin/postMessage "Configuring MegaRAID Controller(s)...."
+
+. /config
+
+C_LIST=`$STORCLI_CLI show | awk '/^[ ]*[0-9]* / { print "c" $1 }'`
+echo "MegaRAID Controller List: $C_LIST"
+
+echo "Disabeling JBOD..."
+for c in $C_LIST;
+do
+  echo "Disabeling JBOD on controller $c..."
+  $STORCLI_CLI /$c set jbod=off force
+  if [ "$?" -ne "0" ];
+  then
+    echo "Error Disabeling JBOD on $c."
+    #don't exit 1, some controllers don't support JBOD
+  fi
+done
+
+echo "Removing Existing Configs..."
+for c in $C_LIST;
+do
+  echo "Removing Foreign Configs on controller $c..."
+  $STORCLI_CLI /$c/fall delete
+  if [ "$?" -ne "0" ];
+  then
+    echo "Error Removing Foreign Configs on $c."
+    exit 1
+  fi
+
+  echo "Removing Existing VDs on controller $c..."
+  $STORCLI_CLI /$c/vall delete force
+  if [ "$?" -ne "0" ];
+  then
+    echo "Error Existing VDs on $c."
+    exit 1
+  fi
+
+  echo "Removing Existing CacheCade on controller $c..."
+  $STORCLI_CLI /$c/vall del cachecade
+  if [ "$?" -ne "0" ];
+  then
+    echo "Error Existing CacheCade on $c."
+    exit 1
+  fi
+done
+
+# detect BBU and set WTWB to wb
+WTWB="wt"
+
+if [ "$1" == "all_single" ];
+then
+  counter=1
+  echo "Setting up all disks as single disk raids..."
+  for c in $C_LIST;
+  do
+    P_LIST=`$STORCLI_CLI /$c show | awk '/^[0-9]*:[0-9]* .*HDD.*/ { print $1 }'`
+    for p in P_LIST;
+    do
+      $STORCLI_CLI /$c add vd raid0 name="disk_$counter" drives=$p $WTWB
+      if [ "$?" -ne "0" ];
+      then
+        echo "Error Creating single on $c port $p."
+        exit 1
+      fi
+      counter=$(( counter + 1 ))
+    done
+  done
+
+elif [ "$1" == "one_mirror_rest_10" ];
+then
+  counter=1
+  echo "Setting one mirror and the rest in raid 10s..."
+  for c in $C_LIST;
+  do
+    if [ "$counter" == "1" ] ;
+    then
+      p=`$STORCLI_CLI /$c show | awk '/^[0-9]*:[0-9]* .*HDD.*/ { x++; arr[x]=$1 }; END { printf arr[1] "," arr[2] }'`
+      $STORCLI_CLI /$c add vd raid1 name="mirror" drives=$p $WTWB
+      rc=$?
+      if [ "$rc" -ne "0" ];
+      then
+        echo "Error Creating mirror on $c disk $p, rc: $rc."
+        exit 1
+      fi
+      # dosen't look like storcli likes odd pdperarray counts....
+      p=`$STORCLI_CLI /$c show | awk '/^[0-9]*:[0-9]* .*HDD.*/ { x++; arr[x]=$1 }; END { if( x % 2 ) print "BAD"; else { printf arr[3]; for( i=4; i <= x; i++ ) { printf "," arr[i] } } }'`
+      if [ "x$p" == "xBAD" ];
+      then
+        echo "Not an even number of disks"
+        exit 1
+      fi
+      p_count=`echo "$p" | sed s/,/\\\n/g | wc -l`
+      $STORCLI_CLI /$c add vd raid10 name="raid10_$counter" drives=$p pdperarray=$(( p_count / 2 )) $WTWB
+      rc=$?
+      if [ "$rc" -ne "0" ];
+      then
+        echo "Error Creating raid10 on $c disk $p, rc: $rc."
+        exit 1
+      fi
+      counter=$(( counter + 1 ))
+
+    else
+      p=`$STORCLI_CLI /$c show | awk '/^[0-9]*:[0-9]* .*HDD.*/ { x++; arr[x]=$1 }; END { if( x % 2 ) print "BAD"; else { printf arr[1]; for( i=2; i <= x; i++ ) { printf "," arr[i] } } }'`
+      if [ "x$p" == "xBAD" ];
+      then
+        echo "Not an even number of disks"
+        exit 1
+      fi
+      p_count=`echo "$p" | sed s/,/\\\n/g | wc -l`
+      $STORCLI_CLI /$c add vd raid10 name="raid10_$counter" drives=$p pdperarray=$(( p_count / 2 )) $WTWB
+      rc=$?
+      if [ "$rc" -ne "0" ];
+      then
+        echo "Error Creating raid1 on $c disk $p, rc: $rc."
+        exit 1
+      fi
+      counter=$(( counter + 1 ))
+    fi
+  done
+
+elif [ "$1" == "two_mirror_rest_10" ];
+then
+  counter=1
+  echo "Setting two mirrors and the rest in raid 10s..."
+  for c in $C_LIST;
+  do
+    if [ "$counter" == "1" ] ;
+    then
+      p=`$STORCLI_CLI /$c show | awk '/^[0-9]*:[0-9]* .*HDD.*/ { x++; arr[x]=$1 }; END { printf arr[1] "," arr[2] }'`
+      $STORCLI_CLI /$c add vd raid1 name="mirror_1" drives=$p $WTWB
+      rc=$?
+      if [ "$rc" -ne "0" ];
+      then
+        echo "Error Creating first mirror on $c disk $p, rc: $rc."
+        exit 1
+      fi
+
+      p=`$STORCLI_CLI /$c show | awk '/^[0-9]*:[0-9]* .*HDD.*/ { x++; arr[x]=$1 }; END { printf arr[3] "," arr[4] }'`
+      $STORCLI_CLI /$c add vd raid1 name="mirror_2" drives=$p $WTWB
+      rc=$?
+      if [ "$rc" -ne "0" ];
+      then
+        echo "Error Creating second mirror on $c disk $p, rc: $rc."
+        exit 1
+      fi
+
+      p=`$STORCLI_CLI /$c show | awk '/^[0-9]*:[0-9]* .*HDD.*/ { x++; arr[x]=$1 }; END { if( x % 2 ) print "BAD"; else { printf arr[5]; for( i=6; i <= x; i++ ) { printf "," arr[i] } } }'`
+      if [ "x$p" == "xBAD" ];
+      then
+        echo "Not an even number of disks"
+        exit 1
+      fi
+      p_count=`echo "$p" | sed s/,/\\\n/g | wc -l`
+      $STORCLI_CLI /$c add vd raid10 name="raid10_$counter" drives=$p pdperarray=$(( p_count / 2 )) $WTWB
+      rc=$?
+      if [ "$rc" -ne "0" ];
+      then
+        echo "Error Creating raid10 on $c disk $p, rc: $rc."
+        exit 1
+      fi
+      counter=$(( counter + 1 ))
+
+    else
+      p=`$STORCLI_CLI /$c show | awk '/^[0-9]*:[0-9]* .*HDD.*/ { x++; arr[x]=$1 }; END { if( x % 2 ) print "BAD"; else { printf arr[1]; for( i=2; i <= x; i++ ) { printf "," arr[i] } } }'`
+      if [ "x$p" == "xBAD" ];
+      then
+        echo "Not an even number of disks"
+        exit 1
+      fi
+      p_count=`echo "$p" | sed s/,/\\\n/g | wc -l`
+      $STORCLI_CLI /$c add vd raid10 name="raid10_$counter" drives=$p pdperarray=$(( p_count / 2 )) $WTWB
+      rc=$?
+      if [ "$rc" -ne "0" ];
+      then
+        echo "Error Creating raid10 on $c disk $p, rc: $rc."
+        exit 1
+      fi
+      counter=$(( counter + 1 ))
+    fi
+  done
+
+
+elif [ "$1" == "all_10" ];
+then
+  counter=1
+  echo "Setting up all disks in raid 10s..."
+  for c in $C_LIST;
+  do
+    p=`$STORCLI_CLI /$c show | awk '/^[0-9]*:[0-9]* .*HDD.*/ { x++; arr[x]=$1 }; END { if( x % 2 ) print "BAD"; else { printf arr[1]; for( i=2; i <= x; i++ ) { printf "," arr[i] } } }'`
+    if [ "x$p" == "xBAD" ];
+    then
+      echo "Not an even number of disks"
+      exit 1
+    fi
+    p_count=`echo "$p" | sed s/,/\\\n/g | wc -l`
+    $STORCLI_CLI /$c add vd raid10 name="raid10_$counter" drives=$p pdperarray=$(( p_count / 2 )) $WTWB
+    rc=$?
+    if [ "$rc" -ne "0" ];
+    then
+      echo "Error Creating raid10 on $c disk $p, rc: $rc."
+      exit 1
+    fi
+    counter=$(( counter + 1 ))
+  done
+
+
+elif [ "$1" == "msg_db" ];
+then
+  counter=1
+  echo "Setting up msg db scheme..."
+  for c in $C_LIST;
+  do
+    $STORCLI_CLI /$c add vd raid1 name="os" drives=4:0,4:1 $WTWB
+    rc=$?
+    if [ "$rc" -ne "0" ];
+    then
+      echo "Error Creating os on $c, rc: $rc."
+      exit 1
+    fi
+
+    $STORCLI_CLI /$c add vd raid10 name="data" drives=4:2,4:3,4:4,4:5,4:6,4:7,4:8,4:9,4:10,4:11,4:12,4:13,4:14,4:15,4:16,4:17,4:18,4:19,4:20,4:21 pdperarray=10 $WTWB
+    rc=$?
+    if [ "$rc" -ne "0" ];
+    then
+      echo "Error Creating data on $c, rc: $rc."
+      exit 1
+    fi
+
+    $STORCLI_CLI /$c/e4/s22,23 add hotsparedrive
+    rc=$?
+    if [ "$rc" -ne "0" ];
+    then
+      echo "Error Setting up hot spares $c, rc: $rc."
+      exit 1
+    fi
+
+  done
+
+fi
+
+echo "Setting up all cachecade disks..."
+for c in $C_LIST;
+do
+  rc=`$STORCLI_CLI /$c show aso | grep CacheCade | wc -l`
+  if [ "$rc" -eq "0" ];
+  then
+    echo "CacheCade not supported on this controller, skipping..."
+    continue
+  fi
+
+  p=`$STORCLI_CLI /$c show | awk '/^[0-9]*:[0-9]* .*SSD.*/ { x++; arr[x]=$1 }; END { printf arr[1] "," arr[x] }'`
+  $STORCLI_CLI /$c add vd cachecade raid10 name="cachecade_$counter" drives=$p $WTWB
+  rc=$?
+  if [ "$rc" -ne "0" ];
+  then
+    echo "Error Creating cachecade on $c disk $p, rc: $rc."
+    exit 1
+  fi
+
+  $STORCLI_CLI /$c/vall set ssdcaching=on
+  rc=$?
+  if [ "$rc" -ne "0" ];
+  then
+    echo "Error Creating enabeling ssdcaching on $c, rc: $rc."
+    exit 1
+  fi
+done
+
+echo "Current config..."
+for c in $C_LIST;
+do
+  $STORCLI_CLI /$c show
+done
+
+sleep 2
+
+echo "Done."
+exit 0

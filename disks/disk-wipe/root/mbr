@@ -1,0 +1,25 @@
+#!/bin/sh
+
+echo "Doing MBR"
+
+for item in $@;
+do
+  drive="$( echo $item | cut -d ':' -f 1 )"
+  proc="$( echo $item | cut -d ':' -f 2 )"
+  if [ "$proc" == "wipedrive" ];
+  then
+    $( wipedrive -q -i 10 --count 1 /dev/$drive > /dev/null ) &
+  elif [ "$proc" == "trim" ];
+  then
+    $( wipedrive -q -r -i 10 --count 1 /dev/$drive > /dev/null ) &
+  else
+    $( dd if=/dev/zero of=/dev/$drive bs=512 count=1 2> /dev/null ) &
+  fi
+done
+
+echo "Waiting..."
+wait
+
+echo "Done"
+
+exit 0

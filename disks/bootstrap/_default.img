@@ -1,0 +1,7 @@
+PROMPT 1
+TIMEOUT 10
+DEFAULT bootstrap
+
+LABEL bootstrap
+KERNEL /vmlinuz.img
+APPEND initrd=/initrd.img

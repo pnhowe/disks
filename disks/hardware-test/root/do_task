@@ -1,0 +1,37 @@
+#!/bin/sh
+
+set -e
+
+MODE="normal"
+
+# setup vars
+ARGS=""
+
+. /tmp/config_file
+
+if [ "$MODE" == "disabled" ];
+then
+  /bin/postMessage "Hardware Test Disabled, skipped."
+  /bin/signalComplete
+  exit 0
+fi
+
+if [ "$MODE" == "quick" ];
+then
+  ARGS="$ARGS quick"
+fi
+
+/bin/postMessage "Starting Hardware Test..."
+
+/hardware-test $ARGS && rc=0 || rc=$?
+
+if [ "$rc" -ne "0" ];
+then
+  /bin/signalAlert "Hardware Test Failed."
+  exit 10
+fi
+
+/bin/postMessage "Hardware Test Complete."
+/bin/signalComplete
+
+exit 0

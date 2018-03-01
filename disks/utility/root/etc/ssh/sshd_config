@@ -1,0 +1,3 @@
+UseDNS no
+
+Subsystem sftp /sbin/sftp-server
