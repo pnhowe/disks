@@ -1,0 +1,13 @@
+#!/bin/sh
+
+set -e
+set -x
+
+#  $1 - name of dep
+#  $2 - target root fs dir
+
+. deps/$1
+
+cd build.deps/$1
+
+build ../../$2

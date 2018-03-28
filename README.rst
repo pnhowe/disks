@@ -52,12 +52,27 @@ For a list of avilable Disk Images targets::
 
   make img-targets
 
+
+Disks
+-----
+
+ - bios-cfg -
+ - bootstrap -
+ - disk-test -
+ - disk-wipe -
+ - firmware -
+ - hardware-test -
+ - linux-installer -
+ - provision-check -
+ - set-rtc -
+ - storage-config -
+ - utility -
+
 Notes
 -----
 
 The output of the executing script is sent to `console`(see `console` boot option) as well as saved to `/tmp/output`, be warned not to `cat /tmp/output.log` while on the primary output,
 you may end up in a loop.  A second shell is started on tty2, and the output of the syslog is sent to tty3.
-
 
 Boot Options
 ------------

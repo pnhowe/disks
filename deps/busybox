@@ -6,6 +6,9 @@
 set -e
 set -x
 
-tar --strip-components=1 -xjf $1
-cp ../../configs/busybox .config
-make -j4
+build()
+{
+  tar --strip-components=1 -xjf $1
+  cp ../../configs/busybox .config
+  make -j4
+}

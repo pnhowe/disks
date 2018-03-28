@@ -61,9 +61,9 @@ build.deps/%.download: deps/%
 	fi
 	touch $@
 
-build.deps/%.build: deps/%
+build.deps/%.build: deps/% build.deps/%.download
 	mkdir -p build.deps/$*
-	cd build.deps/$* && $(PWD)/deps/$* $(PWD)/downloads/$(shell grep -m 1 '#FILE:' $< | sed s/'#FILE: '// )
+	scripts/build_dep $* downloads/$(shell grep -m 1 '#FILE:' $< | sed s/'#FILE: '// )
 	touch $@
 
 clean-downloads:
@@ -91,12 +91,12 @@ all-pxe: $(PXE_FILES) $(PXES)
 pxe-targets:
 	@echo "Aviable PXE Targets: $(PXES)"
 
-# build_root paramaters: $1 - target root fs dir, $2 - source dir, $3 - dep build dirz
+# build_root paramaters: $1 - target root fs dir, $2 - source dir, $3 - dep build dir
 build.images/%.root: build.deps/build build-src
 	mkdir -p build.images/$*
 	cp -a template/* build.images/$*
 	cp -a disks/$*/root/* build.images/$*
-	cd scripts && $(PWD)/disks/$*/build_root $(PWD)/build.images/$* $(PWD)/src $(PWD)/build.deps
+	./disks/$*/build_root
 	touch $@
 
 images/pxe/%.initrd: build.images/%.root images

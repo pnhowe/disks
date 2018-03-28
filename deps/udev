@@ -7,6 +7,19 @@
 set -e
 set -x
 
-tar --strip-components=1 -xzf $1
-./configure --prefix= --bindir=/sbin --sbindir=/sbin --with-rootprefix= --with-rootlibdir=/lib --disable-shared
-make -j4
+build()
+{
+  tar --strip-components=1 -xzf $1
+  ./configure --prefix= --bindir=/sbin --sbindir=/sbin --with-rootprefix= --with-rootlibdir=/lib --disable-shared
+  make -j4
+}
+
+install()
+{
+  DESTDIR=$1 make -C $3/udev install
+  $1/sbin/udevadm hwdb --update --root=$1
+  sed s/#udev_log=\"info\"/udev_log=\"info\"/ -i $1/etc/udev/udev.conf
+  rm -fr $1/etc/udev/hwdb.d
+
+  rm -fr $1/lib/pkgconfig
+}

@@ -3,16 +3,11 @@
 set -e
 set -x
 
-./setup_base $1 $2 $3
-./install_kernel $1 $2 $3
+ROOT_FS="utility"
 
-for LIB in /lib/x86_64-linux-gnu/libcrypto.so.1.0.0 \
-/lib/x86_64-linux-gnu/libz.so.1 /lib/x86_64-linux-gnu/libcrypt.so.1 \
-/lib/x86_64-linux-gnu/libresolv.so.2
-do
-  cp -L $LIB $1/lib
-done
+. scripts/disk_functions
 
-cp $3/ssh/sshd $1/sbin
-cp $3/ssh/sftp-server $1/sbin
-cp $3/ssh/ssh-keygen $1/sbin
+install_base
+
+install_dep "ssh"
+install_dep "lldp" 
