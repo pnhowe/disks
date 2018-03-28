@@ -1,0 +1,7 @@
+PROMPT 1
+TIMEOUT 10
+DEFAULT storage-config
+
+LABEL storage-config
+KERNEL /vmlinuz.img
+APPEND initrd=/initrd.img

@@ -1,0 +1,16 @@
+#!/usr/bin/python -u
+
+import sys
+import os
+
+from platopxe.libplatopxe import PlatoPXE, PlatoPxeNoJobException
+
+platopxe = PlatoPXE( host=os.environ.get( 'plato_host', 'http://plato' ), proxy=os.environ.get( 'plato_proxy', None ) )
+
+try:
+  platopxe.signalComplete()
+  print 'Complete Signal Sent.'
+except PlatoPxeNoJobException:
+  print 'WARNING! No Job, aborting.'
+
+sys.exit( 0 )

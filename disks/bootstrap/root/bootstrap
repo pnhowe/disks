@@ -1,0 +1,386 @@
+#!/usr/bin/python -u
+import sys
+import shlex
+import time
+import glob
+import os
+import re
+from subprocess import Popen, PIPE
+from pylib.libplatobootstrap import PlatoBootstrap
+from platoclient.libhardware import dmiInfo, pciInfo
+from platoclient.libdrive import DriveManager, setCLIs
+from platoclient.libenclosure import EnclosureManager
+
+def _ipmicommand( cmd, ignore_failure=False ):
+  proc = Popen( [ '/bin/ipmitool' ] + cmd.split() )
+  if proc.wait() != 0:
+    if ignore_failure:
+      print 'WARNING: ipmi cmd "%s" failed, ignored...' % cmd
+    else:
+      plato.strapStatus( 'Ipmi Error with: "%s"' % cmd )
+      sys.exit( 1 )
+
+
+def _getLLDP():
+  counter = 0
+  lldp_values = {}
+  results = {}
+  while True:
+    proc = Popen( [ '/sbin/lldpcli', 'show', 'neighbors', '-f', 'keyvalue' ], stdout=PIPE )
+    ( lldp_data, _ ) = proc.communicate()
+    if len( lldp_data ) > 10:
+      for line in lldp_data.splitlines():
+        if '=' not in line:
+          continue
+        ( key, value ) = line.split( '=' )
+        lldp_values[key] = value
+      break
+
+    else:
+      if counter >= 10:
+        plato.strapStatus( 'lldp timeout waiting for data, skipping...' )
+        return results
+      counter += 1
+      time.sleep( 10 )
+
+  for item in lldp_values:
+    ( protocol, interface, name ) = item.split( '.', 2 ) # protocol, interface
+
+    if interface not in results:
+      results[ interface ] = {}
+
+    if name == 'chassis.mac':
+      results[ interface ][ 'mac' ] = lldp_values[ item ]
+
+    elif name == 'chassis.name':
+      results[ interface ][ 'name' ] = lldp_values[ item ]
+
+    elif name in ( 'port.local', 'port.ifname' ):
+      parts = re.sub( '[^0-9/]', '', lldp_values[ item ] ).split( '/' )
+      if len( parts ) == 1:
+        results[ interface ][ 'slot' ] = 1
+        results[ interface ][ 'port' ] = int( parts[0] )
+        results[ interface ][ 'subport' ] = 0
+
+      elif len( parts ) == 2:
+        results[ interface ][ 'slot' ] = int( parts[0] )
+        results[ interface ][ 'port' ] = int( parts[1] )
+        results[ interface ][ 'subport' ] = 0
+
+      elif len( parts ) == 3:
+        results[ interface ][ 'slot' ] = int( parts[0] )
+        results[ interface ][ 'port' ] = int( parts[1] )
+        results[ interface ][ 'subport' ] = int( parts[2] )
+
+      else:
+        plato.strapStatus( 'I don\'t know how to handle this lldp local port "%s"' % lldp_values[item] )
+        sys.exit( 1 )
+
+  return results
+
+
+def _cpuPhysicalCount():
+  wrk = []
+  cpuinfo = open( '/proc/cpuinfo' )
+  for line in cpuinfo.readlines():
+    if line.startswith( 'physical id' ) and line not in wrk:
+      wrk.append( line )
+
+  return len( wrk )
+
+
+def _cpuLogicalCount():
+  wrk = []
+  cpuinfo = open( '/proc/cpuinfo' )
+  for line in cpuinfo.readlines():
+    if line.startswith( 'processor' ) and line not in wrk:
+      wrk.append( line )
+
+  return len( wrk )
+
+
+def _getRAMAmmount():
+  meminfo = open( '/proc/meminfo' )
+  for line in meminfo.readlines():
+    if line.startswith( 'MemTotal' ):
+      return int( line.split( ':' )[1].strip().split( ' ' )[0] ) / 1024
+
+
+def _daeSetIdentify():
+  for enclosure in em.enclosure_list:
+    descriptors = enclosure.getSubEncDescriptors()
+    todo_list = []
+    for descriptor in descriptors[ 'descriptors' ]:
+      if descriptor[ 'element_type' ] == 12: # 12 -> 0x0c display type
+        todo_list.append( ( descriptor[ 'value_offset' ], bytearray( [ 0x80, 0x82, '0', 0x00 ] ) ) )
+
+    if todo_list:
+      enclosure.setSubEncDescriptors( descriptors[ 'generation' ], descriptors[ 'page_size' ], todo_list )
+
+def _daeSetValue( enclosure, help_text, index, value ):
+  if value not in '0123456789ABCDEF- ':
+    raise Exception( 'Invalid Display Value' )
+
+  enclosure = em.enclosure_list[ enclosure ]
+  descriptors = enclosure.getSubEncDescriptors()
+  for descriptor in descriptors[ 'descriptors' ]:
+    if descriptor[ 'element_type' ] == 12 and descriptor[ 'help_text' ] == help_text and descriptor[ 'subelement_index' ] == index:
+      enclosure.setSubEncDescriptors( descriptors[ 'generation' ], descriptors[ 'page_size' ], [ ( descriptor[ 'value_offset' ], bytearray( [ 0x80, 0x02, str( value[0] ), 0x00 ] ) ) ] )
+      break
+
+#can't do any status update until after the first request to /provisioner/strap, other wise the strap might not exist yet
+
+sys.argv = shlex.split( ' '.join( sys.argv ) ) # nice little hack b/c busybox is splitting the arguments up wrong, not honoring the "  " stuff, arg!!
+
+if len( sys.argv ) < 2:
+  print "Usage: %s <instance unique identifier>" % sys.argv[0]
+  sys.exit( 1 )
+
+strap = sys.argv[1]
+
+print "Strap id %s" % strap
+
+setCLIs( tw_cli='/usr/sbin/tw_cli', megaraid='/usr/sbin/MegaCli64' )
+
+em = EnclosureManager()
+dm = DriveManager()
+
+_ipmicommand( 'chassis identify force', True )
+_daeSetIdentify()
+
+if 'plato_proxy' in os.environ:
+  plato = PlatoBootstrap( host='plato', proxy=os.environ[ 'plato_proxy' ], strap=strap )
+else:
+  plato = PlatoBootstrap( host='plato', proxy=None, strap=strap )
+
+config = None
+
+lldp = _getLLDP()
+
+while not config:
+  print 'Polling...'
+  result = plato.doPoll( strap, lldp )
+  if result == '*Unassigned*':
+    plato.strapStatus( 'Strap not assigned to anything.' )
+    print 'Waiting 30 seconds....'
+    time.sleep( 30 )
+
+  elif result.startswith( 'Config:' ): #Hm..... we could have an 'Auto' where it getConfig is normal
+    config_id = result.split( ':' )[-1]
+    plato.id = int( config_id )
+    plato.allow_config_change = True
+    config = plato.getConfig()
+    plato.allow_config_change = False
+    if not config:
+      plato.strapStatus( 'Config for config id "%s" was blank' % config_id )
+      print 'Waiting 30 seconds....'
+      time.sleep( 30 )
+      continue
+
+  else:
+    plato.strapStatus( 'Unreconized Strap Request Response "%s"' % result )
+    sys.exit( 1 )
+
+plato.strapStatus( 'Device Identified' )
+
+print 'Getting Hardware Profile Information...'
+hardware = {} # hardware needs to match what is sent be reportHardwareStatus, except things like raid controller status?
+hardware[ 'dmi' ] = dmiInfo()
+hardware[ 'pci' ] = pciInfo()
+
+hardware[ 'total_ram' ] = _getRAMAmmount()
+hardware[ 'total_cpu_count' ] = _cpuLogicalCount()
+hardware[ 'total_cpu_sockets' ] = _cpuPhysicalCount()
+
+print 'Getting Network Information...'
+network = {}
+
+for item in glob.glob( '/sys/class/net/eth*' ):
+  network[ item.split( '/' )[-1] ] = { 'mac': file( '%s/address' % item, 'r' ).read().strip() }
+
+if os.path.exists( '/dev/ipmi0' ):
+  p1 = Popen( [ '/bin/ipmitool', 'lan', 'print', '%s' % config['lan_channel'] ], stdout=PIPE )
+  p2 = Popen( [ '/bin/grep', 'MAC Address' ], stdin=p1.stdout, stdout=PIPE )
+  network[ 'ipmi' ] = { 'mac': p2.communicate()[0][25:].strip() }
+
+for iface in lldp:
+  if iface not in network:
+    continue
+
+  network[iface]['lldp'] = lldp[iface]
+
+primary_iface = open( '/tmp/dhcp-interface' ).read().strip()
+
+if primary_iface not in network:
+  network[primary_iface] = {}
+
+network[primary_iface]['primary'] = True
+
+print 'Getting Disk Information...'
+disks = []
+for drive in dm.drive_list:
+  try:
+    item = drive.reporting_info
+  except:
+    print 'Warning: Error getting info from "%s", skipped...' % drive
+    continue
+
+  item[ 'capacity' ] = drive.capacity
+  item[ 'devpath' ] = drive.devpath
+  item[ 'pcipath' ] = drive.pcipath
+  item[ 'isSSD' ] = drive.isSSD
+  item[ 'isVirtualDisk' ] = drive.isVirtualDisk
+  disks.append( item )
+  drive.setFault( False )
+
+#print 'Getting Enclosure Information...'
+# nothing yet
+
+print 'Reporting Hardware info to plato...'
+( result, message ) = plato.reportHardwareProfile( hardware, network, disks )
+if not result:
+  plato.strapStatus( 'Hardware Error: "%s"' % message )
+  sys.exit( 20 )
+
+print '** Hello world.... my name is "%s", nice to meet you! **' % config['description']
+
+plato.strapStatus( 'Hardware Profile Verified' )
+
+baseboard = hardware['dmi']['Base Board Information'][0]['Product Name']
+
+iface_list = []
+
+if os.path.exists( '/dev/ipmi0' ) and 'ipmi' in config['interfaces']:
+  plato.strapStatus( 'Configuring IPMI' )
+
+  address = config['interfaces']['ipmi']['address_list'][0]
+
+  # remove the other users first
+  _ipmicommand( 'user disable 5' )
+  _ipmicommand( 'user set name 5 plato_' ) # some ipmi's don't like you to set the username to the same as it is allready....Intel!!!
+  _ipmicommand( 'user set name 5 plato' )
+  _ipmicommand( 'user set password 5 MyPl@t0Cntr1' ) # make sure username and password match /plato/plato-pod/plato/lib/IPMI.py, SOL.py
+  _ipmicommand( 'user enable 5' )
+  _ipmicommand( 'user priv 5 4 %d' % config['lan_channel'] ) # 4 = ADMINISTRATOR
+
+  _ipmicommand( 'sol set force-encryption true %d' % config['lan_channel'], True ) # these two stopped working on some new SM boxes, not sure why.
+  _ipmicommand( 'sol set force-authentication true %d' % config['lan_channel'], True )
+  _ipmicommand( 'sol set enabled true %d' % config['lan_channel'] )
+  _ipmicommand( 'sol set privilege-level user %d' % config['lan_channel'], True ) # dosen't work on some SM boxes?
+  _ipmicommand( 'sol payload enable %d 5' % config['lan_channel'] )
+
+  if baseboard in ( 'X9DRW', 'X9DRE-TF+/X9DR7-TF+', ):
+    _ipmicommand( 'raw 0x30 0x70 0xc 1 0' ) # dedicated port only
+
+  _ipmicommand( 'lan set %s arp generate off' % ( config['lan_channel'] ), True ) # disable gratious arp, dosen't work on some Intel boxes?
+  _ipmicommand( 'lan set %s ipsrc static' % ( config['lan_channel'] ) )
+  _ipmicommand( 'lan set %s ipaddr %s' % ( config['lan_channel'], address['address'] ) )
+  _ipmicommand( 'lan set %s netmask %s' % ( config['lan_channel'], address['netmask'] ) )
+  if not address.get( 'gateway', None ):
+    address['gateway'] = '0.0.0.0'
+  _ipmicommand( 'lan set %s defgw ipaddr %s' % ( config['lan_channel'], address['gateway'] ) ) # use the address 0.0.0.0 dosen't allways work for disabeling defgw
+
+  try:
+    if address['vlan'] and address['tagged']:
+      _ipmicommand( 'lan set %s vlan id %s' % ( config['lan_channel'], address['vlan'] ) )
+  except KeyError:
+    pass
+
+  plato.strapStatus( 'Letting IPMI settle' )
+  print 'Letting IPMI config settle...'
+  time.sleep( 30 ) # make sure the bmc has saved everything
+
+  #print 'Resetting BMC...' # so the intell boards's BMCs like to go out to lunch and never come back, wich messes up power off and bios config in the subtask, have to do something here later
+  #_ipmicommand( 'bmc reset cold' ) # reset the bmc, make sure it comes up the way we need it
+  #print 'Letting BMC come back up...'
+  #time.sleep( 60 ) # let the bmc restart
+
+  # bmc info can hang for ever use something like http://stackoverflow.com/questions/1191374/subprocess-with-timeout
+  # to kill it and restart and try again.... plato has to be able to send identified machines back to provisiond however
+  #_ipmicommand( 'bmc info' ) # should hang untill it comes back, need a timeout for this
+  #_ipmicommand( 'bmc info' )
+
+  _ipmicommand( 'sel clear', True ) # clear the eventlog, clean slate, everyone deserves it
+
+if config.get( 'bootstrap_wipe_mbr', False ):
+  plato.strapStatus( 'Clearing MBRs...' )
+  for drive in dm.drive_list:
+    if drive.block_path is not None:
+      tmp = open( drive.block_path, 'r+' )
+      for i in range( 0, 5 ):
+        tmp.write( chr( 0 ) )
+      tmp.close()
+
+if config.get( 'bios_config', False ) and config.get( 'bios_config_location', False ):
+  plato.strapStatus( 'Loading Initial BIOS Config' )
+  if isinstance( config[ 'bios_config' ], basestring ):
+    config_file_list = [ config[ 'bios_config' ] ]
+  else:
+    config_file_list = list( config[ 'bios_config' ] )
+
+  local_config_file = '/tmp/biosconfig'
+
+  success = False
+
+  for config_file in config_file_list:
+    url = '%s%s' % ( config[ 'bios_config_location' ], config_file )
+    print 'Retreiving BIOS config "%s" ...' % url # disabeling proxy for now, need a http_server proxy
+    proc = Popen( [ '/bin/wget', '-Yoff', '-q', '-O', local_config_file, url ] )
+    if proc.wait() != 0:
+      plato.strapStatus( 'Error getting bios config' )
+      sys.exit( 1 )
+
+    cmd = None
+
+    bios_password = config.get( 'bios_password', '' )
+
+    if baseboard in ( 'S2600JF', ):
+      cmd = [ './syscfg', '13', bios_password, local_config_file ]
+
+    elif baseboard in ( 'X9DRE-TF+/X9DR7-TF+', 'X9DRW' ):
+      cmd = [ './sum', '1_3', bios_password, local_config_file ]
+
+    elif baseboard in ( 'X10DRU-i+', ):
+      cmd = [ './sum', '1_5', bios_password, local_config_file ]
+
+    if cmd is None:
+      print 'Motherboard "%s" not supported' % baseboard
+      sys.exit( 1 )
+
+    proc = Popen( cmd )
+    if proc.wait() == 0:
+      success = True
+      break
+
+    print 'trying next file...'
+
+  if not success:
+    plato.strapStatus( 'BIOS Config Failed' )
+    sys.exit( 1 )
+
+for ( name, index ) in [ ( 'Display Green', 0 ), ( 'Display Green', 1 ), ( 'Display Blue', 0 ) ]:
+  key_name = 'dae_%s' % name.lower().replace( ' ', '_' )
+  try:
+    value = config[ key_name ]
+  except KeyError:
+    continue
+
+  try:
+    value = value[ index ]
+  except IndexError:
+    value = ' '
+
+  value = value.upper()
+  print 'Setting DAE display "%s"-"%s" to "%s"' % ( name, index, value )
+  _daeSetValue( 0, name, index, value )
+
+plato.strapStatus( 'Cleaning up' )
+
+_ipmicommand( 'chassis identify 0', True )
+
+if not plato.strapDone():
+  plato.strapStatus( 'Error Flagging Complete Delete this Reccord and Carry on, Device Identified.'  )
+  sys.exit( 0 )
+
+print 'All Done'
+sys.exit( 0 )

@@ -1,0 +1,7 @@
+PROMPT 1
+TIMEOUT 10
+DEFAULT provision-check
+
+LABEL provision-check
+KERNEL /vmlinuz.img
+APPEND initrd=/initrd.img

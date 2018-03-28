@@ -1,0 +1,33 @@
+#!/bin/sh
+
+set -e
+
+. /tmp/config_file
+
+/bin/postMessage "Starting Firmware Update..."
+
+if [ ! -f /config.json ];
+then
+  echo "Nothing to do."
+  /bin/postMessage "Firmware Update Skipped."
+  /bin/signalComplete
+  exit 0
+fi
+
+./firmware-update "$RESOURCE_LOCATION" "$HTTP_PROXY" && rc=0 || rc=$?
+
+if [ "$rc" -eq "20" ];
+then
+  exit 20
+fi
+
+if [ "$rc" -ne "0" ];
+then
+  /bin/signalAlert "Firmware Update Failed."
+  exit 10
+fi
+
+/bin/postMessage "Firmware Update Complete."
+/bin/signalComplete
+
+exit 0

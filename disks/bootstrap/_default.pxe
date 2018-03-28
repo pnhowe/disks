@@ -1,0 +1,8 @@
+PROMPT 1
+TIMEOUT 10
+
+DEFAULT bootstrap
+
+LABEL bootstrap
+KERNEL bootstrap.vmlinuz
+APPEND initrd=bootstrap.initrd

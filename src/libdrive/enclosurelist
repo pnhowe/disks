@@ -1,0 +1,10 @@
+#!/usr/bin/python -u
+
+from platoclient.libenclosure import EnclosureManager
+
+em = EnclosureManager()
+
+print "SCSI Generic\tModel"
+
+for enclosure in em.enclosure_list:
+  print '%s\t%s' % ( enclosure.scsi_generic, enclosure.model )

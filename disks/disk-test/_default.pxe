@@ -1,0 +1,8 @@
+PROMPT 1
+TIMEOUT 10
+
+DEFAULT disk-test
+
+LABEL disk-test
+KERNEL disk-test.vmlinuz
+APPEND initrd=disk-test.initrd

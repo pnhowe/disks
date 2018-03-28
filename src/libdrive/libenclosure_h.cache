@@ -1,0 +1,74 @@
+from ctypes import *
+
+
+
+class enclosure_info(Structure):
+    pass
+
+# values for enumeration 'driver_type'
+DRIVER_TYPE_UNKNOWN = 0
+DRIVER_TYPE_IDE = 1
+DRIVER_TYPE_SGIO = 2
+DRIVER_TYPE_SAT = 3
+DRIVER_TYPE_3WARE = 16
+DRIVER_TYPE_MEGADEV = 17
+DRIVER_TYPE_MEGASAS = 18
+driver_type = c_int # enum
+
+# values for enumeration 'protocol_type'
+PROTOCOL_TYPE_UNKNOWN = 0
+PROTOCOL_TYPE_ATA = 1
+PROTOCOL_TYPE_SCSI = 2
+protocol_type = c_int # enum
+enclosure_info._fields_ = [
+    ('driver', driver_type),
+    ('protocol', protocol_type),
+    ('model', c_char * 42),
+    ('serial', c_char * 34),
+    ('WWN', c_ulonglong),
+    ('vendor_id', c_char * 9),
+    ('version', c_char * 5),
+    ('SCSI_version', c_int),
+    ('hasDiagnosticPageConfiguration', c_char),
+    ('hasDiagnosticPageControlStatus', c_char),
+    ('hasDiagnosticPageHelpText', c_char),
+    ('hasDiagnosticPageString', c_char),
+    ('hasDiagnosticPageThreshold', c_char),
+    ('hasDiagnosticPageElementDescriptor', c_char),
+    ('hasDiagnosticPageShortStatus', c_char),
+    ('hasDiagnosticPageBusy', c_char),
+    ('hasDiagnosticPageAdditionalElement', c_char),
+    ('hasDiagnosticPageSubHelpText', c_char),
+    ('hasDiagnosticPageSubString', c_char),
+    ('hasDiagnosticPageSupportedDiagnostigPages', c_char),
+    ('hasDiagnosticPageDownloadMicroCode', c_char),
+    ('hasDiagnosticPageSubNickname', c_char),
+    ('hasVPDPageSerial', c_char),
+    ('hasVPDPageIdentification', c_char),
+]
+class subenc_descriptors(Structure):
+    pass
+class subenc_descriptor_element(Structure):
+    pass
+subenc_descriptor_element._fields_ = [
+    ('sub_enclosure', c_ubyte),
+    ('element_index', c_ubyte),
+    ('element_type', c_ubyte),
+    ('subelement_index', c_ubyte),
+    ('help_text', c_char * 50),
+    ('value_offset', c_ushort),
+    ('value', c_ubyte * 4),
+]
+subenc_descriptors._fields_ = [
+    ('page_size', c_uint),
+    ('generation', c_uint),
+    ('count', c_ubyte),
+    ('descriptors', subenc_descriptor_element * 250),
+]
+__all__ = ['PROTOCOL_TYPE_ATA', 'driver_type',
+           'subenc_descriptor_element', 'enclosure_info',
+           'DRIVER_TYPE_SGIO', 'DRIVER_TYPE_IDE',
+           'PROTOCOL_TYPE_SCSI', 'DRIVER_TYPE_MEGASAS',
+           'DRIVER_TYPE_SAT', 'PROTOCOL_TYPE_UNKNOWN',
+           'DRIVER_TYPE_UNKNOWN', 'DRIVER_TYPE_MEGADEV',
+           'DRIVER_TYPE_3WARE', 'subenc_descriptors', 'protocol_type']

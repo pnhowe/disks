@@ -1,0 +1,74 @@
+#!/bin/sh
+# derived from /examples/var_service/dhcp_if/dhcp_handler from busy busybox
+# and http://lists.busybox.net/pipermail/busybox/2007-January/059859.html
+
+# executed by udhcpc
+# parameters: $1 and environment
+# $1 is:
+#
+# deconfig: udhcpc starts, or lease is lost.
+# Environment example: interface=eth0
+#
+# bound: lease is obtained. Environment example:
+# dhcptype=5
+# serverid=172.16.42.102
+# lease=97200
+# interface=eth0
+# ip=172.16.42.177
+# subnet=255.255.255.0
+# mask=24
+# broadcast=172.16.22.255
+# router=172.16.42.98
+# dns=10.34.32.125 10.32.63.5 10.34.255.7 10.11.255.27
+# domain=lab.example.com example.com
+# ntpsrv=10.34.32.125 10.34.255.7
+#
+# renew: lease is renewed. Environment is similar to "bound".
+# The IP address does not change, however, the other DHCP parameters,
+# such as the default gateway, subnet mask, and dns server may change.
+#
+# nak: udhcpc received a NAK message.
+# Environment example: interface=eth0
+#
+# leasefail: udhcpc cannot obtain a lease (DHCP server not responding, etc).
+# Environment example: interface=eth0
+
+#exec >/dev/null
+exec >> "/tmp/dhcpdc.out"  #debug
+exec 2>&1
+
+RESOLV_CONF='/etc/resolv.conf'
+
+env > '/tmp/dhcpdc.env'
+
+echo "`date`: Params: $*"
+
+case "$1" in
+  deconfig)
+    /sbin/ip addr flush dev $interface
+    /sbin/ip link set $interface up
+    rm -f /tmp/dhcp-interface
+    ;;
+
+  bound)
+    /sbin/ip addr flush dev $interface
+    /sbin/ip addr add ${ip}/${mask} dev $interface
+    [ -n "$router" ] && /sbin/ip route add default via ${router%% *} dev $interface
+
+    echo "# auto generated at `date`" > $RESOLV_CONF
+    echo "domain ${domain%% *}" >> $RESOLV_CONF
+    echo "search $domain" >> $RESOLV_CONF
+    for server in $dns;
+    do
+      echo "nameserver $server" >> $RESOLV_CONF
+    done
+    echo "$interface" > /tmp/dhcp-interface
+    ;;
+
+  renew)
+    # for now assume nothing has changed
+    ;;
+
+esac
+
+exit 0

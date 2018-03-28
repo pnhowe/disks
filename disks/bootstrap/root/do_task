@@ -1,0 +1,89 @@
+#!/bin/sh
+
+set -e
+
+. /tmp/config_file
+
+# setup vars
+STRAP="net-$( cat /sys/class/net/eth0/address )"
+
+# parse options
+for x in $(cat /proc/cmdline); do
+  case $x in
+    strap=*)
+      STRAP=${x#strap=}
+      ;;
+  esac
+done
+
+if [ "x$STRAP" == "xauto" ];
+then
+  STRAP="auto-$( cat /sys/class/net/eth0/address )"
+fi
+
+# set things up
+
+echo "Starting lldpd..."
+/sbin/lldpd -cfseir
+
+iface_list="$( ls /sys/class/net | grep -v bond | grep -v lo )"
+
+echo "Bringing up all interfaces..."
+for iface in $iface_list;
+do
+  echo "Bringing up $iface..."
+  ifconfig $iface up
+done
+
+sleep 10
+
+iface_list_up=""
+for iface in $iface_list;
+do
+  if [ "x$(cat /sys/class/net/$iface/operstate)" == "xup" ];
+  then
+    iface_list_up="$iface_list_up $iface"
+  fi
+done
+
+echo "Running interfaces: $iface_list_up"
+
+echo "Waiting for LLDP to report..."
+count=0
+status=0
+while [ "$count" -lt "60" ];
+do
+  status=0
+  count=$(( $count + 1 ))
+  for iface in $iface_list_up;
+  do
+    if ! lldpcli show neighbors ports $iface | grep Interface -q;
+    then
+      status=1
+      sleep 1
+      continue 2
+    fi
+  done
+  break
+done
+
+if [ "$status" -eq "1" ];
+then
+  echo "WARNING.  Timed out waiting for LLDP info, interfaces may be missing."
+fi
+
+echo "Starting bootstrap..."
+/bootstrap $STRAP && rc=0 || rc=$?
+
+if [ "$rc" -eq "20" ];
+then
+  sleep 120
+  exit 20
+fi
+
+if [ "$rc" -ne "0" ];
+then
+  exit 10
+fi
+
+exit 0

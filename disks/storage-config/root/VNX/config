@@ -1,0 +1,34 @@
+#!/bin/sh
+
+/bin/postMessage "Auto Registering with VNX...."
+
+echo "!#/bin/sh" > /sbin/lsmod
+echo "echo dm_mod" >> /sbin/lsmod
+chmod +x /sbin/lsmod
+
+ln -s /bin/test /usr/bin
+
+. /tmp/config_file
+
+echo $FQ_HOSTNAME > /etc/Unisphere/agentID.txt
+echo $IP_ADDRESS >> /etc/Unisphere/agentID.txt
+
+export EV_AGENTID_DIRECTORY=/etc/Unisphere/
+
+count=$( wc -l /proc/partitions | cut -d' ' -f1 )
+
+/bin/postMessage "Starting hostagent...."
+hostagent -l0 -f /etc/Unisphere/agent.config
+if [ "$?" -ne "0" ];
+then
+  echo "Error starting hostagent"
+  exit 1
+fi
+
+/bin/postMessage "Starting Waiting for block devices to apear...."
+
+while [ "$( wc -l /proc/partitions | cut -d' ' -f1 )" -eq "$count" ];
+do
+  cat /proc/partitions
+  sleep 30
+done

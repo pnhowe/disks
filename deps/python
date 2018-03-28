@@ -1,0 +1,13 @@
+#!/bin/sh
+#SOURCE: https://www.python.org/ftp/python/3.6.3/Python-3.6.3.tar.xz
+#FILE: Python-3.6.3.tar.xz
+#HASH: 6c71b14bdbc4d8aa0cfd59d4b6dc356d46abfdf5
+
+set -e
+set -x
+
+tar --strip-components=1 -xJf $1
+./configure --prefix= --enable-ipv6
+make -j4 python
+# see notes in setup_base
+LIBSUBDIRS="encodings serial json config ctypes logging sqlite3 lib2to3" make -e build_all

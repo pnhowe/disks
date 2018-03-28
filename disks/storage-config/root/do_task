@@ -1,0 +1,136 @@
+#!/bin/sh
+
+set -e
+
+echo "Loading Config Details..."
+
+. /tmp/config_file
+
+. /config
+
+HAS_ISMS="no"
+HAS_3WARE="no"
+HAS_MEGARAID="no"
+
+if [ "x$RAID_SCHEME" == "x" ] && [ "x$STORAGE_SCHEME" == "x" ];
+then
+  echo "Nothing to do exiting...."
+  /bin/signalComplete
+  exit 0
+fi
+
+echo "Detecting controllers..."
+count=`mdadm --detail-platform 2> /dev/null | grep "Intel(R) Matrix Storage Manager" | wc -l`
+if [ "$count" != "0" ];
+then
+  echo "Has ISMS."
+  HAS_ISMS="yes"
+fi
+
+count=`$THREEWARE_CLI show | awk '/^c[0-9]* / { print \$1 }' | wc -l`
+if [ "$count" != "0" ];
+then
+  echo "Has 3Ware."
+  HAS_3WARE="yes"
+fi
+
+count=`$STORCLI_CLI show ctrlcount | awk '/Controller Count / { print \$4 }'`
+if [ "$count" != "0." ];
+then
+  echo "Has MegaRAID."
+  HAS_MEGARAID="yes"
+fi
+
+/bin/postMessage "Starting Hardware RAID Configuration...."
+
+if [ "x$RAID_SCHEME" == "xJBOD" ];
+then
+  echo "Setting controllers to JBOD..."
+
+  if [ "x$HAS_ISMS" == "xyes" ];
+  then
+    /ISMS/JBOD && rc=0 || rc=$?
+    if [ "$rc" -ne "0" ];
+    then
+      /bin/signalAlert "Error setting ISMS to JBOD"
+      exit 10
+    fi
+  fi
+
+  if [ "x$HAS_3WARE" == "xyes" ];
+  then
+    /3Ware/JBOD && rc=0 || rc=$?
+    if [ "$rc" -ne "0" ];
+    then
+      /bin/signalAlert "Error setting 3Ware to JBOD"
+      exit 10
+    fi
+  fi
+
+  if [ "x$HAS_MEGARAID" == "xyes" ];
+  then
+    /MegaRAID/JBOD && rc=0 || rc=$?
+    if [ "$rc" -ne "0" ];
+    then
+      /bin/signalAlert "Error setting MegaRAID to JBOD"
+      exit 10
+    fi
+  fi
+
+  /bin/postMessage "Setting controllers to JBOD Complete."
+
+  /bin/signalComplete
+  exit 0
+fi
+
+if [ "x$RAID_SCHEME" != "x" ];
+then
+  echo "Setting up scheme '$RAID_SCHEME'..."
+
+  if [ "x$HAS_ISMS" == "xyes" ];
+  then
+    /ISMS/config $RAID_SCHEME && rc=0 || rc=$?
+    if [ "$rc" -ne "0" ];
+    then
+      /bin/signalAlert "Error setting ISMS to '$RAID_SCHEME'"
+      exit 10
+    fi
+  fi
+
+  if [ "x$HAS_3WARE" == "xyes" ];
+  then
+    /3Ware/config $RAID_SCHEME && rc=0 || rc=$?
+    if [ "$rc" -ne "0" ];
+    then
+      /bin/signalAlert "Error setting 3Ware to '$RAID_SCHEME'"
+      exit 10
+    fi
+  fi
+
+  if [ "x$HAS_MEGARAID" == "xyes" ];
+  then
+    /MegaRAID/config $RAID_SCHEME && rc=0 || rc=$?
+    if [ "$rc" -ne "0" ];
+    then
+      /bin/signalAlert "Error setting MegaRAID to '$RAID_SCHEME'"
+      exit 10
+    fi
+  fi
+fi
+
+/bin/postMessage "Hardware RAID Config Complete."
+
+if [ "x$STORAGE_SCHEME" == "xVNX" ];
+then
+  /bin/postMessage "Starting Storage Configuration...."
+  /VNX/config && rc=0 || rc=$?
+  if [ "$rc" -ne "0" ];
+  then
+    /bin/signalAlert "Error configuring for VNX"
+    exit 10
+  fi
+  /bin/postMessage "Storage Configuration Complete."
+fi
+
+/bin/signalComplete
+exit 0

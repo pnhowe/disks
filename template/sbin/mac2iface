@@ -1,0 +1,22 @@
+#!/bin/sh
+
+INTERFACE=""
+MAC="$1"
+
+for iface in $( ls /sys/class/net );
+do
+  if [ "x$MAC" == "x$( cat /sys/class/net/$iface/address )" ];
+  then
+    INTERFACE=$iface
+    break
+  fi
+done
+
+if [ "x$INTERFACE" == "x" ];
+then
+  echo "No Interface with MAC \"$MAC\" found"
+  exit 1
+fi
+
+echo "$INTERFACE"
+exit 0

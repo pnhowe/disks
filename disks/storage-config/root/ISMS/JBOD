@@ -1,0 +1,17 @@
+#!/bin/sh
+
+/bin/postMessage "Setting ISMS Controller(s) to JBOD...."
+
+. /config
+
+echo "Stopping existing raids..." # don't nuke anyhting, just stop them, incase they are still wanted
+for i in /dev/md*;
+do
+  if [ -e "$i" ];
+  then
+    mdadm --stop $i
+  fi
+done
+
+echo "Done."
+exit 0

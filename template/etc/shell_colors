@@ -1,0 +1,9 @@
+#!/bin/sh
+
+NORMAL_TEXT="\e[0m"
+
+BLACK_TEXT=
+
+http://www.csc.uvic.ca/~sae/seng265/fall04/tips/s265s047-tips/bash-using-colors.html
+
+show pxe name when booting

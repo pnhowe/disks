@@ -1,0 +1,159 @@
+#!/usr/bin/python
+import sys
+import json
+import os
+
+from platopxe.libplatopxe import PlatoPXE, PlatoPxeNoJobException
+from platoclient.libhardware import dmiInfo
+from pylib.SYSCfg import SYSCfg
+from pylib.SUM import SUM
+
+platopxe = PlatoPXE( host=os.environ.get( 'plato_host', 'plato' ), proxy=os.environ.get( 'plato_proxy', None ) )
+
+platopxe.postMessage( 'Detecting Motherboard Type...' )
+baseboard = dmiInfo()['Base Board Information'][0]['Product Name']
+
+try:
+  config = json.loads( open( '/config.json', 'r' ).read() )
+except:
+  print 'Error loading /config.json'
+  sys.exit( 1 )
+
+cfg = SYSCfg.detect( baseboard )
+if not cfg:
+  cfg = SUM.detect( baseboard )
+
+if not cfg:
+  if config['items'] or config['boot']:
+    print 'Unknown Motherboard type "%s"' % baseboard
+    sys.exit( 1 )
+
+  else:
+    print 'Unknown Motherboard, but nothing to do anyway.'
+    sys.exit( 0 )
+
+try:
+  try:
+    count = int( platopxe.readEnv( 'bios-cfg_boot_count' ) )
+  except ( TypeError, ValueError ):
+    count = 0
+
+  print 'Boot Count: %s' % count
+
+  if count > 5:
+    print 'Rebooted more than 5 times, something is wrong.'
+    sys.exit( 1 )
+
+  platopxe.writeEnv( 'bios-cfg_boot_count', count + 1 )
+except PlatoPxeNoJobException:
+  print 'WARNING: No job to store boot count... We may reboot forever without knowing.'
+
+
+if 'password' in config:
+  cfg.setPassword( config['password'] )
+
+  platopxe.postMessage( 'Checking Password...' )
+  if not cfg.checkPassword():
+    print 'Attempting to set Password...'
+    cfg.setPassword( '' )
+    cfg.changePassword( config['password'] )
+    if not cfg.checkPassword():
+      print "Password Mismatch, and unable to set it.  Manually set it to the correct password or <blank>."
+      sys.exit( 1 )
+
+dirty = False
+
+platopxe.postMessage( 'Checking BIOS Items...' )
+for item in config['items']:
+  ( group, item, desiredvalue ) = item
+  print 'Checking "%s" "%s"...' % ( group, item )
+  ( curvalue_key, values ) = cfg.getValue( group, item )
+
+  if curvalue_key is None:
+    if dirty:
+      print 'Warning: Unable to get curent value of "%s" "%s", will try again after reboot.' % ( group, item )
+      continue
+    else:
+      print 'Error: Unable to get curent value of "%s" "%s".' % ( group, item )
+      sys.exit( 1 )
+
+  if values is None:
+    print '*Warning* No Values for "%s" "%s" found, using raw value.' % ( group, item )
+
+    curvalue = curvalue_key
+
+    if curvalue != desiredvalue:
+      print 'Setting "%s" "%s" to "%s", curently "%s"...' % ( group, item, desiredvalue, curvalue )
+
+      if not cfg.setValue( group, item, desiredvalue ):
+        if dirty:
+          print 'Warning: Unable to set "%s" "%s" to "%s", will try again after reboot.' % ( group, item, desiredvalue )
+          continue
+        else:
+          print 'Error: Unable to set "%s" "%s" to "%s".' % ( group, item, desiredvalue)
+          sys.exit( 1 )
+
+      dirty = True
+
+  else:
+    try:
+      desiredvalue_key = values.keys()[ values.values().index( desiredvalue ) ]
+    except ValueError, KeyError:
+      if dirty:
+        print 'Warning: Desired value "%s", for "%s" "%s" not found in options list: %s, will try again after reboot.' % ( desiredvalue, group, item, values )
+        continue
+      else:
+        print 'Error: Desired value "%s", for "%s" "%s" not found in options list: %s.' % ( desiredvalue, group, item, values )
+        sys.exit( 1 )
+
+    if curvalue_key != desiredvalue_key:
+      print 'Setting "%s" "%s" to "%s"(%s), curently "%s"(%s)...' % ( group, item, desiredvalue, desiredvalue_key, values[ curvalue_key ], curvalue_key )
+
+      if not cfg.setValue( group, item, desiredvalue_key ):
+        if dirty:
+          print 'Warning: Unable to set "%s" "%s" to "%s"(%s), will try again after reboot.' % ( group, item, values[ desiredvalue_key ], desiredvalue_key )
+          continue
+        else:
+          print 'Error: Unable to set "%s" "%s" to "%s"(%s).' % ( group, item, values[ desiredvalue_key ], desiredvalue_key )
+          sys.exit( 1 )
+
+      dirty = True
+
+
+if dirty:
+  platopxe.postMessage( 'BIOS Item(s) Were Changed, Rebooting...' )
+  sys.exit( 20 )
+
+if 'boot' not in config or not config['boot']:
+  print 'Complete.'
+  sys.exit( 0 )
+
+platopxe.postMessage( 'Checking Boot Order...' )
+boot = cfg.getBoot()
+
+for item in config['boot']:
+  if len( item ) == 1:
+    found = False
+    for item2 in boot:
+      if item2[0] == item[0]:
+        index = boot.index( item2 )
+        if found:
+          del boot[ index ]
+        else:
+          boot[ index ] = [ boot[ index ][0] ]
+          found = True
+
+print "want: %s" % config['boot']
+print "have: %s" % boot
+
+if boot != config['boot']:
+  print 'Curent boot order:\n%s' % boot
+  if not cfg.setBoot( config['boot'] ):
+    print 'Error setting boot order...'
+    sys.exit( 1 )
+
+  platopxe.postMessage( 'Boot Order Was Changed, Rebooting...' )
+  sys.exit( 20 )
+
+print "Complete."
+sys.exit( 0 )

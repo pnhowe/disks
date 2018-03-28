@@ -1,0 +1,285 @@
+#!/usr/bin/python -u
+import optparse
+import time
+import sys
+import shlex
+import os
+
+from pylib import testutils
+from pylib import miscutils
+from pylib.procutils import setLogDir
+from pylib.DriveManager import DriveManager
+from pylib.Evaluator import getEvaluator
+from platopxe.libplatopxe import PlatoPXE
+
+#TODO: set these acording to the size of the drive, these are WD 2TB numbers.
+maxFormatTime = 100 # max time to format in minutes
+maxFsckTime = 100 # max time to fsck in minutes
+maxWipeTime = 1200 # max time to wipe drive in minutes
+maxConveyanceTestTime = 540 # max time to conveyance/short test in minutes
+maxSelfTestTime = 1200 # max time to self test in minutes
+
+class PlatoPXEStub( object ):
+  def postMessage( self, msg ):
+    pass
+
+oparser = optparse.OptionParser( description="""
+Harddrive Exercising, Testing, and Reporting tool.
+Note: Setting round1/2-time to 0 causes that test to run until the process completes, then it outputs the time it took
+""" )
+
+oparser.add_option( '-r', '--report', help='Report to results to a server           (default:    false)', dest='report', default=False, action='store_true' )
+oparser.add_option( '-s', '--server', help='Server to Send Report To                (default:    plato)', dest='server', default='plato' )
+oparser.add_option( '-p', '--proxy', help='HTTP Proxy to get to Server             (default:    None )', dest='proxy', default=None )
+oparser.add_option( '-d', '--destructive', help='Do a Destructive Test                   (default:    false)\n' +
+                                                'NOTE: a non destructive test only allowes 2 rounds and the self test', dest='destructive', default=False, action='store_true' )
+oparser.add_option( '--thrash', help='Use thrash instead of munch             (default:    false)', dest='thrash', default=False, action='store_true' )
+oparser.add_option( '--muncher-dma', help='Tell Muncher to use DMA instad of PIO   (default:    false)', dest='muncher_dma', default=False, action='store_true' )
+oparser.add_option( '--round1', help='Number of IOs for round 1, 0 to Disable, multiples of 200 are best (default: 15000000)', dest='round1', default=15000000, type="int" )
+oparser.add_option( '--round1-time', help='Max time for round 1                    (default:     4320)', dest='round1_time', default=4320, type="int" )
+oparser.add_option( '--rdelay', help='Mid Round Delay (min)                   (default:       30)', dest='rdelay', default=30, type="int" )
+oparser.add_option( '--round2', help='Number of IOs for round 2, 0 to Disable, multiples of 200 are best (default:  5000000)', dest='round2', default=5000000, type="int" )
+oparser.add_option( '--round2-time', help='Max time for round 2                    (default:     1440)', dest='round2_time', default=1440, type="int" )
+oparser.add_option( '--pdelay', help='Post Round Delay            (min) (default:       30)', dest='pdelay', default=30, type="int" )
+oparser.add_option( '--bonnie', help='Bonnie Args, 0 to Disable (disables fdisk/format/mount/umount/fsck as well)\n' +
+                                     '(put "" arround so bash dosne\'t split it up)\n' +
+                                     '(default: "-s 10000 -n 20:2000000:1000:100 -x 10")', dest='bonnie', default='-s 10000 -n 20:2000000:1000:100 -x 10' )
+oparser.add_option( '--bonnie-time', help='Max time for bonnie         (min) (default:     2880)', dest='bonnie_time', default=2880, type="int" )
+oparser.add_option( '--bdelay', help='Post Bonnie Delay           (min) (default:       30)', dest='bdelay', default=30, type="int" )
+oparser.add_option( '--no-wipe', help='Disable Wiping the drive          (default:    false)', dest='no_wipe', default=False, action='store_true')
+oparser.add_option( '--wdelay', help='Post wipe Delay             (min) (default:       30)', dest='wdelay', default=30, type="int" )
+oparser.add_option( '--fdelay', help='Final Cooldown Delay        (min) (default:       30)', dest='fdelay', default=30, type="int" )
+oparser.add_option( '--no-conveyancetest', help='Disable Conveyance Test     (default:    false)', dest='no_conveyancetest', default=False, action='store_true' )
+oparser.add_option( '--no-selftest', help='Disable Self Test                 (default:    false)', dest='no_selftest', default=False, action='store_true' )
+oparser.add_option( '--short-selftest', help='Do short Self Test instead of Long (default:    false)', dest='short_selftest', default=False, action='store_true' )
+oparser.add_option( '--no-saveresults', help='Disable Saving results to drive (default:    false)', dest='no_saveresults', default=False, action='store_true' )
+oparser.add_option( '--no-lightup', help='Disable Lighting up the good drives (default:    false)', dest='no_lightup', default=False, action='store_true' )
+oparser.add_option( '--no-partition-check', help='Skip existing partition check (default:    false)', dest='no_partition_check', default=False, action='store_true' )
+oparser.add_option( '--re-thrash', help='Thrash all drives, even if they have allready marked as Thrashed (default:    false)', dest='re_thrash', default=False, action='store_true' )
+oparser.add_option( '--log', help='Save output of the subcommands     (default:    false)', dest='log', default=False, action='store_true' )
+
+
+sys.argv = shlex.split( ' '.join( sys.argv ) ) # nice little hack b/c busybox is splitting the arguments up wrong, not honoring the "  " stuff, arg!!
+
+( options, args ) = oparser.parse_args()
+
+testutils.setTestParms( options.destructive, options.muncher_dma, options.bonnie )
+
+def caculateRemainingTime( options ):
+  global maxFormatTime, maxFsckTime, maxWipeTime, maxConveyanceTestTime, maxSelfTestTime
+
+  tmpTime = options.rdelay + options.pdelay + options.fdelay
+  if options.round1 > 0:
+    tmpTime += options.round1_time
+  if options.round2 > 0:
+    tmpTime += options.round2_time
+  if options.destructive and options.bonnie != "0":
+    tmpTime += maxFormatTime + options.bonnie_time + maxFsckTime + options.bdelay
+  if options.destructive and not options.no_wipe:
+    tmpTime += maxWipeTime + options.wdelay
+  if not options.no_conveyancetest:
+    tmpTime += maxConveyanceTestTime
+  if not options.no_selftest:
+    tmpTime += maxSelfTestTime
+
+  return tmpTime
+
+if options.log:
+  setLogDir( '/tmp/' )
+
+""" Start main """
+print 'Started Drive test at %s.' % time.strftime( "%a, %d %b %Y %H:%M:%S +0000", time.gmtime() )
+print 'Aproximate Max Running Time: %.2f hours' % ( caculateRemainingTime( options ) / 60.0 )
+
+print '==== Loading Drive List ===='
+
+manager = DriveManager()
+
+# must be called before checking for disks, make sure everything is unattached even if there aren't any
+if options.report:
+  platopxe = PlatoPXE( host=os.environ.get( 'plato_host', 'plato' ), proxy=os.environ.get( 'plato_proxy', None ) )
+  evaluator = getEvaluator( manager, platopxe )
+else:
+  platopxe = PlatoPXEStub()
+  evaluator = getEvaluator( manager )
+
+if len( manager.working_list ) == 0:
+  print '*** No Drives to test ***'
+  sys.exit( 1 )
+
+print 'Working with drives:'
+print manager.summary
+
+manager.pruneAllreadyDead()
+
+if not options.re_thrash:
+  manager.skipAllreadyThrashed()
+
+platopxe.postMessage( 'Inital Scan...' )
+evaluator.evaluate_all( 'Initial' )
+
+manager.skipUnThrashable( evaluator )
+
+if not options.no_partition_check:
+  manager.skipWithFilesystems()
+
+if not options.no_conveyancetest:
+  platopxe.postMessage( 'Conveyance Test....' )
+  print '==== Conveyance (ie. transport) Test ===='
+  testutils.doConveyanceTest( manager, maxConveyanceTestTime )
+  evaluator.evaluate_all( 'Conveyance Test' )
+
+  maxConveyanceTestTime = 0
+  print 'Aproximate Time Remaining: %.2f hours' % ( caculateRemainingTime( options ) / 60.0 )
+
+if options.round1 > 0:
+  platopxe.postMessage( 'Round One....' )
+  print '==== Round One ===='
+  if options.thrash:
+    testutils.doThrash( manager, options.round1, options.round1_time, 'Round One' )
+  else:
+    testutils.doMunch( manager, options.round1, options.round1_time, 'Round One' )
+  evaluator.evaluate_all( 'Round One' )
+
+  options.round1_time = 0
+  print 'Aproximate Time Remaining: %.2f hours' % ( caculateRemainingTime( options ) / 60.0 )
+
+if options.rdelay > 0 and len( manager.working_list ) > 0:
+  platopxe.postMessage( 'Mid-Round Cooldown....' )
+  print '==== Mid-Round Cooldown delay ===='
+  testutils.doSpinDownSleep( manager, options.rdelay, 'Mid-Round' )
+  evaluator.evaluate_all( 'Mid-Round Cooldown' )
+
+  options.rdelay = 0
+  print 'Aproximate Time Remaining: %.2f hours' % ( caculateRemainingTime( options ) / 60.0 )
+
+if options.round2 > 0:
+  platopxe.postMessage( 'Round Two....' )
+  print '==== Round Two ===='
+  if options.thrash:
+    testutils.doThrash( manager, options.round2, options.round2_time, 'Round Two' )
+  else:
+    testutils.doMunch( manager, options.round2, options.round2_time, 'Round Two' )
+  evaluator.evaluate_all( 'Round Two' )
+
+  options.round2_time = 0
+  print 'Aproximate Time Remaining: %.2f hours' % ( caculateRemainingTime( options ) / 60.0 )
+
+if options.pdelay > 0 and len( manager.working_list ) > 0:
+  platopxe.postMessage( 'Post Round Cooldown....' )
+  print '==== Post Rount Cooldown Delay ===='
+  testutils.doSpinDownSleep( manager, options.pdelay, 'Post Round' )
+  evaluator.evaluate_all( 'Post Round Cooldown' )
+
+  options.pdelay = 0
+  print 'Aproximate Time Remaining: %.2f hours' % ( caculateRemainingTime( options ) / 60.0 )
+
+if options.destructive and options.bonnie != '0':
+  platopxe.postMessage( 'Partitioning, Formatting, and Mounting....' )
+  print '==== Partitioning, Formatting, and Mounting ===='
+  testutils.doPartitionFormatMount( manager, maxFormatTime )
+  evaluator.evaluate_all( 'Partition/Format/Mount'  )
+
+  maxFormatTime = 0
+  print 'Aproximate Time Remaining: %.2f hours' % ( caculateRemainingTime( options ) / 60.0 )
+
+  platopxe.postMessage( 'Filesystem Test....' )
+  print '==== Filesystem Testing ===='
+  testutils.doFilesystemTest( manager, options.bonnie_time )
+  evaluator.evaluate_all( 'Filesystem Test' )
+
+  options.bonnie_time = 0
+  print 'Aproximate Time Remaining: %.2f hours' % ( caculateRemainingTime( options ) / 60.0 )
+
+  platopxe.postMessage( 'Unmount and Check Filesystem....' )
+  print '==== Unmount and Check Filesystem ===='
+  testutils.doUnmountCheckFilesystem( manager, maxFsckTime )
+  evaluator.evaluate_all( 'Unmount/Check FileSystem Test' )
+
+  maxFsckTime = 0
+  print 'Aproximate Time Remaining: %.2f hours' % ( caculateRemainingTime( options ) / 60.0 )
+
+  if options.bdelay > 0:
+    platopxe.postMessage( 'Post Filesystem Check Cooldown....' )
+    print '==== Post Filesystem Check Cooldown Delay ===='
+    testutils.doSpinDownSleep( manager, options.bdelay, 'Post Filesystem Check' )
+    evaluator.evaluate_all( 'Post Filesystem Check Cooldown' )
+
+    options.bdelay = 0
+    print 'Aproximate Time Remaining: %.2f hours' % ( caculateRemainingTime( options ) / 60.0 )
+
+if options.destructive and not options.no_wipe:
+  platopxe.postMessage( 'Wiping....' )
+  print '==== Wiping Drive ===='
+  testutils.doWipeDrive( manager, maxWipeTime )
+  evaluator.evaluate_all( 'Wipe Drive' )
+
+  maxWipeTime = 0
+  print 'Aproximate Time Remaining: %.2f hours' % ( caculateRemainingTime( options ) / 60.0 )
+
+  if options.wdelay > 0 and len( manager.working_list ) > 0:
+    platopxe.postMessage( 'Post Wipe Cooldown....' )
+    print '==== Post Wipe Cooldown Delay ===='
+    testutils.doSpinDownSleep( manager, options.wdelay, 'Post Wipe' )
+    evaluator.evaluate_all( 'Post Wipe Cooldown' )
+
+    options.wdelay = 0
+    print 'Aproximate Time Remaining: %.2f hours' % ( caculateRemainingTime( options ) / 60.0 )
+
+if options.destructive and options.no_wipe: #need to clean up mess at the beginning and/or partition table even if the drive isn't wiped
+  platopxe.postMessage( 'Clearning Partition Table....' )
+  print '==== Clearning Partition Table ===='
+  testutils.doClearPartitionTable( manager, 10 ) # TODO: integrate the timeotu wiht everything else
+  evaluator.evaluate_all( 'Clear Partition Table' )
+
+if not options.no_selftest:
+  platopxe.postMessage( 'Self Test....' )
+  print '==== Self Test ===='
+  if options.short_selftest:
+    testutils.doShortSelfTest( manager, maxSelfTestTime )
+  else:
+    testutils.doSelfTest( manager, maxSelfTestTime )
+  evaluator.evaluate_all( 'Self Test' )
+
+  maxSelfTestTime = 0
+  print 'Aproximate Time Remaining: %.2f hours' % ( caculateRemainingTime( options ) / 60.0 )
+
+if options.fdelay > 0 and len( manager.working_list ) > 0:
+  platopxe.postMessage( 'Final Cooldown....' )
+  print '==== Final Cooldown Delay ===='
+  testutils.doSpinDownSleep( manager, options.fdelay, 'Post Test' )
+
+  options.fdelay = 0
+  print 'Aproximate Time Remaining: %.2f hours' % ( caculateRemainingTime( options ) / 60.0 )
+
+print '==== Final Smart Check ===='
+platopxe.postMessage( 'Final Scan....' )
+evaluator.evaluate_all( 'Final' )
+
+#print '==== Scanning dmesg for timeouts ====='
+# report timeouts and show on screen, possible communication problems
+# look in /tmp/timeout
+# ataXX should match our drive locations
+
+#print '==== Scanning dmesg for hard resets ===='
+# report hardresets and show them on the screen.... possible problems that wasn't reported to program
+# look in /tmp/reset
+
+if options.destructive and not options.no_saveresults:
+  platopxe.postMessage( 'Saving Results....' )
+  print '==== Saving Results Back on the Drive ===='
+  miscutils.doSaveResults( manager )
+
+print manager.skip_summary
+
+print manager.bad_summary
+
+if not options.no_lightup:
+  miscutils.doLightupDrives( manager )
+
+evaluator.mark_good_thrashed()
+evaluator.store_good()
+evaluator.store_skipped()
+
+print "All Done!"
+sys.exit( 0 )

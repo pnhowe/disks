@@ -1,0 +1,37 @@
+[filesystem]
+partition_type=gpt
+fs_type=ext4
+md_meta_version=1.0
+extra_mount_1=proc:proc:/proc
+extra_mount_2=sysfs:sysfs:/sys
+extra_mount_3=:/dev:/dev:bind
+extra_mount_4=devpts:devpts:/dev/pts
+
+[fstab]
+prefix_1=# <file system> <mount point>   <type>  <options>       <dump>  <pass>
+prefix_2=proc  /proc  proc  defaults  0  0
+
+[bootstrap]
+type=bootstrap
+version=11
+
+[packaging]
+manager_type=zypper
+base=aaa_base
+packages=
+#source_templates=
+
+[config]
+base_templates=hosts network ifcfg i18n yum
+
+[booting]
+bootloader_install=/sbin/grub2-install %s
+
+[kernel]
+
+[general]
+
+[packages]
+bootloader_package=grub2
+kernel_package=kernel-default install-initrd
+mdadm_package=mdadm

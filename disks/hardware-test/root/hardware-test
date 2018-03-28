@@ -1,0 +1,62 @@
+#!/bin/sh
+
+QUICK=0
+
+if [ "$1" == "quick" ] ; then
+  echo "Running Quick Test"
+  QUICK=1
+fi
+
+echo "Testing Memory..."
+
+memc=`grep MemTotal /proc/meminfo | awk '{ split( $0, a, " " ); printf "%dM", a[2]/4000 }'`
+
+if [ "$QUICK" == "1" ] ; then
+  /bin/postMessage "Quick Memory test..."
+  /bin/memtester 10 1
+  if [ "$?" -ne "0" ];
+  then
+    /bin/postMessage "Memory Test Error."
+    exit 1
+  fi
+else
+  for i in 1 2 3 4; do
+    echo 0 > /tmp/results
+    /bin/postMessage "Testing $memc of RAM round $i of 4..."
+    ( /bin/memtester $memc 4 ; echo $? >> /tmp/results ) &
+    ( /bin/memtester $memc 4 ; echo $? >> /tmp/results ) &
+    ( /bin/memtester $memc 4 ; echo $? >> /tmp/results ) &
+    wait
+    rc=$(cat /tmp/results | tr -d \\n)
+    echo "The result is '$rc'"
+    if [ "$rc" -ne "0" ];
+    then
+      /bin/postMessage "Memory Test Error."
+      exit 1
+    fi
+  done
+fi
+
+/bin/postMessage "Cpu Test..."
+
+procc=`grep -c processor /proc/cpuinfo`
+
+if [ "$QUICK" == "1" ] ; then
+  echo "This will take 5 min"
+  /bin/stress -c $(( $procc * 2 )) -m $(( $procc * 2 )) -t 5m
+  if [ "$?" -ne "0" ];
+  then
+    /bin/postMessage "CPU Test Error."
+    exit 1
+  fi
+else
+  echo "This will take 60 min"
+  /bin/stress -c $(( $procc * 2 )) -m $(( $procc * 2 )) -t 60m
+  if [ "$?" -ne "0" ];
+  then
+    /bin/postMessage "CPU Test Error."
+    exit 1
+  fi
+fi
+
+exit 0

@@ -1,0 +1,11 @@
+1fUtility
+
+dhcp-any - dhcp on all interfaces
+dhcp-eth0 - dhcp on eth0
+dhcp-eth1 - dhcp on eth1
+dhcp-eth2 - dhcp on eth2
+dhcp-eth3 - dhcp on eth3
+manual - manual ip configuration
+no-net - no network
+
+default is dhcp-any

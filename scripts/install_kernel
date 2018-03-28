@@ -1,0 +1,21 @@
+#!/bin/sh
+
+set -e
+set -x
+
+LINUX_DIR="$3/linux/"
+if [ "x$4" = "xmod" ]
+then
+  LINUX_DIR="$3/linux-mod/"
+fi
+
+mkdir -p $1/boot
+
+cp "${LINUX_DIR}arch/x86_64/boot/bzImage" $1/boot/vmlinuz
+
+if [ "x$4" = "xmod" ]
+then
+  cd $LINUX_DIR && INSTALL_MOD_PATH=$1 make modules_install
+  rm $1/lib/modules/*/build
+  rm $1/lib/modules/*/source
+fi

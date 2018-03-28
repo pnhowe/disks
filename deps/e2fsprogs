@@ -1,0 +1,11 @@
+#!/bin/sh
+#SOURCE: http://downloads.sourceforge.net/project/e2fsprogs/e2fsprogs/v1.43.9/e2fsprogs-1.43.9.tar.gz
+#FILE: e2fsprogs-1.43.9.tar.gz
+#HASH: e83e7cd624e4713a2e059566092f96dfd56250a2
+
+set -e
+set -x
+
+tar --strip-components=1 -xzf $1
+./configure --prefix=/ --disable-nls
+make -j4

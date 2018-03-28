@@ -1,0 +1,10 @@
+#!/bin/sh
+
+drives=`for i in /sys/block/[hs]d* ; do echo $i | awk '{ split( $0, a, "/" ); print a[4] }'; done`
+
+for i in $drives; do
+  echo "/dev/$i"
+  driveinfo /dev/$i | grep -i "Serial"
+  dd bs=512 count=1 if=/dev/$i skip=$((`fdisk -s /dev/$i` * 2 - 1)) 2> /dev/null
+  echo
+done

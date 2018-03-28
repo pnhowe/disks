@@ -1,0 +1,23 @@
+from ctypes import *
+
+
+
+class dmi_entry(Structure):
+    pass
+dmi_entry._fields_ = [
+    ('group', c_int),
+    ('type', c_char * 50),
+    ('name', c_char * 50),
+    ('value', c_char * 150),
+]
+class pci_entry(Structure):
+    pass
+pci_entry._fields_ = [
+    ('vendor_id', c_int),
+    ('device_id', c_int),
+    ('domain', c_int),
+    ('bus', c_ubyte),
+    ('device', c_ubyte),
+    ('function', c_ubyte),
+]
+__all__ = ['pci_entry', 'dmi_entry']

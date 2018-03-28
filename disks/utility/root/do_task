@@ -1,0 +1,15 @@
+#!/bin/sh
+
+echo "Starting SSH..."
+echo "  FYI: The root password is \"plato\""
+echo "sshd:x:100:100:sshd:::" >> /etc/passwd
+echo "sshd:x:100:" >> /etc/group
+echo "root:\$1\$1b8V49js\$grjhBM.VURz6JrhdnyVhw.:15539:0:99999:7:::" > /etc/shadow
+mkdir -p /var/run/sshd
+mkdir -m 700 /var/empty
+/sbin/ssh-keygen -A
+/sbin/sshd
+
+/bin/cttyhack /bin/sh -l
+
+exit 0
