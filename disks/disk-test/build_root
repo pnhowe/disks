@@ -8,3 +8,5 @@ ROOT_FS="disk-test"
 . scripts/disk_functions
 
 install_base
+
+install_dep "e2fsprogs" 

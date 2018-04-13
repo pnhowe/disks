@@ -8,3 +8,8 @@ ROOT_FS="linux-installer"
 . scripts/disk_functions
 
 install_base
+
+install_dep "mdadm"
+install_dep "parted"
+install_dep "e2fsprogs"
+install_dep "dosfstools"

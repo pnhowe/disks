@@ -10,4 +10,8 @@ ROOT_FS="utility"
 install_base
 
 install_dep "ssh"
-install_dep "lldp" 
+install_dep "lldp"
+install_dep "mdadm"
+install_dep "parted"
+install_dep "e2fsprogs"
+install_dep "dosfstools"
