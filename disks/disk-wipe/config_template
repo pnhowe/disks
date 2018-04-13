@@ -1,0 +1,1 @@
+MODE="{{ dwipe_mode|default:'partition_tables' }}"

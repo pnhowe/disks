@@ -1,0 +1,6 @@
+# {{ config_description }}
+# Generated at: {{ timestamp }}
+
+EXPECTED_DISKS="{{ expected_disks }}"
+ALLOWED_MISSING="{{ allowed_missing }}"
+ALLOW_NON_THRASHED="{{ allow_non_thrashed }}"

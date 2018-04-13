@@ -1,0 +1,10 @@
+# {{ config_description }}
+# Generated at: {{ timestamp }}
+# Config Profile: {{ profile }}
+
+RAID_SCHEME="{{ hardware_raid_scheme }}"
+
+STORAGE_SCHEME="{{ hardware_storage_scheme }}"
+HOSTNAME="{{ hostname }}"
+FQ_HOSTNAME="{{ hostname }}.{{ domain }}"
+IP_ADDRESS="{{ storage_ip|default:address_primary.address }}"
