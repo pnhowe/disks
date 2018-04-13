@@ -14,7 +14,7 @@ curently only tested for Ubuntu 17.10
 
 Install required packages::
 
-  sudo apt install build-essential libelf-dev bc zlib1g-dev libssl-dev gperf libreadline-dev libsqlite3-dev libbz2-dev liblzma-dev
+  sudo apt install build-essential libelf-dev bc zlib1g-dev libssl-dev gperf libreadline-dev libsqlite3-dev libbz2-dev liblzma-dev uuid-dev libdevmapper-dev libgcrypt-dev libgpg-error-dev libassuan-dev libksba-dev libnpth0-dev
 
 PXE
 ---
@@ -67,6 +67,13 @@ Disks
  - set-rtc -
  - storage-config -
  - utility -
+
+Overlays
+--------
+
+
+
+
 
 Notes
 -----
