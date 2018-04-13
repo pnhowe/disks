@@ -1,6 +1,14 @@
 #!/bin/bash
 set -e
 
+# $1 - output filename
+# $2 - path to kernel
+# $3 - path to initrd
+# $4 - path to boot config
+# $5 - path config_file (optional)
+# $6 - path to boot menu (optional)
+
+
 #size in 1k blocks, default is 60k ie 60meg disk
 DISK_SIZE="60k"
 

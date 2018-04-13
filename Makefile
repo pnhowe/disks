@@ -1,5 +1,6 @@
 DEPS = $(shell ls deps)
 DISKS = $(shell ls disks)
+TEMPLATES = $(shell ls templates)
 DEP_DOWNLOADS = $(foreach dep,$(DEPS),build.deps/$(dep).download)
 DEP_BUILDS = $(foreach dep,$(DEPS),build.deps/$(dep).build)
 IMAGE_ROOT = $(foreach disk,$(DISKS),build.images/$(disk).root)
@@ -94,7 +95,7 @@ pxe-targets:
 # build_root paramaters: $1 - target root fs dir, $2 - source dir, $3 - dep build dir
 build.images/%.root: build.deps/build build-src
 	mkdir -p build.images/$*
-	cp -a template/* build.images/$*
+	cp -a rootfs/* build.images/$*
 	cp -a disks/$*/root/* build.images/$*
 	./disks/$*/build_root
 	touch $@
@@ -117,11 +118,15 @@ images/pxe/%: $(FILE) $(PXE_FILES)
 img-targets:
 	@echo "Aviable Disk Image Targets: $(IMGS)"
 
-# makedisk paramaters are $1 - target disk, $2 - path to kernel, $3 - path to initrd, $4 - path to boot config, $5 - optional path config_file, $6 optional path to boot menu
 # for the sed see images/pxe/%
 images/img/% : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2.img'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.img'/)
 images/img/%: $(PXE_FILES)
-	if [ -f $(FILE).config_file ] && [ -f $(FILE).boot_menu ];                                                                          \
+	if [ -f templates/$* ];                                                                                                             \
+	then                                                                                                                                \
+	  mkdir -p build.images/templates/$*/ ;                                                                                             \
+	  DISK=$$( scripts/build_template $* build.images/templates/$*/config build.images/templates/$*/boot.config build.images/templates/$*/boot.menu 3>&1 1>/dev/null 2>/dev/null);    \
+	  sudo scripts/makeimg $@ images/pxe/$$DISK.vmlinuz images/pxe/$$DISK.initrd build.images/templates/$*/boot.config build.images/templates/$*/config build.images/templates/$*/boot.menu; \
+	elif [ -f $(FILE).config_file ] && [ -f $(FILE).boot_menu ];                                                                        \
 	then                                                                                                                                \
 	  sudo scripts/makeimg $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) $(FILE).config_file $(FILE).boot_menu;                 \
 	elif [ -f $(FILE).config_file ];                                                                                                    \

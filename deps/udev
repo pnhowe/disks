@@ -2,7 +2,6 @@
 #SOURCE: http://dev.gentoo.org/~blueness/eudev/eudev-3.2.5.tar.gz
 #FILE: eudev-3.2.5.tar.gz
 #HASH: 33449020554d184cddd8d751e3a74e7afdf82951
-#INSTALL: arch/x86_64/boot/bzImage baseimage/vmlinuz
 
 set -e
 set -x

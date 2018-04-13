@@ -14,7 +14,7 @@ curently only tested for Ubuntu 17.10
 
 Install required packages::
 
-  sudo apt install build-essential libelf-dev bc zlib1g-dev libssl-dev gperf libreadline-dev libsqlite3-dev libbz2-dev liblzma-dev
+  sudo apt install build-essential libelf-dev bc zlib1g-dev libssl-dev gperf libreadline-dev libsqlite3-dev libbz2-dev liblzma-dev uuid-dev libdevmapper-dev libgcrypt-dev libgpg-error-dev libassuan-dev libksba-dev libnpth0-dev
 
 PXE
 ---
@@ -68,6 +68,21 @@ Disks
  - storage-config -
  - utility -
 
+Templates
+---------
+
+Templates apply pre-built configuration to disks and output as a img or an iso.  Depending on the template it might interactivly ask questions, or pull answers from environment values.
+
+NOTE: `dialog` is required, please install it before using any templates::
+
+  sudo apt install dialog
+
+for a list of aviabile Templates::
+
+  make templates
+
+for more about templates and how to make them see template.rst
+
 Notes
 -----
 
@@ -95,6 +110,6 @@ Boot Options
 - config_proxy: The Proxy to use for making the request to `config_url`, if specified, the ping check to see if the interface is good will ping this host instead of `plato_host`
 - http_proxy: HTTP Proxy for everything except the request to retrieve the `config_url`
 - no_config: Do not try to get a config, for some disks such as `utility` a config is not needed.  This also disables the ping test
-- local_config: Config is retreived from `/media/config_file` or ` /config_file` in the local filesystem, instead of via HTTP from the `config_url`
+- local_config: Config is retreived from `/media/config_file` or `/config_file` in the local filesystem, instead of via HTTP from the `config_url`
 - media_uuid: Mounts the filesystem with the UUID of `media_uuid` to `/media`, usefull for booting from a pre-made image with resources stored on an extra filesystem
 - media_label: Same as `media_uuid` excpet the filesystem is mounted by label
