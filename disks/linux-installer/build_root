@@ -10,6 +10,9 @@ ROOT_FS="linux-installer"
 install_base
 
 install_dep "mdadm"
+install_dep "lvm2"
 install_dep "parted"
 install_dep "e2fsprogs"
 install_dep "dosfstools"
+install_dep "gpgv"
+install_dep "binutils"
