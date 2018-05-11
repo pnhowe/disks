@@ -3,7 +3,6 @@
 
 ::ctrlaltdel:/sbin/reboot
 
-::shutdown:/sbin/dhclient -r
 ::shutdown:/bin/umount -a
 ::shutdown:/sbin/swapoff -a
 ::shutdown:/sbin/hwclock --systohc --utc

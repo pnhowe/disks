@@ -142,7 +142,33 @@ images/img/%: $(PXE_FILES)
 # iso targets
 
 iso-targets:
-	@echo "Aviable Disk Image Targets: $(ISOS)"
+	@echo "Aviable ISO Targets: $(ISOS)"
+
+# for the sed see images/pxe/%
+images/iso/%.iso : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2.img'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.img'/)
+images/iso/%.iso: $(PXE_FILES)
+	if [ -f templates/$* ];                                                                                                             \
+	then                                                                                                                                \
+	  mkdir -p build.images/templates/$*/ ;                                                                                             \
+	  DISK=$$( scripts/build_template $* build.images/templates/$*/config build.images/templates/$*/boot.config build.images/templates/$*/boot.menu 3>&1 1>/dev/null 2>/dev/null);    \
+	  scripts/makeiso $@ images/pxe/$$DISK.vmlinuz images/pxe/$$DISK.initrd build.images/templates/$*/boot.config build.images/templates/$*/config build.images/templates/$*/boot.menu; \
+	elif [ -f $(FILE).config_file ] && [ -f $(FILE).boot_menu ];                                                                        \
+	then                                                                                                                                \
+	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) $(FILE).config_file $(FILE).boot_menu;                 \
+	elif [ -f $(FILE).config_file ];                                                                                                    \
+	then                                                                                                                                \
+	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) $(FILE).config_file;                                   \
+	elif [ -f $(FILE).boot_menu ];                                                                                                      \
+	then                                                                                                                                \
+	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) "" $(FILE).boot_menu;                                  \
+	else                                                                                                                                \
+	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE);                                                       \
+	fi
+
+# templates
+
+templates:
+	@echo "Aviable Templates: $(TEMPLATES)"
 
 # clean up
 
@@ -150,4 +176,4 @@ localclean: clean-deps clean-images clean-src
 
 distclean: clean-deps clean-images clean-src clean-downloads
 
-.PHONY: all all-pxe all-imgs clean-src clean-downloads clean-deps clean-images localclean distclean pxe-targets
+.PHONY: all all-pxe all-imgs clean-src clean-downloads clean-deps clean-images localclean distclean pxe-targets templates

@@ -19,15 +19,15 @@ then
   mkdir -p $MOUNT_POINT
 fi
 
-for item in "/usr/lib/syslinux/mbr.bin" "/usr/lib/syslinux-legacy/mbr.bin" "/usr/lib/syslinux/mbr/mbr.bin"
-do
-  if [ -f $item ]
-  then
-    MBR_BIN=$item
-  fi
-done
+if mountpoint -q $MOUNT_POINT
+then
+  echo "$MOUNT_POINT allready mounted, possibly a failed build needs to be cleaned up?"
+  exit 1
+fi
 
-if [ "x$MBR_BIN" == "x" ]
+MBR_BIN="/usr/lib/syslinux/mbr/mbr.bin"
+
+if [ ! -f "$MBR_BIN" ]
 then
   echo "mbr.bin not found install syslinux-common"
   exit 1

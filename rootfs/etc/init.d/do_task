@@ -319,7 +319,7 @@ then
           continue
         fi
         echo "DHCPing on '$iface'..."
-        /sbin/udhcpc -i $iface -x:hostname $HOSTNAME -V bootabledisk -T 10 -S -a
+        /sbin/udhcpc --interface=$iface -x:hostname $HOSTNAME --vendorclass=bootabledisk --timeout=10 --syslog --arping --release
         if [ -f /tmp/dhcp-interface ];
         then
           if [ "x$CONFIG_SRC" == "xremote" ];

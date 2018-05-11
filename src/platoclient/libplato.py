@@ -75,24 +75,24 @@ class HTTPConnector( Connector ):
     if host.startswith( ( 'http://', 'https://' ) ):
       self.host = host
     else:
-      self.host = 'http://%s' % host
+      self.host = 'http://{0}'.format( host )
 
     if proxy:
-      logging.debug( 'libplato: setting proxy to %s' % proxy )
+      logging.debug( 'libplato: setting proxy to {0}'.format( proxy ) )
       self.opener = urllib2.build_opener( urllib2.ProxyHandler( { 'http': proxy, 'https': proxy } ) )
     else:
       self.opener = urllib2.build_opener( urllib2.ProxyHandler( {} ) ) # no proxying, not matter what is in the enviornment
 
-    self.opener.addheaders = [ ( 'User-agent', 'libplato %s' % __VERSION__ ) ]
+    self.opener.addheaders = [ ( 'User-agent', 'libplato {0}'.format( __VERSION__ ) ] )
     #TODO: would be cool to set the 'Referrer' to the function that made the request... ie the first function of the Plato object or it's decendants
 
   def _buildURL( self, path, parms ):
-    url = '%s/%s' % ( self.host, path )
+    url = '{0}/{0}'.format( self.host, path )
 
     if parms:
-      url = '%s?%s' % ( url, urllib.urlencode( parms ) )
+      url = '{0}?{0}'.format( url, urllib.urlencode( parms ) )
 
-    logging.debug( 'libplato: url: "%s"' % url )
+    logging.debug( 'libplato: url: "{0}"'.format( url ) )
     return url
 
   def _getRequest( self, path, parms, timeout ):
@@ -106,22 +106,22 @@ class HTTPConnector( Connector ):
       if e.code == 500:
         raise PlatoServerErrorException()
 
-      raise PlatoConnectionException( 'HTTPError Sending Request(%s), "%s"' % ( e.code, e.reason ) )
+      raise PlatoConnectionException( 'HTTPError Sending Request({0}), "{1}"'.format( e.code, e.reason ) )
 
     except urllib2.URLError, e:
       if isinstance( e.reason, socket.timeout ):
-        raise PlatoTimeoutException( 'Request Timeout after %s seconds.' % timeout )
+        raise PlatoTimeoutException( 'Request Timeout after {0} seconds.'.format( timeout ) )
 
-      raise PlatoConnectionException( 'URLError Sending Request, "%s"' % e.reason )
+      raise PlatoConnectionException( 'URLError Sending Request, "{0}"'.format( e.reason ) )
 
     except httplib.HTTPException, e:
-      raise PlatoConnectionException( 'HTTPException Sending Request, "%s"' % e.message )
+      raise PlatoConnectionException( 'HTTPException Sending Request, "{0}"'.format( e.message ))
 
     except socket.error, e:
-      raise PlatoConnectionException( 'Socket Error Sending Request, errno: %s, "%s"' % ( e.errno, e.message ) )
+      raise PlatoConnectionException( 'Socket Error Sending Request, errno: {0}, "{1}"'.format( e.errno, e.message ) )
 
     if resp.code != 200:
-      raise PlatoException( 'Error with request, HTTP Error %s' % resp.status )
+      raise PlatoException( 'Error with request, HTTP Error {0}'.format( resp.status ) )
 
     result = resp.read()
     resp.close()
@@ -130,7 +130,7 @@ class HTTPConnector( Connector ):
   def getRequest( self, path, parms, timeout=30, retry_count=10 ): # set retry_count = -1 for never give up, never surender
     count = 0
     while True:
-      logging.debug( 'libplato: getRequest: retry %s of %s, timeout: %s' % ( count, retry_count, timeout ) )
+      logging.debug( 'libplato: getRequest: retry {0} of {1}, timeout: {2}'.format( count, retry_count, timeout ) )
       try:
         return self._getRequest( path, parms, timeout )
       except ( PlatoConnectionException, PlatoTimeoutException ), e:
@@ -145,7 +145,7 @@ class HTTPConnector( Connector ):
     try:
       return json.loads( result )
     except TypeError:
-      raise PlatoJSONException( 'Error Parsing "%s"' % str( result )[:80] )
+      raise PlatoJSONException( 'Error Parsing "{0}"'.format( str( result )[:80] ) )
 
   def _postRequest( self, path, parms, POSTData, timeout=30 ):
     try:
@@ -158,16 +158,16 @@ class HTTPConnector( Connector ):
       if e.code == 500:
         raise PlatoServerErrorException()
 
-      raise PlatoConnectionException( 'HTTPError Sending Request(%s), "%s"' % ( e.code, e.reason ) )
+      raise PlatoConnectionException( 'HTTPError Sending Request({0}), "{1}"'.format( e.code, e.reason ) )
 
     except urllib2.URLError, e:
       if isinstance( e.reason, socket.timeout ):
-        raise PlatoTimeoutException( 'Request Timeout after %s seconds.' % timeout )
+        raise PlatoTimeoutException( 'Request Timeout after {0} seconds.'.format( timeout ) )
 
-      raise PlatoConnectionException( 'URLError Sending Request, "%s"' % e.reason )
+      raise PlatoConnectionException( 'URLError Sending Request, "{0}"'.format( e.reason ) )
 
     if resp.code != 200:
-      raise PlatoException( 'Error with request, HTTP Error %s' % resp.status )
+      raise PlatoException( 'Error with request, HTTP Error {0}'.format( resp.status ) )
 
     result = resp.read()
     resp.close()
@@ -176,7 +176,7 @@ class HTTPConnector( Connector ):
   def postRequest( self, path, parms, POSTData, timeout=30, retry_count=10 ): # see getRequest
     count = 0
     while True:
-      logging.debug( 'libplato: postRequest: retry %s of %s, timeout: %s' % ( count, retry_count, timeout ) )
+      logging.debug( 'libplato: postRequest: retry {0} of {1}, timeout: {2}'.format( count, retry_count, timeout ) )
       try:
         return self._postRequest( path, parms, POSTData, timeout )
       except ( PlatoConnectionException, PlatoTimeoutException ), e:
@@ -191,7 +191,7 @@ class HTTPConnector( Connector ):
     try:
       return json.loads( result )
     except TypeError:
-      raise PlatoJSONException( 'Error Parsing "%s"' % str( result )[:80] )
+      raise PlatoJSONException( 'Error Parsing "{0}"'.format( str( result )[:80] ) )
 
   def getConfig( self, config_uuid=None, config_id=None ):
     parms = {}

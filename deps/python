@@ -28,5 +28,7 @@ install()
   rm $1/bin/idle3.6
   rm $1/bin/pydoc3.6
   rm $1/bin/pyvenv-3.6
-  find $1/lib/ -name *.py -exec rm {} \;
+  #find $1/lib/ -name *.py -exec rm {} \;  # python3 dosen't let us use the the compiled files? would be nice to get rid of uncompiled source, it takes up a lot of space
+
+  ln -sf python $1/bin/python3
 }
