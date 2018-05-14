@@ -1,0 +1,19 @@
+#!/bin/sh
+#SOURCE: https://bazaar.launchpad.net/~ubuntu-installer/base-installer/master/download/head:/pkgdetails.c/pkgdetails.c
+#FILE: pkgdetails.c
+#HASH: de416aa945313666e9fe160bee0705f1f8da75bd
+
+set -e
+set -x
+
+build()
+{
+  cp $1 .
+  gcc -O3 -Wall -o pkgdetails pkgdetails.c
+}
+
+install()
+{
+  mkdir -p $1/usr/lib/debootstrap
+  cp -f $3/pkgdetails $1/usr/lib/debootstrap
+}

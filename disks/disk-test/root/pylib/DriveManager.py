@@ -131,34 +131,36 @@ class DriveManager( object ):
        self.reportFail( drive, reason )
 
 
-  def __getattr__( self, name ):
-    if name == 'working_list':
-      return list( self.good_list )
+  @property
+  def working_list( self ):
+    return list( self.good_list )
 
-    if name == 'skipped_list':
-      return self.skip_reasons.keys()
+  @property
+  def skipped_list( self ):
+    return self.skip_reasons.keys()
 
-    if name == 'summary':
-      return ' '.join( [ '%s(%s)' % ( d.name, d.location ) for d in self.all_list ] )
+  @property
+  def summary( self ):
+    return ' '.join( [ '%s(%s)' % ( d.name, d.location ) for d in self.all_list ] )
 
-    if name == 'bad_summary':
-      if len( self.bad_reasons ) == 0:
-        return '-- No Bad Drives --'
+  @property
+  def bad_summary( self ):
+    if len( self.bad_reasons ) == 0:
+      return '-- No Bad Drives --'
 
-      result = '==== Bad Drives ====\n'
-      for drive in self.bad_reasons:
-        result = result + '%s-%s(%s)\t%s\n' % ( drive, drive.location, drive.serial, self.bad_reasons[drive] )
+    result = '==== Bad Drives ====\n'
+    for drive in self.bad_reasons:
+      result = result + '%s-%s(%s)\t%s\n' % ( drive, drive.location, drive.serial, self.bad_reasons[drive] )
 
-      return result
+    return result
 
-    if name == 'skip_summary':
-      if len( self.skip_reasons ) == 0:
-        return '-- No Skipped Drives --'
+  @property
+  def skip_summary( self ):
+    if len( self.skip_reasons ) == 0:
+      return '-- No Skipped Drives --'
 
-      result = '==== Skipped Drives ====\n'
-      for drive in self.skip_reasons:
-        result = result + '%s-%s(%s)\t%s\n' % ( drive, drive.location, drive.serial, self.skip_reasons[drive] )
+    result = '==== Skipped Drives ====\n'
+    for drive in self.skip_reasons:
+      result = result + '%s-%s(%s)\t%s\n' % ( drive, drive.location, drive.serial, self.skip_reasons[drive] )
 
-      return result
-
-    raise AttributeError
+    return result

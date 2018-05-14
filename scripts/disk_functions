@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 PWD=$(pwd)
 
 install_base()
@@ -22,4 +24,18 @@ install_dep()
   . $PWD/deps/$1
 
   install "$PWD/build.images/$ROOT_FS" "$PWD/src" "$PWD/build.deps/$1"
+}
+
+install_src()
+{
+  # for now we will do a big if statement, not all the src is "install" able
+
+  if [ "x$1" = "xlibconfig" ]
+  then
+    DESTDIR="$PWD/build.images/$ROOT_FS" make -C "$PWD/src/libconfig" install
+  elif [ "x$1" = "xlibdrive" ]
+  then
+    DESTDIR="$PWD/build.images/$ROOT_FS" make -C "$PWD/src/libdrive" install
+  fi
+
 }

@@ -1,31 +1,33 @@
-from procutils import chroot_execute, execute
-from httputils import http_getfile
-from config import renderTemplates
+import os
+from installer.procutils import chroot_execute, execute
+from installer.httputils import http_getfile
+from installer.config import renderTemplates
 
 manager_type = None
 divert_list = []
+
 
 def configSources( install_root, profile, config ):
   global manager_type
   manager_type = profile.get( 'packaging', 'manager_type' )
 
   if manager_type not in ( 'apt', 'yum', 'zypper' ):
-    raise Exception( 'Unknwon Packaging manager type "%s"' % manager_type )
+    raise Exception( 'Unknwon Packaging manager type "{0}"'.format( manager_type ) )
 
   if manager_type == 'yum':
-    execute( 'ash -c "rm %s/etc/yum.repos.d/*"' % install_root )
+    execute( 'ash -c "rm {0}/etc/yum.repos.d/*"'.format( install_root ) )
 
   key_uris = []
-  for repo in config['repo_list']:
+  for repo in config[ 'repo_list' ]:
     if 'key_uri' in repo:
-      if repo['type'] != manager_type:
+      if repo[ 'type' ] != manager_type:
         continue
 
-      uri = repo['key_uri']
+      uri = repo[ 'key_uri' ]
       if uri not in key_uris:
         try:
-          proxy = repo['proxy']
-        except:
+          proxy = repo[ 'proxy' ]
+        except Exception:
           proxy = None
         tmp = http_getfile( uri, proxy=proxy )
 
@@ -33,37 +35,37 @@ def configSources( install_root, profile, config ):
           chroot_execute( '/usr/bin/apt-key add -', tmp )
 
         if 'key_file' in repo:
-          open( '%s%s' % ( install_root, repo['key_file'] ), 'w' ).write( tmp )
+          open( os.path.join( install_root, repo[ 'key_file' ] ), 'w' ).write( tmp )
 
         key_uris.append( uri )
 
   renderTemplates( profile.get( 'packaging', 'source_templates' ).split( ',' ) )
 
-  print 'Updating Repo Data...'
+  print( 'Updating Repo Data...' )
   if manager_type == 'apt':
     chroot_execute( '/usr/bin/apt-get update' )
 
-  #yum dosen't need a repo update
+  # yum dosen't need a repo update
 
 
 def installBase( install_root, profile ):
   if manager_type == 'apt':
-    chroot_execute( '/usr/bin/apt-get install -q -y %s' % profile.get( 'packaging', 'base' ) )
+    chroot_execute( '/usr/bin/apt-get install -q -y {0}'.format( profile.get( 'packaging', 'base' ) ) )
 
   elif manager_type == 'yum':
-    chroot_execute( '/usr/bin/yum -y groupinstall %s' % profile.get( 'packaging', 'base' ) )
-    chroot_execute( '/usr/bin/yum -y reinstall yum centos-release' ) # find a better way to figure out what needs to be re-installed
-    execute( 'ash -c "rm %s/etc/yum.repos.d/*"' % install_root ) # clean up extra repos that some package might have left behind... this is the last time we will do this.... any package after this we will allow to keep their repos, we are really just after the base ones
+    chroot_execute( '/usr/bin/yum -y groupinstall {0}'.format( profile.get( 'packaging', 'base' ) ) )
+    chroot_execute( '/usr/bin/yum -y reinstall yum centos-release' )  # find a better way to figure out what needs to be re-installed
+    execute( 'ash -c "rm {0}/etc/yum.repos.d/*"'.format( install_root ) )  # clean up extra repos that some package might have left behind... this is the last time we will do this.... any package after this we will allow to keep their repos, we are really just after the base ones
     renderTemplates( profile.get( 'packaging', 'source_templates' ).split( ',' ) )
 
   elif manager_type == 'zypper':
-    chroot_execute( '/usr/bin/zypper --non-interactive install %s' % profile.get( 'packaging', 'base' ) )
+    chroot_execute( '/usr/bin/zypper --non-interactive install {0}'.format( profile.get( 'packaging', 'base' ) ) )
 
 
 def installOtherPackages( profile, config ):
   package_list = profile.get( 'packaging', 'packages' )
   try:
-    package_list += ' %s' % config['packages']
+    package_list += ' {0}'.format( config[ 'packages' ] )
   except KeyError:
     pass
 
@@ -84,11 +86,11 @@ def installOtherPackages( profile, config ):
 
 def installPackages( packages ):
   if manager_type == 'apt':
-    chroot_execute( '/usr/bin/apt-get install -q -y %s' % packages )
+    chroot_execute( '/usr/bin/apt-get install -q -y {0}'.format( packages ) )
   elif manager_type == 'yum':
-    chroot_execute( '/usr/bin/yum -y install %s' % packages  )
+    chroot_execute( '/usr/bin/yum -y install {0}'.format( packages ) )
   elif manager_type == 'zypper':
-    chroot_execute( '/usr/bin/zypper --non-interactive install %s' % packages )
+    chroot_execute( '/usr/bin/zypper --non-interactive install {0}'.format( packages ) )
 
 
 def updatePackages():
@@ -111,15 +113,15 @@ def divert( profile ):
 
   if manager_type == 'apt':
     for ( name, target ) in divert_list:
-      chroot_execute( '/usr/bin/dpkg-divert --divert %s.linux-installer --rename %s' % ( name, name ) )
-      chroot_execute( 'ln -s %s %s' % ( target, name ) )
+      chroot_execute( '/usr/bin/dpkg-divert --divert {0}.linux-installer --rename {0}'.format( name ) )
+      chroot_execute( 'ln -s {0} {1}'.format( target, name ) )
 
 
 def undivert( profile ):
   if manager_type == 'apt':
     for ( name, target ) in divert_list:
-      chroot_execute( 'rm %s' % name )
-      chroot_execute( '/usr/bin/dpkg-divert --rename --remove %s' % name )
+      chroot_execute( 'rm {0}'.format( name ) )
+      chroot_execute( '/usr/bin/dpkg-divert --rename --remove {0}'.format( name ) )
 
 
 def preBaseSetup( profile ):

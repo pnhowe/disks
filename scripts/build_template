@@ -69,5 +69,3 @@ done
 echo "$CONFIG" > "$2"
 echo "$EXTLINUX" > "$3"
 echo "$EXTMENU" > "$4"
-
-echo $DISK >&3

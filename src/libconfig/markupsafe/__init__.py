@@ -9,7 +9,7 @@
     :license: BSD, see LICENSE for more details.
 """
 import re
-from _compat import text_type, string_types, int_types, \
+from libconfig.markupsafe._compat import text_type, string_types, int_types, \
      unichr, PY2
 
 
@@ -223,7 +223,7 @@ class _MarkupEscapeHelper(object):
 
 
 # modules imports the markup type which is define above.
-from _native import escape, escape_silent, soft_unicode
+from libconfig.markupsafe._native import escape, escape_silent, soft_unicode
 
 if not PY2:
     soft_str = soft_unicode

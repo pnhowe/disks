@@ -1,19 +1,16 @@
-import urllib
-import urllib2
-import httplib
+import http
 import socket
 import time
 import logging
 import random
 import math
 import os
-import ConfigParser
+import json
+import configparser
+import urllib.parse
+import urllib.request
+import urllib.error
 from datetime import datetime
-try:
-  import json
-except ImportError:
-  import simplejson
-  json = simplejson
 
 __VERSION__ = "0.19"
 
@@ -22,37 +19,46 @@ DELAY_MULTIPLIER = 15
 # min delay = 0, 10, 16, 20, 24, 26, 29, 31, 32, 34, 35, 37, 38, 39, 40 ....
 # max delay = 0, 20, 32, 40, 48, 52, 58, 62, 64, 68, 70, 74, 76, 78, 80 .....
 
+
 class DeviceNotFound( Exception ):
   pass
+
 
 class PlatoException( Exception ):
   pass
 
+
 class PlatoConnectionException( Exception ):
   pass
+
 
 class PlatoTimeoutException( Exception ):
   pass
 
+
 class Plato404Exception( Exception ):
   pass
+
 
 class PlatoServerErrorException( Exception ):
   pass
 
+
 class PlatoJSONException( Exception ):
   pass
+
 
 class PlatoConfigChanged( Exception ):
   pass
 
 
 def _backOffDelay( count ):
-  if count < 1: # math.log dosen't do so well below 1
+  if count < 1:  # math.log dosen't do so well below 1
     count = 1
 
   factor = int( DELAY_MULTIPLIER * math.log( count ) )
   time.sleep( factor + ( random.random() * factor ) )
+
 
 class Connector( object ):
   def getConfig( self ):
@@ -70,6 +76,12 @@ class Connector( object ):
   def postJSONRequest( self, path, parms, POSTData, timeout=30, retry_count=10 ):
     return None
 
+
+class HTTPErrorProcessorPassthrough( urllib.request.HTTPErrorProcessor ):
+  def http_response( self, request, response ):
+    return response
+
+
 class HTTPConnector( Connector ):
   def __init__( self, host, proxy ):
     if host.startswith( ( 'http://', 'https://' ) ):
@@ -79,18 +91,18 @@ class HTTPConnector( Connector ):
 
     if proxy:
       logging.debug( 'libplato: setting proxy to {0}'.format( proxy ) )
-      self.opener = urllib2.build_opener( urllib2.ProxyHandler( { 'http': proxy, 'https': proxy } ) )
+      self.opener = urllib.request.build_opener( HTTPErrorProcessorPassthrough, urllib.request.ProxyHandler( { 'http': proxy, 'https': proxy } ))
     else:
-      self.opener = urllib2.build_opener( urllib2.ProxyHandler( {} ) ) # no proxying, not matter what is in the enviornment
+      self.opener = urllib.request.build_opener( HTTPErrorProcessorPassthrough, urllib.request.ProxyHandler( {} ) )  # no proxying, not matter what is in the enviornment
 
-    self.opener.addheaders = [ ( 'User-agent', 'libplato {0}'.format( __VERSION__ ) ] )
-    #TODO: would be cool to set the 'Referrer' to the function that made the request... ie the first function of the Plato object or it's decendants
+    self.opener.addheaders = [ ( 'User-agent', 'libplato {0}'.format( __VERSION__ ) ), ]
+    # TODO: would be cool to set the 'Referrer' to the function that made the request... ie the first function of the Plato object or it's decendants
 
   def _buildURL( self, path, parms ):
     url = '{0}/{0}'.format( self.host, path )
 
     if parms:
-      url = '{0}?{0}'.format( url, urllib.urlencode( parms ) )
+      url = '{0}?{0}'.format( url, urllib.parse.urlencode( parms ) )
 
     logging.debug( 'libplato: url: "{0}"'.format( url ) )
     return url
@@ -99,7 +111,7 @@ class HTTPConnector( Connector ):
     try:
       resp = self.opener.open( self._buildURL( path, parms ), timeout=timeout )
 
-    except urllib2.HTTPError, e:
+    except urllib.error.HTTPError as e:
       if e.code == 404:
         raise Plato404Exception()
 
@@ -108,16 +120,16 @@ class HTTPConnector( Connector ):
 
       raise PlatoConnectionException( 'HTTPError Sending Request({0}), "{1}"'.format( e.code, e.reason ) )
 
-    except urllib2.URLError, e:
+    except urllib.error.URLError as e:
       if isinstance( e.reason, socket.timeout ):
         raise PlatoTimeoutException( 'Request Timeout after {0} seconds.'.format( timeout ) )
 
       raise PlatoConnectionException( 'URLError Sending Request, "{0}"'.format( e.reason ) )
 
-    except httplib.HTTPException, e:
+    except http.client.HTTPException as e:
       raise PlatoConnectionException( 'HTTPException Sending Request, "{0}"'.format( e.message ))
 
-    except socket.error, e:
+    except socket.error as e:
       raise PlatoConnectionException( 'Socket Error Sending Request, errno: {0}, "{1}"'.format( e.errno, e.message ) )
 
     if resp.code != 200:
@@ -127,13 +139,13 @@ class HTTPConnector( Connector ):
     resp.close()
     return result
 
-  def getRequest( self, path, parms, timeout=30, retry_count=10 ): # set retry_count = -1 for never give up, never surender
+  def getRequest( self, path, parms, timeout=30, retry_count=10 ):  # set retry_count = -1 for never give up, never surender
     count = 0
     while True:
       logging.debug( 'libplato: getRequest: retry {0} of {1}, timeout: {2}'.format( count, retry_count, timeout ) )
       try:
         return self._getRequest( path, parms, timeout )
-      except ( PlatoConnectionException, PlatoTimeoutException ), e:
+      except ( PlatoConnectionException, PlatoTimeoutException ) as e:
         if not retry_count == -1 and count >= retry_count:
           raise e
 
@@ -149,9 +161,9 @@ class HTTPConnector( Connector ):
 
   def _postRequest( self, path, parms, POSTData, timeout=30 ):
     try:
-      resp = self.opener.open( self._buildURL( path, parms ), data=urllib.urlencode( POSTData ), timeout=timeout )
+      resp = self.opener.open( self._buildURL( path, parms ), data=urllib.parse.urlencode( POSTData ), timeout=timeout )
 
-    except urllib2.HTTPError, e:
+    except urllib.error.HTTPError as e:
       if e.code == 404:
         raise Plato404Exception()
 
@@ -160,7 +172,7 @@ class HTTPConnector( Connector ):
 
       raise PlatoConnectionException( 'HTTPError Sending Request({0}), "{1}"'.format( e.code, e.reason ) )
 
-    except urllib2.URLError, e:
+    except urllib.error.URLError as e:
       if isinstance( e.reason, socket.timeout ):
         raise PlatoTimeoutException( 'Request Timeout after {0} seconds.'.format( timeout ) )
 
@@ -173,13 +185,13 @@ class HTTPConnector( Connector ):
     resp.close()
     return result
 
-  def postRequest( self, path, parms, POSTData, timeout=30, retry_count=10 ): # see getRequest
+  def postRequest( self, path, parms, POSTData, timeout=30, retry_count=10 ):  # see getRequest
     count = 0
     while True:
       logging.debug( 'libplato: postRequest: retry {0} of {1}, timeout: {2}'.format( count, retry_count, timeout ) )
       try:
         return self._postRequest( path, parms, POSTData, timeout )
-      except ( PlatoConnectionException, PlatoTimeoutException ), e:
+      except ( PlatoConnectionException, PlatoTimeoutException ) as e:
         if not retry_count == -1 and count >= retry_count:
           raise e
 
@@ -201,7 +213,7 @@ class HTTPConnector( Connector ):
       parms[ 'config_id' ] = config_id
 
     try:
-      result = self.getJSONRequest( 'config/system_config', parms, timeout=10, retry_count=2 ) # the defaults cause configManager to hang to a long time when it can't talk to plato
+      result = self.getJSONRequest( 'config/system_config', parms, timeout=10, retry_count=2 )  # the defaults cause configManager to hang to a long time when it can't talk to plato
     except Plato404Exception:
       raise DeviceNotFound()
 
@@ -246,14 +258,14 @@ class Plato( object ):
     if config_file:
       try:
         host = config_file.get( 'plato', 'hostname' )
-      except ConfigParser.Error:
+      except configparser.Error:
         raise Exception( 'Error Getting plato host from config file.' )
 
       try:
         proxy = config_file.get( 'plato', 'proxy' )
         if not proxy:
           proxy = None
-      except ConfigParser.Error:
+      except configparser.Error:
         logging.warning( 'libplato: No proxy setting found, running without proxy support.' )
         proxy = None
 
@@ -261,19 +273,19 @@ class Plato( object ):
         self.id = int( config_file.get( 'plato', 'id' ) )
       except ValueError:
         raise Exception( 'Invalid config id' )
-      except ConfigParser.Error:
+      except configparser.Error:
         self.id = None
         logging.warning( 'libplato: No Config Id setting found, relying on Plato Master to figure it out.' )
 
       try:
         self.uuid = config_file.get( 'plato', 'config_uuid' )
-      except ConfigParser.Error:
+      except configparser.Error:
         self.uuid = None
         logging.warning( 'libplato: No UUID setting found, relying on Plato Master to figure it out.' )
 
       try:
         self.pod = config_file.get( 'plato', 'pod' )
-      except ConfigParser.Error:
+      except configparser.Error:
         self.pod = None
         logging.warning( 'libplato: No Pod setting found, relying on Plato Master to figure it out.' )
 
@@ -290,7 +302,7 @@ class Plato( object ):
     result = self._connector.getConfig( config_uuid=self.uuid, config_id=self.id )
 
     if 'config_uuid' in result:
-      if result[ 'config_uuid' ] != self.uuid: #this needs to be re-thought a bit, perhaps if exisint self.uuid is non allow quetly?
+      if result[ 'config_uuid' ] != self.uuid:  # this needs to be re-thought a bit, perhaps if exisint self.uuid is non allow quetly?
         if not self.allow_config_change:
           raise PlatoConfigChanged( 'Config UUID Changed' )
         self.uuid = result[ 'config_uuid' ]

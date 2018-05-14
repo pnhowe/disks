@@ -1,5 +1,6 @@
 DEPS = $(shell ls deps)
-DISKS = $(shell ls disks)
+#DISKS = $(shell ls disks)
+DISKS = linux-installer utility
 TEMPLATES = $(shell ls templates)
 DEP_DOWNLOADS = $(foreach dep,$(DEPS),build.deps/$(dep).download)
 DEP_BUILDS = $(foreach dep,$(DEPS),build.deps/$(dep).build)
@@ -124,7 +125,8 @@ images/img/%: $(PXE_FILES)
 	if [ -f templates/$* ];                                                                                                             \
 	then                                                                                                                                \
 	  mkdir -p build.images/templates/$*/ ;                                                                                             \
-	  DISK=$$( scripts/build_template $* build.images/templates/$*/config build.images/templates/$*/boot.config build.images/templates/$*/boot.menu 3>&1 1>/dev/null 2>/dev/null);    \
+	  scripts/build_template $* build.images/templates/$*/config build.images/templates/$*/boot.config build.images/templates/$*/boot.menu;    \
+		DISK=$$( grep -m 1 '#DISK:' templates/$* | sed s/'#DISK: '// );                                                                   \
 	  sudo scripts/makeimg $@ images/pxe/$$DISK.vmlinuz images/pxe/$$DISK.initrd build.images/templates/$*/boot.config build.images/templates/$*/config build.images/templates/$*/boot.menu; \
 	elif [ -f $(FILE).config_file ] && [ -f $(FILE).boot_menu ];                                                                        \
 	then                                                                                                                                \
@@ -150,19 +152,20 @@ images/iso/%.iso: $(PXE_FILES)
 	if [ -f templates/$* ];                                                                                                             \
 	then                                                                                                                                \
 	  mkdir -p build.images/templates/$*/ ;                                                                                             \
-	  DISK=$$( scripts/build_template $* build.images/templates/$*/config build.images/templates/$*/boot.config build.images/templates/$*/boot.menu 3>&1 1>/dev/null 2>/dev/null);    \
+		scripts/build_template $* build.images/templates/$*/config build.images/templates/$*/boot.config build.images/templates/$*/boot.menu;    \
+		DISK=$$( grep -m 1 '#DISK:' templates/$* | sed s/'#DISK: '// );                                                                   \
 	  scripts/makeiso $@ images/pxe/$$DISK.vmlinuz images/pxe/$$DISK.initrd build.images/templates/$*/boot.config build.images/templates/$*/config build.images/templates/$*/boot.menu; \
 	elif [ -f $(FILE).config_file ] && [ -f $(FILE).boot_menu ];                                                                        \
 	then                                                                                                                                \
-	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) $(FILE).config_file $(FILE).boot_menu;                 \
+	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) $(FILE).config_file $(FILE).boot_menu;                      \
 	elif [ -f $(FILE).config_file ];                                                                                                    \
 	then                                                                                                                                \
-	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) $(FILE).config_file;                                   \
+	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) $(FILE).config_file;                                        \
 	elif [ -f $(FILE).boot_menu ];                                                                                                      \
 	then                                                                                                                                \
-	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) "" $(FILE).boot_menu;                                  \
+	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) "" $(FILE).boot_menu;                                       \
 	else                                                                                                                                \
-	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE);                                                       \
+	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE);                                                            \
 	fi
 
 # templates

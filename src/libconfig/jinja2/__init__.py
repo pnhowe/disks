@@ -23,38 +23,39 @@
         {% endblock %}
 
 
-    :copyright: (c) 2010 by the Jinja Team.
+    :copyright: (c) 2017 by the Jinja Team.
     :license: BSD, see LICENSE for more details.
 """
 __docformat__ = 'restructuredtext en'
-__version__ = '2.7.2'
+__version__ = '2.10'
 
 # high level interface
-from environment import Environment, Template
+from libconfig.jinja2.environment import Environment, Template
 
 # loaders
-from loaders import BaseLoader, FileSystemLoader, PackageLoader, \
+from libconfig.jinja2.loaders import BaseLoader, FileSystemLoader, PackageLoader, \
      DictLoader, FunctionLoader, PrefixLoader, ChoiceLoader, \
      ModuleLoader
 
 # bytecode caches
-from bccache import BytecodeCache, FileSystemBytecodeCache, \
+from libconfig.jinja2.bccache import BytecodeCache, FileSystemBytecodeCache, \
      MemcachedBytecodeCache
 
 # undefined types
-from runtime import Undefined, DebugUndefined, StrictUndefined
+from libconfig.jinja2.runtime import Undefined, DebugUndefined, StrictUndefined, \
+     make_logging_undefined
 
 # exceptions
-from exceptions import TemplateError, UndefinedError, \
+from libconfig.jinja2.exceptions import TemplateError, UndefinedError, \
      TemplateNotFound, TemplatesNotFound, TemplateSyntaxError, \
-     TemplateAssertionError
+     TemplateAssertionError, TemplateRuntimeError
 
 # decorators and public utilities
-from filters import environmentfilter, contextfilter, \
+from libconfig.jinja2.filters import environmentfilter, contextfilter, \
      evalcontextfilter
-from utils import Markup, escape, clear_caches, \
+from libconfig.jinja2.utils import Markup, escape, clear_caches, \
      environmentfunction, evalcontextfunction, contextfunction, \
-     is_undefined
+     is_undefined, select_autoescape
 
 __all__ = [
     'Environment', 'Template', 'BaseLoader', 'FileSystemLoader',
@@ -63,7 +64,20 @@ __all__ = [
     'MemcachedBytecodeCache', 'Undefined', 'DebugUndefined',
     'StrictUndefined', 'TemplateError', 'UndefinedError', 'TemplateNotFound',
     'TemplatesNotFound', 'TemplateSyntaxError', 'TemplateAssertionError',
+    'TemplateRuntimeError',
     'ModuleLoader', 'environmentfilter', 'contextfilter', 'Markup', 'escape',
     'environmentfunction', 'contextfunction', 'clear_caches', 'is_undefined',
-    'evalcontextfilter', 'evalcontextfunction'
+    'evalcontextfilter', 'evalcontextfunction', 'make_logging_undefined',
+    'select_autoescape',
 ]
+
+
+def _patch_async():
+    from libconfig.jinja2.utils import have_async_gen
+    if have_async_gen:
+        from libconfig.jinja2.asyncsupport import patch_all
+        patch_all()
+
+
+_patch_async()
+del _patch_async

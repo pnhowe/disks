@@ -30,10 +30,10 @@ base_templates=hosts network ifcfg i18n yum
 [booting]
 bootloader_templates=grub
 grub_conf=/boot/grub/grub.conf
-bootloader_install=/sbin/grub-install %s
+bootloader_install=/sbin/grub-install {0}
 
 [users]
-skel_dir=/etc/skel/
+skel_dir=etc/skel/
 
 [general]
 after_cmd_1=restorecon -R /

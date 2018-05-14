@@ -6,6 +6,7 @@
 
 #include "device.h"
 #include "enclosure.h"
+#include "libenclosure.h"
 
 int verbose = 0;
 

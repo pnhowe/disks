@@ -30,6 +30,7 @@ done
 ln -sf libc-2.26.so $1/lib/libc.so.6
 ln -sf libm-2.26.so $1/lib/libm.so.6
 
+# have these two use the function in disk_functions?
 ./scripts/install_dep udev $1 $2 $3
 ./scripts/install_dep python $1 $2 $3
 

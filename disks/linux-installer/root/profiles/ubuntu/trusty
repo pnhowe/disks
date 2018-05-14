@@ -8,8 +8,7 @@ extra_mount_1=proc:proc:/proc
 extra_mount_2=sysfs:sysfs:/sys
 extra_mount_3=:/dev:/dev:bind
 extra_mount_4=devpts:devpts:/dev/pts
-extra_mount_5=proc:proc:/proc
-extra_mount_6=binfmt_misc:binfmt_misc:/proc/sys/fs/binfmt_misc
+extra_mount_5=binfmt_misc:binfmt_misc:/proc/sys/fs/binfmt_misc
 
 [fstab]
 prefix_1=# <file system> <mount point>   <type>  <options>       <dump>  <pass>
@@ -49,6 +48,7 @@ base_templates=interfaces,hosts
 
 [booting]
 bootloader_templates=grub
+bootloader_install=/usr/sbin/grub-install {0}
 
 [general]
 after_cmd_1=sed s/"PermitRootLogin [A-Za-z\-]*"/"PermitRootLogin yes"/ -i /etc/ssh/sshd_config

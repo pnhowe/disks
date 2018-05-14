@@ -6,6 +6,7 @@
 
 #include "device.h"
 #include "disk.h"
+#include "libdrive.h"
 
 int verbose = 0;
 
