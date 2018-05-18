@@ -5,11 +5,11 @@
 
     Jinja default filters and tags.
 
-    :copyright: (c) 2010 by the Jinja Team.
+    :copyright: (c) 2017 by the Jinja Team.
     :license: BSD, see LICENSE for more details.
 """
-from _compat import range_type
-from utils import generate_lorem_ipsum, Cycler, Joiner
+from libconfig.jinja2._compat import range_type
+from libconfig.jinja2.utils import generate_lorem_ipsum, Cycler, Joiner, Namespace
 
 
 # defaults for the parser / lexer
@@ -28,14 +28,27 @@ KEEP_TRAILING_NEWLINE = False
 
 
 # default filters, tests and namespace
-from filters import FILTERS as DEFAULT_FILTERS
-from tests import TESTS as DEFAULT_TESTS
+from libconfig.jinja2.filters import FILTERS as DEFAULT_FILTERS
+from libconfig.jinja2.tests import TESTS as DEFAULT_TESTS
 DEFAULT_NAMESPACE = {
     'range':        range_type,
-    'dict':         lambda **kw: kw,
+    'dict':         dict,
     'lipsum':       generate_lorem_ipsum,
     'cycler':       Cycler,
-    'joiner':       Joiner
+    'joiner':       Joiner,
+    'namespace':    Namespace
+}
+
+
+# default policies
+DEFAULT_POLICIES = {
+    'compiler.ascii_str':   True,
+    'urlize.rel':           'noopener',
+    'urlize.target':        None,
+    'truncate.leeway':      5,
+    'json.dumps_function':  None,
+    'json.dumps_kwargs':    {'sort_keys': True},
+    'ext.i18n.trimmed':     False,
 }
 
 

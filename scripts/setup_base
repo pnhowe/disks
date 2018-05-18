@@ -5,6 +5,8 @@ set -x
 
 # install busybox
 cp $3/busybox/busybox $1/bin
+mkdir -p $1/usr/bin
+ln -sf /bin/env $1/usr/bin/env
 
 # install source binaries
 cp $2/ttytee/ttytee $1/sbin
@@ -28,5 +30,9 @@ done
 ln -sf libc-2.26.so $1/lib/libc.so.6
 ln -sf libm-2.26.so $1/lib/libm.so.6
 
+# have these two use the function in disk_functions?
 ./scripts/install_dep udev $1 $2 $3
 ./scripts/install_dep python $1 $2 $3
+
+# install plato libs
+cp -a $2/platoclient $1/lib/python3.6/

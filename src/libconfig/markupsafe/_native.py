@@ -9,7 +9,7 @@
     :license: BSD, see LICENSE for more details.
 """
 from . import Markup
-from _compat import text_type
+from libconfig.markupsafe._compat import text_type
 
 
 def escape(s):

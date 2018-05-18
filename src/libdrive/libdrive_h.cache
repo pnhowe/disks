@@ -1,9 +1,73 @@
-from ctypes import *
+# -*- coding: utf-8 -*-
+#
+# TARGET arch is: ['-target', 'x86_64-Linux', '-I', '/usr/include/x86_64-linux-gnu', '-I', '/usr/lib/gcc/x86_64-linux-gnu/6/include/', '-target', 'x86_64']
+# WORD_SIZE is: 8
+# POINTER_SIZE is: 8
+# LONGDOUBLE_SIZE is: 16
+#
+import ctypes
+
+
+c_int128 = ctypes.c_ubyte*16
+c_uint128 = c_int128
+void = None
+if ctypes.sizeof(ctypes.c_longdouble) == 16:
+    c_long_double_t = ctypes.c_longdouble
+else:
+    c_long_double_t = ctypes.c_ubyte*16
+
+_libraries = {}
+_libraries['libdrive.so.3'] = ctypes.CDLL('libdrive.so.3')
+# if local wordsize is same as target, keep ctypes pointer function.
+if ctypes.sizeof(ctypes.c_void_p) == 8:
+    POINTER_T = ctypes.POINTER
+else:
+    # required to access _ctypes
+    import _ctypes
+    # Emulate a pointer class using the approriate c_int32/c_int64 type
+    # The new class should have :
+    # ['__module__', 'from_param', '_type_', '__dict__', '__weakref__', '__doc__']
+    # but the class should be submitted to a unique instance for each base type
+    # to that if A == B, POINTER_T(A) == POINTER_T(B)
+    ctypes._pointer_t_type_cache = {}
+    def POINTER_T(pointee):
+        # a pointer should have the same length as LONG
+        fake_ptr_base_type = ctypes.c_uint64 
+        # specific case for c_void_p
+        if pointee is None: # VOID pointer type. c_void_p.
+            pointee = type(None) # ctypes.c_void_p # ctypes.c_ulong
+            clsname = 'c_void'
+        else:
+            clsname = pointee.__name__
+        if clsname in ctypes._pointer_t_type_cache:
+            return ctypes._pointer_t_type_cache[clsname]
+        # make template
+        class _T(_ctypes._SimpleCData,):
+            _type_ = 'L'
+            _subtype_ = pointee
+            def _sub_addr_(self):
+                return self.value
+            def __repr__(self):
+                return '%s(%d)'%(clsname, self.value)
+            def contents(self):
+                raise TypeError('This is not a ctypes pointer.')
+            def __init__(self, **args):
+                raise TypeError('This is not a ctypes pointer. It is not instanciable.')
+        _class = type('LP_%d_%s'%(8, clsname), (_T,),{}) 
+        ctypes._pointer_t_type_cache[clsname] = _class
+        return _class
 
 
 
-class drive_info(Structure):
+class struct_drive_info(ctypes.Structure):
     pass
+
+
+# values for enumeration 'protocol_type'
+PROTOCOL_TYPE_UNKNOWN = 0
+PROTOCOL_TYPE_ATA = 1
+PROTOCOL_TYPE_SCSI = 2
+protocol_type = ctypes.c_int # enum
 
 # values for enumeration 'driver_type'
 DRIVER_TYPE_UNKNOWN = 0
@@ -13,96 +77,122 @@ DRIVER_TYPE_SAT = 3
 DRIVER_TYPE_3WARE = 16
 DRIVER_TYPE_MEGADEV = 17
 DRIVER_TYPE_MEGASAS = 18
-driver_type = c_int # enum
-
-# values for enumeration 'protocol_type'
-PROTOCOL_TYPE_UNKNOWN = 0
-PROTOCOL_TYPE_ATA = 1
-PROTOCOL_TYPE_SCSI = 2
-protocol_type = c_int # enum
-drive_info._fields_ = [
+driver_type = ctypes.c_int # enum
+struct_drive_info._pack_ = True # source:False
+struct_drive_info._fields_ = [
     ('driver', driver_type),
     ('protocol', protocol_type),
-    ('model', c_char * 42),
-    ('serial', c_char * 34),
-    ('SMARTSupport', c_char),
-    ('SMARTEnabled', c_char),
-    ('supportsSelfTest', c_char),
-    ('supportsLBA', c_char),
-    ('supportsWriteSame', c_char),
-    ('supportsTrim', c_char),
-    ('isSSD', c_char),
-    ('RPM', c_int),
-    ('LogicalSectorSize', c_int),
-    ('PhysicalSectorSize', c_int),
-    ('LBACount', c_ulonglong),
-    ('WWN', c_ulonglong),
-    ('firmware_rev', c_char * 10),
-    ('ATA_major_version', c_int),
-    ('ATA_minor_version', c_int),
-    ('bit48LBA', c_char),
-    ('supportsDMA', c_char),
-    ('supportsSCT', c_char),
-    ('supportsSETMAX', c_char),
-    ('vendor_id', c_char * 9),
-    ('version', c_char * 5),
-    ('SCSI_version', c_int),
-    ('hasLogPageErrorWrite', c_char),
-    ('hasLogPageErrorRead', c_char),
-    ('hasLogPageErrorVerify', c_char),
-    ('hasLogPageErrorNonMedium', c_char),
-    ('hasLogPageTemperature', c_char),
-    ('hasLogPageStartStop', c_char),
-    ('hasLogPageSelfTest', c_char),
-    ('hasLogPageSSD', c_char),
-    ('hasLogPageBackgroundScan', c_char),
-    ('hasLogPageFactoryLog', c_char),
-    ('hasLogPageInfoExcept', c_char),
-    ('hasVPDPageSerial', c_char),
-    ('hasVPDPageIdentification', c_char),
-    ('hasVPDPageBlockLimits', c_char),
-    ('hasVPDPageBlockDeviceCharacteristics', c_char),
-    ('maxUnmapLBACount', c_uint),
-    ('maxUnmapDescriptorCount', c_uint),
-    ('maxWriteSameLength', c_ulonglong),
+    ('model', ctypes.c_char * 42),
+    ('serial', ctypes.c_char * 34),
+    ('SMARTSupport', ctypes.c_char),
+    ('SMARTEnabled', ctypes.c_char),
+    ('supportsSelfTest', ctypes.c_char),
+    ('supportsLBA', ctypes.c_char),
+    ('supportsWriteSame', ctypes.c_char),
+    ('supportsTrim', ctypes.c_char),
+    ('isSSD', ctypes.c_char),
+    ('PADDING_0', ctypes.c_ubyte),
+    ('RPM', ctypes.c_int32),
+    ('LogicalSectorSize', ctypes.c_int32),
+    ('PhysicalSectorSize', ctypes.c_int32),
+    ('LBACount', ctypes.c_uint64),
+    ('WWN', ctypes.c_uint64),
+    ('firmware_rev', ctypes.c_char * 10),
+    ('PADDING_1', ctypes.c_ubyte * 2),
+    ('ATA_major_version', ctypes.c_int32),
+    ('ATA_minor_version', ctypes.c_int32),
+    ('bit48LBA', ctypes.c_char),
+    ('supportsDMA', ctypes.c_char),
+    ('supportsSCT', ctypes.c_char),
+    ('supportsSETMAX', ctypes.c_char),
+    ('vendor_id', ctypes.c_char * 9),
+    ('version', ctypes.c_char * 5),
+    ('PADDING_2', ctypes.c_ubyte * 2),
+    ('SCSI_version', ctypes.c_int32),
+    ('hasLogPageErrorWrite', ctypes.c_char),
+    ('hasLogPageErrorRead', ctypes.c_char),
+    ('hasLogPageErrorVerify', ctypes.c_char),
+    ('hasLogPageErrorNonMedium', ctypes.c_char),
+    ('hasLogPageTemperature', ctypes.c_char),
+    ('hasLogPageStartStop', ctypes.c_char),
+    ('hasLogPageSelfTest', ctypes.c_char),
+    ('hasLogPageSSD', ctypes.c_char),
+    ('hasLogPageBackgroundScan', ctypes.c_char),
+    ('hasLogPageFactoryLog', ctypes.c_char),
+    ('hasLogPageInfoExcept', ctypes.c_char),
+    ('hasVPDPageSerial', ctypes.c_char),
+    ('hasVPDPageIdentification', ctypes.c_char),
+    ('hasVPDPageBlockLimits', ctypes.c_char),
+    ('hasVPDPageBlockDeviceCharacteristics', ctypes.c_char),
+    ('PADDING_3', ctypes.c_ubyte),
+    ('maxUnmapLBACount', ctypes.c_uint32),
+    ('maxUnmapDescriptorCount', ctypes.c_uint32),
+    ('PADDING_4', ctypes.c_ubyte * 4),
+    ('maxWriteSameLength', ctypes.c_uint64),
 ]
-class smart_attribs(Structure):
+
+class struct_smart_attrib_ata(ctypes.Structure):
+    _pack_ = True # source:True
+    _fields_ = [
+    ('id', ctypes.c_ubyte),
+    ('current', ctypes.c_ubyte),
+    ('max', ctypes.c_ubyte),
+    ('threshold', ctypes.c_ubyte),
+    ('raw', ctypes.c_uint64),
+     ]
+
+class struct_smart_attrib_scsi(ctypes.Structure):
+    _pack_ = True # source:True
+    _fields_ = [
+    ('page_code', ctypes.c_ubyte),
+    ('parm_code', ctypes.c_ubyte),
+    ('value', ctypes.c_uint64),
+     ]
+
+class struct_smart_attribs(ctypes.Structure):
     pass
-class N13smart_attribs3DOT_3E(Union):
-    pass
-class smart_attrib_ata(Structure):
-    pass
-smart_attrib_ata._pack_ = 1
-smart_attrib_ata._fields_ = [
-    ('id', c_ubyte),
-    ('current', c_ubyte),
-    ('max', c_ubyte),
-    ('threshold', c_ubyte),
-    ('raw', c_ulonglong),
-]
-class smart_attrib_scsi(Structure):
-    pass
-smart_attrib_scsi._pack_ = 1
-smart_attrib_scsi._fields_ = [
-    ('page_code', c_ubyte),
-    ('parm_code', c_ubyte),
-    ('value', c_ulonglong),
-]
-N13smart_attribs3DOT_3E._fields_ = [
-    ('raw', c_ubyte * 500),
-    ('ata', smart_attrib_ata * 41),
-    ('scsi', smart_attrib_scsi * 50),
-]
-smart_attribs._fields_ = [
+
+class union_smart_attribs_0(ctypes.Union):
+    _pack_ = True # source:False
+    _fields_ = [
+    ('raw', ctypes.c_ubyte * 500),
+    ('ata', struct_smart_attrib_ata * 41),
+    ('scsi', struct_smart_attrib_scsi * 50),
+     ]
+
+struct_smart_attribs._pack_ = True # source:False
+struct_smart_attribs._fields_ = [
     ('protocol', protocol_type),
-    ('count', c_ubyte),
-    ('data', N13smart_attribs3DOT_3E),
+    ('count', ctypes.c_ubyte),
+    ('data', union_smart_attribs_0),
+    ('PADDING_0', ctypes.c_ubyte * 3),
 ]
-__all__ = ['PROTOCOL_TYPE_ATA', 'driver_type', 'smart_attrib_scsi',
-           'N13smart_attribs3DOT_3E', 'smart_attribs',
-           'DRIVER_TYPE_SGIO', 'DRIVER_TYPE_IDE',
-           'PROTOCOL_TYPE_SCSI', 'DRIVER_TYPE_MEGASAS',
-           'DRIVER_TYPE_SAT', 'PROTOCOL_TYPE_UNKNOWN',
-           'DRIVER_TYPE_UNKNOWN', 'DRIVER_TYPE_MEGADEV',
-           'DRIVER_TYPE_3WARE', 'drive_info', 'protocol_type',
-           'smart_attrib_ata']
+
+set_verbose = _libraries['libdrive.so.3'].set_verbose
+set_verbose.restype = None
+set_verbose.argtypes = [ctypes.c_int32]
+get_drive_info = _libraries['libdrive.so.3'].get_drive_info
+get_drive_info.restype = ctypes.c_int32
+get_drive_info.argtypes = [POINTER_T(ctypes.c_char), POINTER_T(struct_drive_info), POINTER_T(ctypes.c_char)]
+get_smart_attrs = _libraries['libdrive.so.3'].get_smart_attrs
+get_smart_attrs.restype = ctypes.c_int32
+get_smart_attrs.argtypes = [POINTER_T(ctypes.c_char), POINTER_T(struct_smart_attribs), POINTER_T(ctypes.c_char)]
+smart_status = _libraries['libdrive.so.3'].smart_status
+smart_status.restype = ctypes.c_int32
+smart_status.argtypes = [POINTER_T(ctypes.c_char), POINTER_T(ctypes.c_int32), POINTER_T(ctypes.c_int32), POINTER_T(ctypes.c_char)]
+drive_last_selftest_passed = _libraries['libdrive.so.3'].drive_last_selftest_passed
+drive_last_selftest_passed.restype = ctypes.c_int32
+drive_last_selftest_passed.argtypes = [POINTER_T(ctypes.c_char), POINTER_T(ctypes.c_int32), POINTER_T(ctypes.c_char)]
+log_entry_count = _libraries['libdrive.so.3'].log_entry_count
+log_entry_count.restype = ctypes.c_int32
+log_entry_count.argtypes = [POINTER_T(ctypes.c_char), POINTER_T(ctypes.c_int32), POINTER_T(ctypes.c_char)]
+__all__ = \
+    ['smart_status', 'PROTOCOL_TYPE_UNKNOWN', 'protocol_type',
+    'DRIVER_TYPE_MEGASAS', 'PROTOCOL_TYPE_ATA',
+    'struct_smart_attribs', 'struct_drive_info',
+    'struct_smart_attrib_scsi', 'get_drive_info', 'get_smart_attrs',
+    'DRIVER_TYPE_SAT', 'set_verbose', 'driver_type',
+    'drive_last_selftest_passed', 'PROTOCOL_TYPE_SCSI',
+    'DRIVER_TYPE_MEGADEV', 'DRIVER_TYPE_3WARE', 'log_entry_count',
+    'DRIVER_TYPE_UNKNOWN', 'DRIVER_TYPE_SGIO', 'DRIVER_TYPE_IDE',
+    'struct_smart_attrib_ata', 'union_smart_attribs_0']

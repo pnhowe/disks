@@ -15,14 +15,14 @@ def _parseDriveStatus( result ):
   tmp = result.splitlines()
 
   if len( tmp ) < 2 or not tmp[0].startswith( 'Health:' ) or not tmp[1].startswith( 'Status:' ):
-    raise Exception( 'Unexpected Result from reporting drive status: "%s"' % result )
+    raise Exception( 'Unexpected Result from reporting drive status: "{0}"'.format( result ) )
 
   health = None
 
   try:
     health = int( tmp[0].split()[1] )
   except:
-    raise Exception( 'Unexpected Health Value from getting status: "%s"' % result )
+    raise Exception( 'Unexpected Health Value from getting status: "{0}"'.format( result ) )
 
   if health >= 8:
     return ( False, health )
@@ -43,14 +43,14 @@ def _parseHardwareStatus( result ):
   tmp = result.splitlines()
 
   if len( tmp ) < 1 or not tmp[0].startswith( 'Health:' ):
-    raise Exception( 'Unexpected Result from reporting hardware status: "%s"' % result )
+    raise Exception( 'Unexpected Result from reporting hardware status: "{0}"'.format( result ) )
 
   health = None
 
   try:
     health = int( tmp[0].split()[1] )
   except:
-    raise Exception( 'Unexpected Health Value from getting status: "%s"' % result )
+    raise Exception( 'Unexpected Health Value from getting status: "{0}"'.format( result ) )
 
   if health >= 8:
     return ( False, health )
@@ -68,14 +68,14 @@ def _parseConfigStatus( result ):
   tmp = result.splitlines()
 
   if len( tmp ) < 1 or not tmp[0].startswith( 'Health:' ):
-    raise Exception( 'Unexpected Result from reporting config status: "%s"' % result )
+    raise Exception( 'Unexpected Result from reporting config status: "{0}"'.format( result ) )
 
   health = None
 
   try:
     health = int( tmp[0].split()[1] )
   except:
-    raise Exception( 'Unexpected Health Value from getting status: "%s"' % result )
+    raise Exception( 'Unexpected Health Value from getting status: "{0}"'.format( result ) )
 
   if health >= 8:
     return ( False, health )
@@ -96,15 +96,15 @@ class PlatoClient( Plato ):
       return
 
     if result != 'Saved':
-      raise PlatoClientException( 'Error Removing Drive From Machine: %s' % result )
+      raise PlatoClientException( 'Error Removing Drive From Machine: {0}'.format( result ) )
 
   def checkDriveStatus( self, drive ):
-    result = self.getRequest( 'storage/checkdrivestatus/%s/' % urllib.quote( drive.serial ), { 'location': drive.location, 'name': drive.name } )
+    result = self.getRequest( 'storage/checkdrivestatus/{0}/'.format( urllib.quote( drive.serial ), { 'location': drive.location, 'name': drive.name } ) )
 
     return _parseDriveStatus( result )
 
   def checkDriveThrashed( self, drive ):
-    result = self.getRequest( 'storage/checkdrivethrashed/%s/' % urllib.quote( drive.serial ), {} )
+    result = self.getRequest( 'storage/checkdrivethrashed/{0}/'.format( urllib.quote( drive.serial ), {} ) )
 
     if result == 'Thrashed':
       return True
@@ -113,12 +113,12 @@ class PlatoClient( Plato ):
     elif result == 'Not Found' or result is None:
       return None
     else:
-      raise PlatoClientException( 'Unknown Result When Getting Thrashed Status: "%s"' % result )
+      raise PlatoClientException( 'Unknown Result When Getting Thrashed Status: "{0}"'.format( result ) )
 
   def reportDriveStatus( self, drive, event, status, check_only=False, current_health=None  ): # status from drive.driveReportingStatus()
     POSTData = { 'data': json.dumps( { 'info': drive.reporting_info, 'event': event, 'location': drive.location, 'name': drive.name, 'status': status, 'check_only': check_only, 'current_health': current_health } ) }
 
-    result = self.postRequest( 'storage/recorddrivestatus/%s/' % urllib.quote( drive.serial ), {}, POSTData )
+    result = self.postRequest( 'storage/recorddrivestatus/{0}/'.format( urllib.quote( drive.serial ), {}, POSTData ) )
 
     return _parseDriveStatus( result )
 

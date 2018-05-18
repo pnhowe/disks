@@ -1,7 +1,7 @@
 #ifndef _DISK_H
 #define _DISK_H
 
-#include <linux/types.h>
+#include <asm/types.h>
 #include "cdb.h"
 #include "device.h"
 

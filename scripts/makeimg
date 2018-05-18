@@ -1,6 +1,14 @@
 #!/bin/bash
 set -e
 
+# $1 - output filename
+# $2 - path to kernel
+# $3 - path to initrd
+# $4 - path to boot config
+# $5 - path config_file (optional)
+# $6 - path to boot menu (optional)
+
+
 #size in 1k blocks, default is 60k ie 60meg disk
 DISK_SIZE="60k"
 
@@ -11,15 +19,15 @@ then
   mkdir -p $MOUNT_POINT
 fi
 
-for item in "/usr/lib/syslinux/mbr.bin" "/usr/lib/syslinux-legacy/mbr.bin" "/usr/lib/syslinux/mbr/mbr.bin"
-do
-  if [ -f $item ]
-  then
-    MBR_BIN=$item
-  fi
-done
+if mountpoint -q $MOUNT_POINT
+then
+  echo "$MOUNT_POINT allready mounted, possibly a failed build needs to be cleaned up?"
+  exit 1
+fi
 
-if [ "x$MBR_BIN" == "x" ]
+MBR_BIN="/usr/lib/syslinux/mbr/mbr.bin"
+
+if [ ! -f "$MBR_BIN" ]
 then
   echo "mbr.bin not found install syslinux-common"
   exit 1

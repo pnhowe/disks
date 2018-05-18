@@ -1,9 +1,10 @@
 import os
-from ConfigParser import NoOptionError
-from procutils import chroot_execute, execute_lines
-from packaging import installPackages
-from config import renderTemplates
-from filesystem import fsConfigValues
+from configparser import NoOptionError
+from installer.procutils import chroot_execute, execute_lines
+from installer.packaging import installPackages
+from installer.config import renderTemplates
+from installer.filesystem import fsConfigValues
+
 
 def installBoot( install_root, profile ):
   renderTemplates( profile.get( 'booting', 'bootloader_templates' ).split( ',' ) )
@@ -28,4 +29,4 @@ def installBoot( install_root, profile ):
 
   if bootloader_install:
     for drive in fsConfigValues()[ 'boot_drives' ]:
-      chroot_execute( bootloader_install % drive )
+      chroot_execute( bootloader_install.format( drive ) )

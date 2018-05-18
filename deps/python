@@ -6,27 +6,44 @@
 set -e
 set -x
 
+# we don't need everything, so only these subdirs
+# lib2to3 is there b/c the install will not work with out it, going to remove that late
+SUBDIRS="encodings serial json config ctypes logging sqlite3 collections urllib email http asyncio concurrent concurrent/futures multiprocessing importlib lib2to3"
+
 build()
 {
   tar --strip-components=1 -xJf $1
   ./configure --prefix= --enable-ipv6
   make -j4 python
-  # see notes in setup_base
-  LIBSUBDIRS="encodings serial json config ctypes logging sqlite3 lib2to3" make -e build_all
+  LIBSUBDIRS=$SUBDIRS make -e build_all
 }
 
 install()
 {
   cp -f $3/python/python $1/bin/
-  # we don't need everything, so only these subdirs
-  # lib2to3 is there b/c the install with out it, going to remove that later
-  DESTDIR=$1 LIBSUBDIRS="encodings serial json config ctypes logging sqlite3 lib2to3" make -C $3/python -e libinstall
-  DESTDIR=$1 LIBSUBDIRS="encodings serial json config ctypes logging sqlite3 lib2to3" make -C $3/python -e sharedinstall
+
+  DESTDIR=$1 LIBSUBDIRS=$SUBDIRS make -C $3/python -e libinstall
+  DESTDIR=$1 LIBSUBDIRS=$SUBDIRS make -C $3/python -e sharedinstall
 
   rm -fr $1/lib/python3.6/lib2to3
   rm $1/bin/2to3-3.6
   rm $1/bin/idle3.6
   rm $1/bin/pydoc3.6
   rm $1/bin/pyvenv-3.6
-  find $1/lib/ -name *.py -exec rm {} \;
+  #find $1/lib/ -name *.py -exec rm {} \;  # python3 dosen't let us use the the compiled files? would be nice to get rid of uncompiled source, it takes up a lot of space, mabey compress it
+
+  ln -sf python $1/bin/python3
+
+  for LIB in /lib/x86_64-linux-gnu/libbz2.so.1.0.4 \
+  /lib/x86_64-linux-gnu/libcrypto.so.1.0.0 \
+  /lib/x86_64-linux-gnu/libz.so.1.2.11 \
+  /lib/x86_64-linux-gnu/liblzma.so.5.2.2 \
+  /lib/x86_64-linux-gnu/libncurses.so.5.9 \
+  /usr/lib/x86_64-linux-gnu/libpanel.so.5.9 \
+  /usr/lib/x86_64-linux-gnu/libsqlite3.so.0.8.6 \
+  /lib/x86_64-linux-gnu/libssl.so.1.0.0 \
+  /lib/x86_64-linux-gnu/libtinfo.so.5.9
+  do
+    cp -L $LIB $1/lib
+  done
 }

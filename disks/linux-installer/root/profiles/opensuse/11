@@ -25,7 +25,7 @@ packages=
 base_templates=hosts network ifcfg i18n yum
 
 [booting]
-bootloader_install=/sbin/grub2-install %s
+bootloader_install=/sbin/grub2-install {0}
 
 [kernel]
 

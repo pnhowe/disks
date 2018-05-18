@@ -1,39 +1,39 @@
-#!/usr/bin/python -u
+#!/usr/bin/env python3
 
-import ConfigParser
+import configparser
 
-from platoclient.libdrive import DriveManager, setCLIs
+from libdrive.libdrive import DriveManager, setCLIs
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 try:
   if not config.read( '/etc/plato/client.conf' ):
     config = None
-except:
+except Exception:
   config = None
 
 if config:
-  try: # we can ignore the two setCLI calls, incase someone is intentionally disabeling looking for tw_cli and megaraid disks
+  try:  # we can ignore the two setCLI calls, incase someone is intentionally disabeling looking for tw_cli and megaraid disks
     setCLIs( tw_cli=config.get( 'libdrive', '3WareCLI' ) )
-  except ConfigParser.Error:
+  except configparser.Error:
     pass
 
   try:
     setCLIs( megaraid=config.get( 'libdrive', 'MeagaRAIDCLI' ) )
-  except ConfigParser.Error:
+  except configparser.Error:
     pass
 
 else:
-  print 'Warning: Unabled to load client.conf, MegaRaid and 3Ware drives may be missing.'
+  print( 'Warning: Unabled to load client.conf, MegaRaid and 3Ware drives may be missing.' )
 
 dm = DriveManager()
 
-print "Block Path\tPort\tSCSI Generic\tProtocol\tCapicity\tModel\tType"
+print( "Block Path\tPort\tSCSI Generic\tProtocol\tCapicity\tModel\tType" )
 
 for disk in dm.drive_list:
   try:
-    disk.model # force _loadInfo to run, to see if it is going to fail
-  except:
-    print '%s\t%s\t%s\tunknown\tunknown\tunknown\tunknown' % ( disk.block_path, disk.location, disk.scsi_generic )
+    disk.model  # force _loadInfo to run, to see if it is going to fail
+  except Exception:
+    print( '{0}\t{1}\t{2}\tunknown\tunknown\tunknown\tunknown'.format( disk.block_path, disk.location, disk.scsi_generic ) )
     continue
 
   type = 'HDD'
@@ -44,4 +44,4 @@ for disk in dm.drive_list:
   elif disk.isVirtualDisk:
     type = 'Virtual'
 
-  print '%s\t%s\t%s\t%s\t%s\t%s\t%s' % ( disk.block_path, disk.location, disk.scsi_generic, disk.protocol, disk.capacity, disk.model, type )
+  print( '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}'.format( disk.block_path, disk.location, disk.scsi_generic, disk.protocol, disk.capacity, disk.model, type ) )

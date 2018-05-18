@@ -1,0 +1,20 @@
+#!/usr/bin/env python3
+
+import sys
+import os
+
+from platoclient.libplatopxe import PlatoPXE, PlatoPxeNoJobException
+
+try:
+  msg = sys.argv[ 1 ]
+except KeyError:
+  print( 'usage: {0} <message>'.format( sys.argv[0] ) )
+
+platopxe = PlatoPXE( host=os.environ.get( 'plato_host', 'http://plato' ), proxy=os.environ.get( 'plato_proxy', None ) )
+
+try:
+  platopxe.signalAlert( msg )
+except PlatoPxeNoJobException:
+  print( 'WARNING! No Job, aborting.' )
+
+sys.exit( 0 )

@@ -1,0 +1,1 @@
+../precise/hostname.tpl

@@ -6,12 +6,12 @@
     This module implements various functions that exposes information about
     templates that might be interesting for various kinds of applications.
 
-    :copyright: (c) 2010 by the Jinja Team, see AUTHORS for more details.
+    :copyright: (c) 2017 by the Jinja Team, see AUTHORS for more details.
     :license: BSD, see LICENSE for more details.
 """
-from . import nodes
-from compiler import CodeGenerator
-from _compat import string_types
+from libconfig.jinja2 import nodes
+from libconfig.jinja2.compiler import CodeGenerator
+from libconfig.jinja2._compat import string_types, iteritems
 
 
 class TrackingCodeGenerator(CodeGenerator):
@@ -25,9 +25,12 @@ class TrackingCodeGenerator(CodeGenerator):
     def write(self, x):
         """Don't write."""
 
-    def pull_locals(self, frame):
+    def enter_frame(self, frame):
         """Remember all undeclared identifiers."""
-        self.undeclared_identifiers.update(frame.identifiers.undeclared)
+        CodeGenerator.enter_frame(self, frame)
+        for _, (action, param) in iteritems(frame.symbols.loads):
+            if action == 'resolve':
+                self.undeclared_identifiers.add(param)
 
 
 def find_undeclared_variables(ast):
@@ -36,11 +39,11 @@ def find_undeclared_variables(ast):
     variables will be used depending on the path the execution takes at
     runtime, all variables are returned.
 
-    >>> from jinja2 import Environment, meta
+    >>> from libconfig.jinja2 import Environment, meta
     >>> env = Environment()
     >>> ast = env.parse('{% set foo = 42 %}{{ bar + foo }}')
-    >>> meta.find_undeclared_variables(ast)
-    set(['bar'])
+    >>> meta.find_undeclared_variables(ast) == set(['bar'])
+    True
 
     .. admonition:: Implementation
 
@@ -60,7 +63,7 @@ def find_referenced_templates(ast):
     imports.  If dynamic inheritance or inclusion is used, `None` will be
     yielded.
 
-    >>> from jinja2 import Environment, meta
+    >>> from libconfig.jinja2 import Environment, meta
     >>> env = Environment()
     >>> ast = env.parse('{% extends "layout.html" %}{% include helper %}')
     >>> list(meta.find_referenced_templates(ast))
