@@ -10,7 +10,7 @@ WARNING: do not run `make` as root, there is a possibility of some of these targ
 some other way to protect your local filesystem.  The only targets that require root is to make the disk and iso images, make will `sudo` the required
 sub-commands.  It is recomended to do the `img` and `iso` commands in a VM/Container where any the block device maniplutaion can't mess up your filesystem.
 
-curently only tested for Ubuntu 17.10
+curently only tested for Ubuntu 18.04
 
 Install required packages::
 

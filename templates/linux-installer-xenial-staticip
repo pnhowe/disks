@@ -2,11 +2,10 @@
 
 #DISK: linux-installer
 
-QUESTION_LIST=( "MIRROR_SERVER" "HOSTNAME" "SWAP_SIZE" "USE_PROXY" "PROXY" "IS_VM" "RAID_TYPE"  )
-DESC_LIST=( "Mirror Server" "Hostname" "Swap Size" "Use HTTP Proxy" "HTTP Proxy (ignored if use proxy is n)" "Is VM" "RAID Type (ignored if VM)" )
-TYPE_LIST=( "inputbox" "inputbox" "inputbox" "yesno" "inputbox" "yesno" "menu:single_Single Disk_mirror_Mirror Two Disks_raid10_All disks into RAID 10_raid6_All disks into RAID 6_single-lvm_Single Disk LVM_dual-lvm_Two Disk LVM" )
-#DEFAULT_LIST=( "us.archive.ubuntu.com" "xenial" "2048" "yes" "http://proxy:3128/" "no" "single"  )
-DEFAULT_LIST=( "us.archive.ubuntu.com" "xenial" "2048" "yes" "http://192.168.200.50:3128/" "no" "single"  )
+QUESTION_LIST=( "IP_ADDRESS" "NETMASK" "GATEWAY" "DNS_SERVER" "MIRROR_SERVER" "HOSTNAME" "DOMAIN" "SWAP_SIZE" "USE_PROXY" "PROXY" "IS_VM" "RAID_TYPE"  )
+DESC_LIST=( "Ip Address" "Netmask" "Gateway" "DNS Server" "Mirror Server" "Hostname" "Domain Name" "Swap Size" "Use HTTP Proxy" "HTTP Proxy (ignored if use proxy is n)" "Is VM" "RAID Type (ignored if VM)" )
+TYPE_LIST=( "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "yesno" "inputbox" "yesno" "menu:single_Single Disk_mirror_Mirror Two Disks_raid10_All disks into RAID 10_raid6_All disks into RAID 6_single-lvm_Single Disk LVM_dual-lvm_Two Disk LVM" )
+DEFAULT_LIST=( "192.168.1.100" "255.255.255.0" "192.168.1.1" "192.168.1.1" "us.archive.ubuntu.com" "xenial" "local" "2048" "yes" "http://192.168.1.1:3128/" "no" "single"  )
 
 CONFIG='DISTRO="ubuntu"
 VERSION="xenial"
@@ -24,7 +23,10 @@ CONFIG_EOF
 cat > /config_values.json << CONFIG_VALUES_EOF
 {
   "repo_list": [ {"distribution": "xenial", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"}, {"distribution": "xenial-updates", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"}, {"distribution": "xenial-security", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"} ],
+  "dns_servers": [ "__DNS_SERVER__" ],
+  "dns_search": [ "__DOMAIN__" ],
   "hostname": "__HOSTNAME__",
+  "domain": "__DOMAIN__",
   "http_proxy": "__PROXY__",
   "distro_version": "xenial",
   "id": 0,
@@ -33,7 +35,9 @@ cat > /config_values.json << CONFIG_VALUES_EOF
     "eth0": {
       "address_list": [
         {
-          "address": "dhcp",
+          "address": "__IP_ADDRESS__",
+          "gateway": "__GATEWAY__",
+          "netmask": "__NETMASK__",
           "auto": true,
           "primary": true,
           "sub_interface": null,
@@ -55,7 +59,7 @@ DEFAULT normal
 
 LABEL normal
 KERNEL /vmlinuz.img
-APPEND initrd=/initrd.img __BOOT_PROXY__ hostname=__HOSTNAME__ local_config interface=any
+APPEND initrd=/initrd.img local_config __BOOT_PROXY__ ip_address=__IP_ADDRESS__ netmask=__NETMASK__ gateway=__GATEWAY__ dns_server=__DNS_SERVER__ hostname=__HOSTNAME__ dns_search_zone=__DOMAIN__ interface=eth0
 '
 
 post_process()

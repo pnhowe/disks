@@ -259,6 +259,8 @@ then
       exit 1
     fi
     /bin/logger "Setting Ip to $IP_ADDRESS, netmask $NETMASK, gateway $GATEWAY on $IFACE"
+    /sbin/ip addr flush dev $INTERFACE
+    /sbin/ip link set $INTERFACE up
     /sbin/ip addr add $IP_ADDRESS/$NETMASK dev $INTERFACE
     /sbin/ip route add default via $GATEWAY dev $INTERFACE
     echo "domain $DNS_SEARCH_ZONE" > /etc/resolv.conf

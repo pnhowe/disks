@@ -9,6 +9,6 @@ set -x
 build()
 {
   tar --strip-components=1 -xJf $1
-  ./configure --prefix=/
+  ./configure --prefix=/ --with-xz --with-zlib
   make -j4
 }

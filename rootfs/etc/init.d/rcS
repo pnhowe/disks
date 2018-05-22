@@ -49,7 +49,7 @@ fi
 
 echo "Creating Devices..."
 [ -d /run/udev ] || mkdir /run/udev
-/sbin/udevd --daemon --resolve-names=never
+/sbin/udevd --daemon --resolve-names=never --debug
 /sbin/udevadm trigger
 /sbin/udevadm settle
 
@@ -66,10 +66,18 @@ echo "Starting Name Cache"
 echo "Starting Interaface lo..."
 /sbin/ip addr flush dev lo
 /sbin/ip addr add 127.0.0.1/8 dev lo
+/sbin/ip link set lo up
 
 echo "Starting ttytee..."
 CONSOLE_LIST="$CONSOLE_LIST /tmp/output.log"
 
 /sbin/ttytee -d /dev/mastertty $CONSOLE_LIST
+
+# until udev starts modprobing it's self
+modprobe e1000
+modprobe vmxnet3
+modprobe sd_mod
+modprobe ahci
+modprobe mptspi
 
 sleep 2 # give udev a bit to get things created

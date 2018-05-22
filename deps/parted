@@ -20,8 +20,8 @@ install()
   /lib/x86_64-linux-gnu/libreadline.so.7.0 \
   /lib/x86_64-linux-gnu/libtinfo.so.5.9 \
   /lib/x86_64-linux-gnu/libselinux.so.1 \
-  /lib/x86_64-linux-gnu/libudev.so.1.6.6 \
-  /lib/x86_64-linux-gnu/libpcre.so.3.13.3 
+  /lib/x86_64-linux-gnu/libudev.so.1.6.9 \
+  /lib/x86_64-linux-gnu/libpcre.so.3.13.3
   do
     cp -L $LIB $1/lib
   done

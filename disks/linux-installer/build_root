@@ -7,7 +7,7 @@ ROOT_FS="linux-installer"
 
 . scripts/disk_functions
 
-install_base
+install_base "mod"
 
 install_dep "mdadm"
 install_dep "lvm2"

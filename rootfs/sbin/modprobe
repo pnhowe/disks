@@ -1,5 +1,0 @@
-#!/bin/sh
-
-#place holder for udev to call to keep it from complaning for pxe-disks without modules
-
-exit 0

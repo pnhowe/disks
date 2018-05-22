@@ -49,7 +49,7 @@ class TargetWriter( Extension ):
   def _write( self, filename, owner, mode, caller ):
     self.environment.globals[ '_target_list' ].append( str( filename ) )
     if not self.environment.globals[ '_dry_run' ]:
-      target_file = os.path.join( self.environment.globals[ '_root_dir' ], filename )
+      target_file = os.path.join( self.environment.globals[ '_root_dir' ], *( filename.split( '/' ) ) )
 
       if not os.path.exists( os.path.dirname( target_file ) ):
         os.makedirs( os.path.dirname( target_file ) )
@@ -418,9 +418,9 @@ class Config():
 
       for target in target_list:
         if dest_rootdir:
-          target_file = os.path.join( self.root_dir, dest_rootdir, target )
+          target_file = os.path.join( self.root_dir, *( dest_rootdir.split( '/' ) + target.split( '/' ) ) )
         else:
-          target_file = os.path.join( self.root_dir, target )
+          target_file = os.path.join( self.root_dir, *( target.split( '/' ) ) )
 
         if os.path.isfile( target_file ):
           target_hash = hashlib.sha1( open( target_file, 'r' ).read().encode() ).hexdigest()
@@ -511,7 +511,7 @@ class Config():
         self.conn.execute( 'INSERT INTO "templates" ( "templatehash", "package", "template", "lastChecked", "lastBuilt" ) VALUES ( ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP );', ( template_hash, package, template ) )
 
       for target in target_list:
-        target_hash = hashlib.sha1( open( os.path.join( self.root_dir, target ), 'r' ).read().encode() ).hexdigest()
+        target_hash = hashlib.sha1( open( os.path.join( self.root_dir, *( target.split( '/' ) ) ), 'r' ).read().encode() ).hexdigest()
 
         if template in template_db_list:
           self.conn.execute( 'UPDATE "targets" SET "lastChecked"=CURRENT_TIMESTAMP, "targethash"=?, "lastBuilt"=CURRENT_TIMESTAMP, "modified"=CURRENT_TIMESTAMP WHERE "package"=? AND "template"=? AND "target"=?;', ( target_hash, package, template, target ) )
