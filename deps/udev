@@ -6,10 +6,12 @@
 set -e
 set -x
 
+# hopfully kmod is built first, may need to pin an order in the Makefile
 build()
 {
   tar --strip-components=1 -xzf $1
-  ./configure --prefix= --bindir=/sbin --sbindir=/sbin --with-rootprefix= --with-rootlibdir=/lib --disable-shared
+  sed s/have_kmod=no/have_kmod=yes/ -i configure
+  KMOD_CFLAGS="-I`pwd`/../kmod/libkmod/" KMOD_LIBS="-L`pwd`/../kmod/libkmod/.libs/ -llzma -lz -lkmod" ./configure --prefix= --bindir=/sbin --sbindir=/sbin --with-rootprefix= --with-rootlibdir=/lib --disable-shared --disable-kmod
   make -j4
 }
 
@@ -17,8 +19,12 @@ install()
 {
   DESTDIR=$1 make -C $3/udev install
   $1/sbin/udevadm hwdb --update --root=$1
-  sed s/#udev_log=\"info\"/udev_log=\"info\"/ -i $1/etc/udev/udev.conf
+  #sed s/#udev_log=\"info\"/udev_log=\"info\"/ -i $1/etc/udev/udev.conf
+  sed s/#udev_log=\"info\"/udev_log=\"debug\"/ -i $1/etc/udev/udev.conf
   rm -fr $1/etc/udev/hwdb.d
+
+  # for now we are going to stick with the old network Interaface names
+  rm $1/lib/udev/rules.d/80-net-name-slot.rules
 
   rm -fr $1/lib/pkgconfig
 }

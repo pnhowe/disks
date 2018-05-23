@@ -16,8 +16,8 @@ build()
 install()
 {
   for LIB in /lib/x86_64-linux-gnu/libbz2.so.1.0.4 \
-  /lib/x86_64-linux-gnu/libgcrypt.so.20.1.8 \
-  /lib/x86_64-linux-gnu/libgpg-error.so.0.22.0
+  /lib/x86_64-linux-gnu/libgpg-error.so.0.22.0 \
+  /lib/x86_64-linux-gnu/libgcrypt.so.20.2.1
   do
     cp -L $LIB $1/lib
   done

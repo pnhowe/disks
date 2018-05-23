@@ -1,22 +1,24 @@
 #!/bin/sh
-#SOURCE: https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-7.6p1.tar.gz
-#FILE: openssh-7.6p1.tar.gz
-#HASH: a6984bc2c72192bed015c8b879b35dd9f5350b3b
+#SOURCE: https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-7.7p1.tar.gz
+#FILE: openssh-7.7p1.tar.gz
+#HASH: 446fe9ed171f289f0d62197dffdbfdaaf21c49f2
 
 set -e
 set -x
 
+# this patch is only for openssh 7.7 to openssl 1.1.0, hopfully openssh get's fixed soon
 build()
 {
   tar --strip-components=1 -xzf $1
-  ./configure --prefix= --sysconfdir=/etc/ssh
+  patch -Np1 -i ../../configs/ssh.patch
+  ./configure --prefix= --sysconfdir=/etc/ssh --with-md5-passwords --with-privsep-path=/var/empty
   make -j4
 }
 
 install()
 {
-  for LIB in /lib/x86_64-linux-gnu/libcrypto.so.1.0.0 \
-  /lib/x86_64-linux-gnu/libz.so.1
+  for LIB in /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 \
+  /lib/x86_64-linux-gnu/libz.so.1.2.11
   do
     cp -L $LIB $1/lib
   done

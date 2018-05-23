@@ -94,7 +94,7 @@ pxe-targets:
 	@echo "Aviable PXE Targets: $(PXES)"
 
 # build_root paramaters: $1 - target root fs dir, $2 - source dir, $3 - dep build dir
-build.images/%.root: build.deps/build build-src
+build.images/%.root: disks/%/build_root build.deps/build build-src
 	mkdir -p build.images/$*
 	cp -a rootfs/* build.images/$*
 	cp -a disks/$*/root/* build.images/$*
