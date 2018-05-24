@@ -287,12 +287,18 @@ then
     echo "Getting ip address..."
     if [ "x$INTERFACE" == "xany" ];
     then
-      INTERFACE_LIST="$( ls /sys/class/net/ | grep -v bond | grep -v lo )"
+      INTERFACE_LIST="$( ls /sys/class/net/ | grep -v bond | grep -v lo | grep -v sit )"
     elif [ "x$INTERFACE" != "x" ];
     then
       INTERFACE_LIST=$INTERFACE
     else
       echo "Error Interface name is blank..."
+      error_happened
+    fi
+
+    if [ "x$INTERFACE_LIST" == "x" ];
+    then
+      echo "No interface(s) found"
       error_happened
     fi
 

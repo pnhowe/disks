@@ -1,6 +1,5 @@
 DEPS = $(shell ls deps)
-#DISKS = $(shell ls disks)
-DISKS = linux-installer utility
+DISKS = $(shell ls disks)
 TEMPLATES = $(shell ls templates)
 DEP_DOWNLOADS = $(foreach dep,$(DEPS),build.deps/$(dep).download)
 DEP_BUILDS = $(foreach dep,$(DEPS),build.deps/$(dep).build)
