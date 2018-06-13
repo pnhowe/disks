@@ -1,0 +1,69 @@
+#!/bin/bash
+set -e
+
+# $1 - output filename
+# $2 - path to kernel
+# $3 - path to initrd
+# $4 - path to boot config
+# $5 - path config_file (optional)
+# $6 - path to boot menu (optional)
+
+WORK_DIR="build.images/isotmp"
+
+if [ ! -d $WORK_DIR ]
+then
+  mkdir -p $WORK_DIR
+else
+  rm -ifr ./${WORK_DIR}/\*
+fi
+
+ISO_BIN="/usr/lib/ISOLINUX/isolinux.bin"
+LD32="/usr/lib/syslinux/modules/bios/ldlinux.c32"
+
+if [ ! -f "$ISO_BIN"  ];
+then
+  echo "isolinux.bin not found install isolinux"
+  exit 1
+fi
+
+if [ ! -f "$LD32"  ];
+then
+  echo "ldlinux.c32 not found install syslinux-common"
+  exit 1
+fi
+
+rm -f $1
+
+mkdir -p $WORK_DIR/isolinux
+
+echo "Copying in boot files..."
+cp $ISO_BIN $WORK_DIR/isolinux
+cp $LD32 $WORK_DIR/isolinux
+
+echo "Copying in kernel and image..."
+cp $2 $WORK_DIR/vmlinuz.img
+
+if [ "x$5" != "x" ];
+then
+  echo "Injecting custom config file..."
+  cp -f $5 ./config_file
+  cat $3 | gunzip > /tmp/initrd.img
+  echo "./config_file" | cpio -H newc -o -A -F /tmp/initrd.img
+  rm ./config_file
+  cat /tmp/initrd.img | gzip -9 > $WORK_DIR/initrd.img
+else
+  cp $3 $WORK_DIR/initrd.img
+fi
+
+echo "Copying in boot config..."
+cp -f $4 $WORK_DIR/isolinux.cfg
+
+if [ "x$6" != "x" ];
+then
+  echo "Injecting custom menu..."
+  cp -f $6 $WORK_DIR/extlinux.mnu
+fi
+
+genisoimage -o $1 -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -V $( basename $1 .iso ) -v $WORK_DIR
+
+echo "Done!"

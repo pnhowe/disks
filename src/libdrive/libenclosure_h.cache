@@ -1,9 +1,73 @@
-from ctypes import *
+# -*- coding: utf-8 -*-
+#
+# TARGET arch is: ['-target', 'x86_64-Linux', '-I', '/usr/include/x86_64-linux-gnu', '-I', '/usr/lib/gcc/x86_64-linux-gnu/6/include/', '-target', 'x86_64']
+# WORD_SIZE is: 8
+# POINTER_SIZE is: 8
+# LONGDOUBLE_SIZE is: 16
+#
+import ctypes
+
+
+c_int128 = ctypes.c_ubyte*16
+c_uint128 = c_int128
+void = None
+if ctypes.sizeof(ctypes.c_longdouble) == 16:
+    c_long_double_t = ctypes.c_longdouble
+else:
+    c_long_double_t = ctypes.c_ubyte*16
+
+_libraries = {}
+_libraries['libenclosure.so.3'] = ctypes.CDLL('libenclosure.so.3')
+# if local wordsize is same as target, keep ctypes pointer function.
+if ctypes.sizeof(ctypes.c_void_p) == 8:
+    POINTER_T = ctypes.POINTER
+else:
+    # required to access _ctypes
+    import _ctypes
+    # Emulate a pointer class using the approriate c_int32/c_int64 type
+    # The new class should have :
+    # ['__module__', 'from_param', '_type_', '__dict__', '__weakref__', '__doc__']
+    # but the class should be submitted to a unique instance for each base type
+    # to that if A == B, POINTER_T(A) == POINTER_T(B)
+    ctypes._pointer_t_type_cache = {}
+    def POINTER_T(pointee):
+        # a pointer should have the same length as LONG
+        fake_ptr_base_type = ctypes.c_uint64 
+        # specific case for c_void_p
+        if pointee is None: # VOID pointer type. c_void_p.
+            pointee = type(None) # ctypes.c_void_p # ctypes.c_ulong
+            clsname = 'c_void'
+        else:
+            clsname = pointee.__name__
+        if clsname in ctypes._pointer_t_type_cache:
+            return ctypes._pointer_t_type_cache[clsname]
+        # make template
+        class _T(_ctypes._SimpleCData,):
+            _type_ = 'L'
+            _subtype_ = pointee
+            def _sub_addr_(self):
+                return self.value
+            def __repr__(self):
+                return '%s(%d)'%(clsname, self.value)
+            def contents(self):
+                raise TypeError('This is not a ctypes pointer.')
+            def __init__(self, **args):
+                raise TypeError('This is not a ctypes pointer. It is not instanciable.')
+        _class = type('LP_%d_%s'%(8, clsname), (_T,),{}) 
+        ctypes._pointer_t_type_cache[clsname] = _class
+        return _class
 
 
 
-class enclosure_info(Structure):
+class struct_enclosure_info(ctypes.Structure):
     pass
+
+
+# values for enumeration 'protocol_type'
+PROTOCOL_TYPE_UNKNOWN = 0
+PROTOCOL_TYPE_ATA = 1
+PROTOCOL_TYPE_SCSI = 2
+protocol_type = ctypes.c_int # enum
 
 # values for enumeration 'driver_type'
 DRIVER_TYPE_UNKNOWN = 0
@@ -13,62 +77,79 @@ DRIVER_TYPE_SAT = 3
 DRIVER_TYPE_3WARE = 16
 DRIVER_TYPE_MEGADEV = 17
 DRIVER_TYPE_MEGASAS = 18
-driver_type = c_int # enum
-
-# values for enumeration 'protocol_type'
-PROTOCOL_TYPE_UNKNOWN = 0
-PROTOCOL_TYPE_ATA = 1
-PROTOCOL_TYPE_SCSI = 2
-protocol_type = c_int # enum
-enclosure_info._fields_ = [
+driver_type = ctypes.c_int # enum
+struct_enclosure_info._pack_ = True # source:False
+struct_enclosure_info._fields_ = [
     ('driver', driver_type),
     ('protocol', protocol_type),
-    ('model', c_char * 42),
-    ('serial', c_char * 34),
-    ('WWN', c_ulonglong),
-    ('vendor_id', c_char * 9),
-    ('version', c_char * 5),
-    ('SCSI_version', c_int),
-    ('hasDiagnosticPageConfiguration', c_char),
-    ('hasDiagnosticPageControlStatus', c_char),
-    ('hasDiagnosticPageHelpText', c_char),
-    ('hasDiagnosticPageString', c_char),
-    ('hasDiagnosticPageThreshold', c_char),
-    ('hasDiagnosticPageElementDescriptor', c_char),
-    ('hasDiagnosticPageShortStatus', c_char),
-    ('hasDiagnosticPageBusy', c_char),
-    ('hasDiagnosticPageAdditionalElement', c_char),
-    ('hasDiagnosticPageSubHelpText', c_char),
-    ('hasDiagnosticPageSubString', c_char),
-    ('hasDiagnosticPageSupportedDiagnostigPages', c_char),
-    ('hasDiagnosticPageDownloadMicroCode', c_char),
-    ('hasDiagnosticPageSubNickname', c_char),
-    ('hasVPDPageSerial', c_char),
-    ('hasVPDPageIdentification', c_char),
+    ('model', ctypes.c_char * 42),
+    ('serial', ctypes.c_char * 34),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+    ('WWN', ctypes.c_uint64),
+    ('vendor_id', ctypes.c_char * 9),
+    ('version', ctypes.c_char * 5),
+    ('PADDING_1', ctypes.c_ubyte * 2),
+    ('SCSI_version', ctypes.c_int32),
+    ('hasDiagnosticPageConfiguration', ctypes.c_char),
+    ('hasDiagnosticPageControlStatus', ctypes.c_char),
+    ('hasDiagnosticPageHelpText', ctypes.c_char),
+    ('hasDiagnosticPageString', ctypes.c_char),
+    ('hasDiagnosticPageThreshold', ctypes.c_char),
+    ('hasDiagnosticPageElementDescriptor', ctypes.c_char),
+    ('hasDiagnosticPageShortStatus', ctypes.c_char),
+    ('hasDiagnosticPageBusy', ctypes.c_char),
+    ('hasDiagnosticPageAdditionalElement', ctypes.c_char),
+    ('hasDiagnosticPageSubHelpText', ctypes.c_char),
+    ('hasDiagnosticPageSubString', ctypes.c_char),
+    ('hasDiagnosticPageSupportedDiagnostigPages', ctypes.c_char),
+    ('hasDiagnosticPageDownloadMicroCode', ctypes.c_char),
+    ('hasDiagnosticPageSubNickname', ctypes.c_char),
+    ('hasVPDPageSerial', ctypes.c_char),
+    ('hasVPDPageIdentification', ctypes.c_char),
+    ('PADDING_2', ctypes.c_ubyte * 4),
 ]
-class subenc_descriptors(Structure):
-    pass
-class subenc_descriptor_element(Structure):
-    pass
-subenc_descriptor_element._fields_ = [
-    ('sub_enclosure', c_ubyte),
-    ('element_index', c_ubyte),
-    ('element_type', c_ubyte),
-    ('subelement_index', c_ubyte),
-    ('help_text', c_char * 50),
-    ('value_offset', c_ushort),
-    ('value', c_ubyte * 4),
-]
-subenc_descriptors._fields_ = [
-    ('page_size', c_uint),
-    ('generation', c_uint),
-    ('count', c_ubyte),
-    ('descriptors', subenc_descriptor_element * 250),
-]
-__all__ = ['PROTOCOL_TYPE_ATA', 'driver_type',
-           'subenc_descriptor_element', 'enclosure_info',
-           'DRIVER_TYPE_SGIO', 'DRIVER_TYPE_IDE',
-           'PROTOCOL_TYPE_SCSI', 'DRIVER_TYPE_MEGASAS',
-           'DRIVER_TYPE_SAT', 'PROTOCOL_TYPE_UNKNOWN',
-           'DRIVER_TYPE_UNKNOWN', 'DRIVER_TYPE_MEGADEV',
-           'DRIVER_TYPE_3WARE', 'subenc_descriptors', 'protocol_type']
+
+class struct_subenc_descriptor_element(ctypes.Structure):
+    _pack_ = True # source:False
+    _fields_ = [
+    ('sub_enclosure', ctypes.c_ubyte),
+    ('element_index', ctypes.c_ubyte),
+    ('element_type', ctypes.c_ubyte),
+    ('subelement_index', ctypes.c_ubyte),
+    ('help_text', ctypes.c_char * 50),
+    ('value_offset', ctypes.c_uint16),
+    ('value', ctypes.c_ubyte * 4),
+     ]
+
+class struct_subenc_descriptors(ctypes.Structure):
+    _pack_ = True # source:False
+    _fields_ = [
+    ('page_size', ctypes.c_uint32),
+    ('generation', ctypes.c_uint32),
+    ('count', ctypes.c_ubyte),
+    ('PADDING_0', ctypes.c_ubyte),
+    ('descriptors', struct_subenc_descriptor_element * 250),
+    ('PADDING_1', ctypes.c_ubyte * 2),
+     ]
+
+set_verbose = _libraries['libenclosure.so.3'].set_verbose
+set_verbose.restype = None
+set_verbose.argtypes = [ctypes.c_int32]
+get_enclosure_info = _libraries['libenclosure.so.3'].get_enclosure_info
+get_enclosure_info.restype = ctypes.c_int32
+get_enclosure_info.argtypes = [POINTER_T(ctypes.c_char), POINTER_T(struct_enclosure_info), POINTER_T(ctypes.c_char)]
+get_subenc_descriptors = _libraries['libenclosure.so.3'].get_subenc_descriptors
+get_subenc_descriptors.restype = ctypes.c_int32
+get_subenc_descriptors.argtypes = [POINTER_T(ctypes.c_char), POINTER_T(struct_subenc_descriptors), POINTER_T(ctypes.c_char)]
+set_subenc_descriptors = _libraries['libenclosure.so.3'].set_subenc_descriptors
+set_subenc_descriptors.restype = ctypes.c_int32
+set_subenc_descriptors.argtypes = [POINTER_T(ctypes.c_char), POINTER_T(struct_subenc_descriptors), POINTER_T(ctypes.c_char)]
+__all__ = \
+    ['get_subenc_descriptors', 'DRIVER_TYPE_SAT',
+    'struct_subenc_descriptors', 'DRIVER_TYPE_MEGASAS',
+    'PROTOCOL_TYPE_ATA', 'PROTOCOL_TYPE_UNKNOWN', 'driver_type',
+    'get_enclosure_info', 'struct_subenc_descriptor_element',
+    'PROTOCOL_TYPE_SCSI', 'protocol_type', 'DRIVER_TYPE_MEGADEV',
+    'struct_enclosure_info', 'DRIVER_TYPE_UNKNOWN',
+    'set_subenc_descriptors', 'DRIVER_TYPE_IDE', 'DRIVER_TYPE_SGIO',
+    'set_verbose', 'DRIVER_TYPE_3WARE']

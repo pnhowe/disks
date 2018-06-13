@@ -6,6 +6,9 @@
 set -e
 set -x
 
-tar --strip-components=1 -xJf $1
-./configure --prefix=/
-make -j4
+build()
+{
+  tar --strip-components=1 -xJf $1
+  ./configure --prefix=/ --with-xz --with-zlib
+  make -j4
+}

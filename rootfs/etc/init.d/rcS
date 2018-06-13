@@ -1,0 +1,83 @@
+#!/bin/sh
+
+echo "Setting up Busybox"
+/bin/busybox --install -s
+
+echo "Setting up file system..."
+[ -d /dev ] || mkdir -m 0755 /dev
+[ -d /root ] || mkdir -m 0700 /root
+[ -d /sys ] || mkdir /sys
+[ -d /proc ] || mkdir /proc
+[ -d /tmp ] || mkdir /tmp
+[ -d /mnt ] || mkdir /mnt
+[ -d /var ] || mkdir /var
+[ -d /var/lock ] || mkdir /var/lock
+[ -d /var/run ] || mkdir /var/run
+[ -d /var/log ] || mkdir /var/log
+
+/bin/mount -n -t sysfs -o nodev,noexec,nosuid none /sys
+/bin/mount -n -t proc -o nodev,noexec,nosuid none /proc
+/bin/mount -n -t devtmpfs -o nosuid,mode=0755 devtmpfs /dev
+
+mkdir -m 755 /dev/pts
+/bin/mount -n -t devpts -o mode=0644 none /dev/pts
+mkdir -m 755 /dev/shm
+/bin/mount -n -t tmpfs -o mode=644 none /dev/shm
+
+/sbin/ldconfig
+
+if [ -r /proc/acpi/event ] ; then
+  #hacked up power off when power button pressed
+  ( /bin/grep -m1 PWR /proc/acpi/event ; /sbin/poweroff ) &
+fi
+
+CONSOLE_LIST=""
+for x in $(cat /proc/cmdline);
+do
+  case $x in
+    console=*)
+      tmp=${x#console=}
+      CONSOLE_LIST="$CONSOLE_LIST /dev/${tmp%,*}"
+      ;;
+  esac
+done
+
+if [ "x$CONSOLE_LIST" == "x" ];
+then
+  CONSOLE_LIST="/dev/tty1"
+fi
+
+echo "Creating Devices..."
+[ -d /run/udev ] || mkdir /run/udev
+/sbin/udevd --daemon --resolve-names=never --debug
+/sbin/udevadm trigger
+/sbin/udevadm settle
+
+echo "Setting Clock..."
+/sbin/hwclock --hctosys --utc
+
+echo "Starting syslogd..."
+/sbin/syslogd -D -C1024
+/sbin/klogd -c1
+
+echo "Starting Name Cache"
+/sbin/nscd
+
+echo "Starting Interaface lo..."
+/sbin/ip addr flush dev lo
+/sbin/ip addr add 127.0.0.1/8 dev lo
+/sbin/ip link set lo up
+
+echo "Starting ttytee..."
+CONSOLE_LIST="$CONSOLE_LIST /tmp/output.log"
+
+/sbin/ttytee -d /dev/mastertty $CONSOLE_LIST
+
+# until udev starts modprobing it's self
+modprobe e1000
+modprobe vmxnet3
+modprobe sd_mod
+modprobe ahci
+modprobe mptspi
+
+sleep 2 # give udev a bit to get things created

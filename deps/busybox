@@ -1,11 +1,14 @@
 #!/bin/sh
-#SOURCE: https://busybox.net/downloads/busybox-1.28.1.tar.bz2
-#FILE: busybox-1.28.1.tar.bz2
-#HASH: 932e2a77c3ddaa7f0915ed6fe9232041d261f86b
+#SOURCE: http://busybox.net/downloads/busybox-1.28.3.tar.bz2
+#FILE: busybox-1.28.3.tar.bz2
+#HASH: 64b47e83dccc5db7fe4ca596b28c9b901a136fe3
 
 set -e
 set -x
 
-tar --strip-components=1 -xjf $1
-cp ../../configs/busybox .config
-make -j4
+build()
+{
+  tar --strip-components=1 -xjf $1
+  cp ../../configs/busybox .config
+  make -j4
+}

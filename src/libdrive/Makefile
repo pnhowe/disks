@@ -2,17 +2,6 @@
 LDFLAGS =
 CFLAGS = -O3 -W -Wall -W
 
-# so far only in precise and trusty have had h2xml, and a
-# good version of gccxml.  xenial has gccxml from castxml which h2xml
-# has a hard time passing `-I .` to and xml2py has a hard time parsing
-# the result from... for now use a cached copy of the *_h.py file, later
-# we need to find a way to generate the *_h.py
-HAS_H2XML = 0
-ifeq ($(wildcard /usr/bin/h2xml),/usr/bin/h2xml)
-ifeq ($(shell gccxml | grep compatibility -c),0)
-HAS_H2XML = 1
-endif
-endif
 
 LIB_VERSION = $(shell grep "^__VERSION__" libdrive.py | cut -f2 | sed s/\[^0-9\.]//g)
 PROG_VERSION = $(shell echo "$(LIB_VERSION)" | sed s/"\.[0-9]$$"//)
@@ -51,151 +40,33 @@ esx-lib: override CFLAGS += -m32
 esx-lib: override LDFLAGS += -m32
 esx-lib: $(SHARED_LIBS)
 
-libdrive_h.py: disk.h
-ifeq ($(HAS_H2XML), 1)
-	h2xml -I . disk.h -o disk.xml
-	xml2py disk.xml -s drive_info -s smart_attribs > libdrive_h.py
-	$(RM) disk.xml
-else
+libdrive_h.py: libdrive.h disk.h libdrive_h.cache
 	cp libdrive_h.cache libdrive_h.py
-endif
 
-libenclosure_h.py: enclosure.h
-ifeq ($(HAS_H2XML), 1)
-	h2xml -I . enclosure.h -o enclosure.xml
-	xml2py enclosure.xml -s enclosure_info -s subenc_descriptors > libenclosure_h.py
-	$(RM) enclosure.xml
-else
+libenclosure_h.py: libenclosure.h enclosure.h libenclosure_h.cache
 	cp libenclosure_h.cache libenclosure_h.py
-endif
 
-# make sure to update the dependancies in plato-disks/Makefile if more/less pxe-images are affected
-install-disks: all
-	mkdir -p ../plato-disks/dtest/initrd/lib
-	mkdir -p ../plato-disks/dtest/initrd/usr/lib/python2.7/platoclient
-	mkdir -p ../plato-disks/dtest/initrd/sbin
-	mkdir -p ../plato-disks/dtest/initrd/bin
-	cp libdrive.so.$(LIB_VERSION) ../plato-disks/dtest/initrd/lib
-	cp libenclosure.so.$(LIB_VERSION) ../plato-disks/dtest/initrd/lib
-	cp libdrive.py ../plato-disks/dtest/initrd/usr/lib/python2.7/platoclient
-	cp libenclosure.py ../plato-disks/dtest/initrd/usr/lib/python2.7/platoclient
-	cp libdrive_h.py ../plato-disks/dtest/initrd/usr/lib/python2.7/platoclient
-	cp libenclosure_h.py ../plato-disks/dtest/initrd/usr/lib/python2.7/platoclient
-	cp wipedrive ../plato-disks/dtest/initrd/sbin
-	cp muncher ../plato-disks/dtest/initrd/sbin
-	cp selftest ../plato-disks/dtest/initrd/sbin
-	cp diskcopy ../plato-disks/dtest/initrd/sbin
-	cp driveinfo ../plato-disks/dtest/initrd/bin
-	cp enclosureinfo ../plato-disks/dtest/initrd/bin
-	cp smartinfo ../plato-disks/dtest/initrd/bin
-	cp drivepower ../plato-disks/dtest/initrd/bin
-	cp drivelist ../plato-disks/dtest/initrd/bin
-	cp enclosurelist ../plato-disks/dtest/initrd/bin
+install: all
+	mkdir -p $(DESTDIR)/usr/lib
+	mkdir -p $(DESTDIR)/usr/sbin
+	install -m 644 libdrive.so.$(LIB_VERSION) $(DESTDIR)/usr/lib
+	install -m 644 libenclosure.so.$(LIB_VERSION) $(DESTDIR)/usr/lib
+	install -m 755 selftest $(DESTDIR)/usr/sbin
+	install -m 755 driveinfo $(DESTDIR)/usr/sbin
+	install -m 755 enclosureinfo $(DESTDIR)/usr/sbin
+	install -m 755 smartinfo $(DESTDIR)/usr/sbin
+	install -m 755 diskcopy $(DESTDIR)/usr/sbin
+	install -m 755 wipedrive $(DESTDIR)/usr/sbin
+	install -m 755 drivelist $(DESTDIR)/usr/sbin
+	install -m 755 enclosurelist $(DESTDIR)/usr/sbin
+	mkdir -p $(DESTDIR)/lib/python3.6/libdrive
+	cp __init__.py $(DESTDIR)/lib/python3.6/libdrive
+	cp libdrive.py $(DESTDIR)/lib/python3.6/libdrive
+	cp libenclosure.py $(DESTDIR)/lib/python3.6/libdrive
+	cp libdrive_h.py $(DESTDIR)/lib/python3.6/libdrive
+	cp libenclosure_h.py $(DESTDIR)/lib/python3.6/libdrive
 
-	mkdir -p ../plato-disks/diskcopy/initrd/lib
-	mkdir -p ../plato-disks/diskcopy/initrd/sbin
-	mkdir -p ../plato-disks/diskcopy/initrd/bin
-	cp libdrive.so.$(LIB_VERSION) ../plato-disks/diskcopy/initrd/lib
-	cp libdrive.py ../plato-disks/diskcopy/initrd
-	cp libdrive_h.py ../plato-disks/diskcopy/initrd
-	cp wipedrive ../plato-disks/diskcopy/initrd/sbin
-	cp selftest ../plato-disks/diskcopy/initrd/sbin
-	cp diskcopy ../plato-disks/diskcopy/initrd/sbin
-	cp driveinfo ../plato-disks/diskcopy/initrd/bin
-	cp smartinfo ../plato-disks/diskcopy/initrd/bin
 
-	mkdir -p ../plato-disks/linux-installer/initrd/lib
-	mkdir -p ../plato-disks/linux-installer/initrd/usr/lib/python2.7/platoclient
-	mkdir -p ../plato-disks/linux-installer/initrd/sbin
-	mkdir -p ../plato-disks/linux-installer/initrd/bin
-	cp libdrive.so.$(LIB_VERSION) ../plato-disks/linux-installer/initrd/lib
-	cp libdrive.py ../plato-disks/linux-installer/initrd/usr/lib/python2.7/platoclient
-	cp libdrive_h.py ../plato-disks/linux-installer/initrd/usr/lib/python2.7/platoclient
-	cp drivelist ../plato-disks/linux-installer/initrd/bin
-	cp wipedrive ../plato-disks/linux-installer/initrd/sbin
-
-	mkdir -p ../plato-disks/utility/initrd/lib
-	mkdir -p ../plato-disks/utility/initrd/usr/lib/python2.7/platoclient
-	mkdir -p ../plato-disks/utility/initrd/sbin
-	mkdir -p ../plato-disks/utility/initrd/bin
-	cp libdrive.so.$(LIB_VERSION) ../plato-disks/utility/initrd/lib
-	cp libenclosure.so.$(LIB_VERSION) ../plato-disks/utility/initrd/lib
-	cp libdrive.py ../plato-disks/utility/initrd/usr/lib/python2.7/platoclient
-	cp libenclosure.py ../plato-disks/utility/initrd/usr/lib/python2.7/platoclient
-	cp libdrive_h.py ../plato-disks/utility/initrd/usr/lib/python2.7/platoclient
-	cp libenclosure_h.py ../plato-disks/utility/initrd/usr/lib/python2.7/platoclient
-	cp wipedrive ../plato-disks/utility/initrd/sbin
-	cp selftest ../plato-disks/utility/initrd/sbin
-	cp diskcopy ../plato-disks/utility/initrd/sbin
-	cp driveinfo ../plato-disks/utility/initrd/bin
-	cp enclosureinfo ../plato-disks/utility/initrd/bin
-	cp smartinfo ../plato-disks/utility/initrd/bin
-	cp drivelist ../plato-disks/utility/initrd/bin
-	cp enclosurelist ../plato-disks/utility/initrd/bin
-
-	mkdir -p ../plato-disks/bootstrap/initrd/lib
-	mkdir -p ../plato-disks/bootstrap/initrd/usr/lib/python2.7/platoclient
-	mkdir -p ../plato-disks/bootstrap/initrd/bin
-	cp libdrive.so.$(LIB_VERSION) ../plato-disks/bootstrap/initrd/lib
-	cp libenclosure.so.$(LIB_VERSION) ../plato-disks/bootstrap/initrd/lib
-	cp libdrive.py ../plato-disks/bootstrap/initrd/usr/lib/python2.7/platoclient
-	cp libenclosure.py ../plato-disks/bootstrap/initrd/usr/lib/python2.7/platoclient
-	cp libdrive_h.py ../plato-disks/bootstrap/initrd/usr/lib/python2.7/platoclient
-	cp libenclosure_h.py ../plato-disks/bootstrap/initrd/usr/lib/python2.7/platoclient
-	cp driveinfo ../plato-disks/bootstrap/initrd/bin
-	cp enclosureinfo ../plato-disks/bootstrap/initrd/bin
-	cp drivelist ../plato-disks/bootstrap/initrd/bin
-	cp enclosurelist ../plato-disks/bootstrap/initrd/bin
-
-	mkdir -p ../plato-disks/firmware-update/initrd/lib
-	mkdir -p ../plato-disks/firmware-update/initrd/usr/lib/python2.7/platoclient
-	mkdir -p ../plato-disks/firmware-update/initrd/sbin
-	mkdir -p ../plato-disks/firmware-update/initrd/bin
-	cp libdrive.so.$(LIB_VERSION) ../plato-disks/firmware-update/initrd/lib
-	cp libenclosure.so.$(LIB_VERSION) ../plato-disks/firmware-update/initrd/lib
-	cp libdrive.py ../plato-disks/firmware-update/initrd/usr/lib/python2.7/platoclient
-	cp libenclosure.py ../plato-disks/firmware-update/initrd/usr/lib/python2.7/platoclient
-	cp libdrive_h.py ../plato-disks/firmware-update/initrd/usr/lib/python2.7/platoclient
-	cp libenclosure_h.py ../plato-disks/firmware-update/initrd/usr/lib/python2.7/platoclient
-	cp driveinfo ../plato-disks/firmware-update/initrd/sbin
-	cp enclosureinfo ../plato-disks/firmware-update/initrd/sbin
-	cp drivelist ../plato-disks/firmware-update/initrd/bin
-	cp enclosurelist ../plato-disks/firmware-update/initrd/bin
-
-	mkdir -p ../plato-disks/provision-check/initrd/lib
-	mkdir -p ../plato-disks/provision-check/initrd/usr/lib/python2.7/platoclient
-	mkdir -p ../plato-disks/provision-check/initrd/sbin
-	mkdir -p ../plato-disks/provision-check/initrd/bin
-	cp libdrive.so.$(LIB_VERSION) ../plato-disks/provision-check/initrd/lib
-	cp libenclosure.so.$(LIB_VERSION) ../plato-disks/provision-check/initrd/lib
-	cp libdrive.py ../plato-disks/provision-check/initrd/usr/lib/python2.7/platoclient
-	cp libenclosure.py ../plato-disks/provision-check/initrd/usr/lib/python2.7/platoclient
-	cp libdrive_h.py ../plato-disks/provision-check/initrd/usr/lib/python2.7/platoclient
-	cp libenclosure_h.py ../plato-disks/provision-check/initrd/usr/lib/python2.7/platoclient
-	cp driveinfo ../plato-disks/provision-check/initrd/sbin
-	cp enclosureinfo ../plato-disks/provision-check/initrd/sbin
-	cp drivelist ../plato-disks/provision-check/initrd/bin
-	cp enclosurelist ../plato-disks/provision-check/initrd/bin
-
-	mkdir -p ../plato-disks/dwipe/initrd/sbin
-	mkdir -p ../plato-disks/dwipe/initrd/bin
-	cp wipedrive ../plato-disks/dwipe/initrd/sbin
-	cp driveinfo ../plato-disks/dwipe/initrd/bin
-	cp drivelist ../plato-disks/dwipe/initrd/bin
-
-install-client-pkg: all
-	mkdir -p $(DESTDIR)usr/lib
-	mkdir -p $(DESTDIR)usr/sbin
-	install -m 644 libdrive.so.$(LIB_VERSION) $(DESTDIR)usr/lib
-	install -m 644 libenclosure.so.$(LIB_VERSION) $(DESTDIR)usr/lib
-	install -m 755 selftest $(DESTDIR)usr/sbin
-	install -m 755 driveinfo $(DESTDIR)usr/sbin
-	install -m 755 enclosureinfo $(DESTDIR)usr/sbin
-	install -m 755 smartinfo $(DESTDIR)usr/sbin
-	install -m 755 diskcopy $(DESTDIR)usr/sbin
-	install -m 755 wipedrive $(DESTDIR)usr/sbin
-	install -m 755 drivelist $(DESTDIR)usr/sbin
-	install -m 755 enclosurelist $(DESTDIR)usr/sbin
 
 # have to compile twice b/c the lib is 32-bit (esx's python is 32bit)
 install-esx:

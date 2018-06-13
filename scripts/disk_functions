@@ -1,0 +1,41 @@
+#!/bin/sh
+
+set -e
+
+PWD=$(pwd)
+
+install_base()
+{
+  #  $1 - "mod" if need module kernel
+
+  $PWD/scripts/setup_base "$PWD/build.images/$ROOT_FS" "$PWD/src" "$PWD/build.deps"
+  $PWD/scripts/install_kernel "$PWD/build.images/$ROOT_FS" "$PWD/src" "$PWD/build.deps" $1
+}
+
+install_dep()
+{
+  #  $1 - name of dep
+
+  . $PWD/deps/$1
+
+  install "$PWD/build.images/$ROOT_FS" "$PWD/src" "$PWD/build.deps/$1"
+
+  # install's paramaters
+  #  $1 - target root fs dir
+  #  $2 - source dir
+  #  $3 - dep build dir
+}
+
+install_src()
+{
+  # for now we will do a big if statement, not all the src is "install" able
+
+  if [ "x$1" = "xlibconfig" ]
+  then
+    DESTDIR="$PWD/build.images/$ROOT_FS" make -C "$PWD/src/libconfig" install
+  elif [ "x$1" = "xlibdrive" ]
+  then
+    DESTDIR="$PWD/build.images/$ROOT_FS" make -C "$PWD/src/libdrive" install
+  fi
+
+}

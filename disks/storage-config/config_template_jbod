@@ -1,0 +1,5 @@
+# {{ config_description }}
+# Generated at: {{ timestamp }}
+# Config Profile: {{ profile }}
+
+RAID_SCHEME="JBOD"

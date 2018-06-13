@@ -3,6 +3,8 @@
 set -e
 set -x
 
-./setup_base $1 $2 $3
-./install_kernel $1 $2 $3
+ROOT_FS="storage-config"
 
+. scripts/disk_functions
+
+install_base

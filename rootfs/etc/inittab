@@ -1,0 +1,12 @@
+::sysinit:/etc/init.d/rcS
+::restart:/sbin/init
+
+::ctrlaltdel:/sbin/reboot
+
+::shutdown:/bin/umount -a
+::shutdown:/sbin/swapoff -a
+::shutdown:/sbin/hwclock --systohc --utc
+
+mastertty::once:/etc/init.d/do_task
+tty2::askfirst:/bin/sh -l
+tty3::respawn:/sbin/logread -f

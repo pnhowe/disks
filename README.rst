@@ -10,11 +10,11 @@ WARNING: do not run `make` as root, there is a possibility of some of these targ
 some other way to protect your local filesystem.  The only targets that require root is to make the disk and iso images, make will `sudo` the required
 sub-commands.  It is recomended to do the `img` and `iso` commands in a VM/Container where any the block device maniplutaion can't mess up your filesystem.
 
-curently only tested for Ubuntu 17.10
+curently only tested for Ubuntu 18.04
 
 Install required packages::
 
-  sudo apt install build-essential libelf-dev bc zlib1g-dev libssl-dev gperf libreadline-dev libsqlite3-dev libbz2-dev liblzma-dev
+  sudo apt install build-essential libelf-dev bc zlib1g-dev libssl-dev gperf libreadline-dev libsqlite3-dev libbz2-dev liblzma-dev uuid-dev libdevmapper-dev libgcrypt-dev libgpg-error-dev libassuan-dev libksba-dev libnpth0-dev
 
 PXE
 ---
@@ -52,12 +52,58 @@ For a list of avilable Disk Images targets::
 
   make img-targets
 
+ISO images
+----------
+
+To build disk images you will need to install::
+
+  sudo apt install genisoimage syslinux-common isolinux
+
+Build a Disk Image::
+
+  make images/iso/utility
+
+replace 'utility' with the desired disk
+
+For a list of avilable Disk Images targets::
+
+  make iso-targets
+
+Disks
+-----
+
+ - bios-cfg -
+ - bootstrap -
+ - disk-test -
+ - disk-wipe -
+ - firmware -
+ - hardware-test -
+ - linux-installer -
+ - provision-check -
+ - set-rtc -
+ - storage-config -
+ - utility -
+
+Templates
+---------
+
+Templates apply pre-built configuration to disks and output as a img or an iso.  Depending on the template it might interactivly ask questions, or pull answers from environment values.
+
+NOTE: `dialog` is required, please install it before using any templates::
+
+  sudo apt install dialog
+
+for a list of aviabile Templates::
+
+  make templates
+
+for more about templates and how to make them see template.rst
+
 Notes
 -----
 
 The output of the executing script is sent to `console`(see `console` boot option) as well as saved to `/tmp/output`, be warned not to `cat /tmp/output.log` while on the primary output,
 you may end up in a loop.  A second shell is started on tty2, and the output of the syslog is sent to tty3.
-
 
 Boot Options
 ------------
@@ -80,6 +126,6 @@ Boot Options
 - config_proxy: The Proxy to use for making the request to `config_url`, if specified, the ping check to see if the interface is good will ping this host instead of `plato_host`
 - http_proxy: HTTP Proxy for everything except the request to retrieve the `config_url`
 - no_config: Do not try to get a config, for some disks such as `utility` a config is not needed.  This also disables the ping test
-- local_config: Config is retreived from `/media/config_file` or ` /config_file` in the local filesystem, instead of via HTTP from the `config_url`
+- local_config: Config is retreived from `/media/config_file` or `/config_file` in the local filesystem, instead of via HTTP from the `config_url`
 - media_uuid: Mounts the filesystem with the UUID of `media_uuid` to `/media`, usefull for booting from a pre-made image with resources stored on an extra filesystem
 - media_label: Same as `media_uuid` excpet the filesystem is mounted by label

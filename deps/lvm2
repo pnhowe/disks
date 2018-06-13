@@ -1,0 +1,26 @@
+#!/bin/sh
+#SOURCE: http://mirrors.kernel.org/sourceware/lvm2/LVM2.2.02.177.tgz
+#FILE: LVM2.2.02.177.tgz
+#HASH: b114b2ef40fca63c6df290a5f1aac54ff3e764aa
+
+set -e
+set -x
+
+build()
+{
+  tar --strip-components=1 -xzf $1
+  ./configure --prefix= --disable-selinux
+  make -j4
+}
+
+install()
+{
+  for LIB in /lib/x86_64-linux-gnu/libreadline.so.7.0 \
+  /lib/x86_64-linux-gnu/libtinfo.so.5.9
+  do
+    cp -L $LIB $1/lib
+  done
+
+  cp -f $3/tools/lvm $1/sbin
+  cp -f $3/libdm/libdevmapper.so.1.02 $1/lib
+}

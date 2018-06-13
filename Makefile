@@ -1,5 +1,7 @@
 DEPS = $(shell ls deps)
-DISKS = $(shell ls disks)
+#DISKS = $(shell ls disks)
+DISKS = linux-installer utility
+TEMPLATES = $(shell ls templates)
 DEP_DOWNLOADS = $(foreach dep,$(DEPS),build.deps/$(dep).download)
 DEP_BUILDS = $(foreach dep,$(DEPS),build.deps/$(dep).build)
 IMAGE_ROOT = $(foreach disk,$(DISKS),build.images/$(disk).root)
@@ -61,9 +63,9 @@ build.deps/%.download: deps/%
 	fi
 	touch $@
 
-build.deps/%.build: deps/%
+build.deps/%.build: deps/% build.deps/%.download
 	mkdir -p build.deps/$*
-	cd build.deps/$* && $(PWD)/deps/$* $(PWD)/downloads/$(shell grep -m 1 '#FILE:' $< | sed s/'#FILE: '// )
+	scripts/build_dep $* downloads/$(shell grep -m 1 '#FILE:' $< | sed s/'#FILE: '// )
 	touch $@
 
 clean-downloads:
@@ -91,12 +93,12 @@ all-pxe: $(PXE_FILES) $(PXES)
 pxe-targets:
 	@echo "Aviable PXE Targets: $(PXES)"
 
-# build_root paramaters: $1 - target root fs dir, $2 - source dir, $3 - dep build dirz
-build.images/%.root: build.deps/build build-src
+# build_root paramaters: $1 - target root fs dir, $2 - source dir, $3 - dep build dir
+build.images/%.root: disks/%/build_root build.deps/build build-src
 	mkdir -p build.images/$*
-	cp -a template/* build.images/$*
+	cp -a rootfs/* build.images/$*
 	cp -a disks/$*/root/* build.images/$*
-	cd scripts && $(PWD)/disks/$*/build_root $(PWD)/build.images/$* $(PWD)/src $(PWD)/build.deps
+	./disks/$*/build_root
 	touch $@
 
 images/pxe/%.initrd: build.images/%.root images
@@ -117,11 +119,16 @@ images/pxe/%: $(FILE) $(PXE_FILES)
 img-targets:
 	@echo "Aviable Disk Image Targets: $(IMGS)"
 
-# makedisk paramaters are $1 - target disk, $2 - path to kernel, $3 - path to initrd, $4 - path to boot config, $5 - optional path config_file, $6 optional path to boot menu
 # for the sed see images/pxe/%
 images/img/% : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2.img'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.img'/)
 images/img/%: $(PXE_FILES)
-	if [ -f $(FILE).config_file ] && [ -f $(FILE).boot_menu ];                                                                          \
+	if [ -f templates/$* ];                                                                                                             \
+	then                                                                                                                                \
+	  mkdir -p build.images/templates/$*/ ;                                                                                             \
+	  scripts/build_template $* build.images/templates/$*/config build.images/templates/$*/boot.config build.images/templates/$*/boot.menu;    \
+		DISK=$$( grep -m 1 '#DISK:' templates/$* | sed s/'#DISK: '// );                                                                   \
+	  sudo scripts/makeimg $@ images/pxe/$$DISK.vmlinuz images/pxe/$$DISK.initrd build.images/templates/$*/boot.config build.images/templates/$*/config build.images/templates/$*/boot.menu; \
+	elif [ -f $(FILE).config_file ] && [ -f $(FILE).boot_menu ];                                                                        \
 	then                                                                                                                                \
 	  sudo scripts/makeimg $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) $(FILE).config_file $(FILE).boot_menu;                 \
 	elif [ -f $(FILE).config_file ];                                                                                                    \
@@ -137,7 +144,34 @@ images/img/%: $(PXE_FILES)
 # iso targets
 
 iso-targets:
-	@echo "Aviable Disk Image Targets: $(ISOS)"
+	@echo "Aviable ISO Targets: $(ISOS)"
+
+# for the sed see images/pxe/%
+images/iso/%.iso : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2.img'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.img'/)
+images/iso/%.iso: $(PXE_FILES)
+	if [ -f templates/$* ];                                                                                                             \
+	then                                                                                                                                \
+	  mkdir -p build.images/templates/$*/ ;                                                                                             \
+		scripts/build_template $* build.images/templates/$*/config build.images/templates/$*/boot.config build.images/templates/$*/boot.menu;    \
+		DISK=$$( grep -m 1 '#DISK:' templates/$* | sed s/'#DISK: '// );                                                                   \
+	  scripts/makeiso $@ images/pxe/$$DISK.vmlinuz images/pxe/$$DISK.initrd build.images/templates/$*/boot.config build.images/templates/$*/config build.images/templates/$*/boot.menu; \
+	elif [ -f $(FILE).config_file ] && [ -f $(FILE).boot_menu ];                                                                        \
+	then                                                                                                                                \
+	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) $(FILE).config_file $(FILE).boot_menu;                      \
+	elif [ -f $(FILE).config_file ];                                                                                                    \
+	then                                                                                                                                \
+	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) $(FILE).config_file;                                        \
+	elif [ -f $(FILE).boot_menu ];                                                                                                      \
+	then                                                                                                                                \
+	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) "" $(FILE).boot_menu;                                       \
+	else                                                                                                                                \
+	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE);                                                            \
+	fi
+
+# templates
+
+templates:
+	@echo "Aviable Templates: $(TEMPLATES)"
 
 # clean up
 
@@ -145,4 +179,4 @@ localclean: clean-deps clean-images clean-src
 
 distclean: clean-deps clean-images clean-src clean-downloads
 
-.PHONY: all all-pxe all-imgs clean-src clean-downloads clean-deps clean-images localclean distclean pxe-targets
+.PHONY: all all-pxe all-imgs clean-src clean-downloads clean-deps clean-images localclean distclean pxe-targets templates

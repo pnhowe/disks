@@ -3,5 +3,20 @@
 set -e
 set -x
 
-./setup_base $1 $2 $3
-./install_kernel $1 $2 $3 mod
+ROOT_FS="linux-installer"
+
+. scripts/disk_functions
+
+install_base "mod"
+
+install_dep "mdadm"
+install_dep "lvm2"
+install_dep "parted"
+install_dep "e2fsprogs"
+install_dep "dosfstools"
+install_dep "gpgv"
+install_dep "debootstrap"
+install_dep "pkgdetails"
+
+install_src "libconfig"
+install_src "libdrive"

@@ -3,6 +3,11 @@
 set -e
 set -x
 
+# $1 - target root fs dir
+# $2 - source dir
+# $3 - dep build dir
+# $4 - "mod" for module kernel
+
 LINUX_DIR="$3/linux/"
 if [ "x$4" = "xmod" ]
 then
@@ -18,4 +23,11 @@ then
   cd $LINUX_DIR && INSTALL_MOD_PATH=$1 make modules_install
   rm $1/lib/modules/*/build
   rm $1/lib/modules/*/source
+  cp -f $3/kmod/tools/kmod $1/sbin
+  ln -sf kmod $1/sbin/lsmod
+  ln -sf kmod $1/sbin/rmmod
+  ln -sf kmod $1/sbin/insmod
+  ln -sf kmod $1/sbin/modinfo
+  ln -sf kmod $1/sbin/modprobe
+  ln -sf kmod $1/sbin/depmod
 fi

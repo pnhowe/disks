@@ -1,0 +1,11 @@
+# Generated at: {{ timestamp }}
+# Config Profile: {{ profile }}
+
+cat > /config.json << CONFIG_EOF
+{
+"password":"{{ bios_password }}",
+"items": {{ bios_config_items|jsonify }},
+"boot":{{ bios_boot_order|jsonify }}
+}
+CONFIG_EOF
+

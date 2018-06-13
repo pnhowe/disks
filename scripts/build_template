@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# $1 - template
+# $2 - output config filename
+# $3 - output boot config filename
+# $4 - output boot menu filename
+
+set -e
+#set -x
+
+export DIALOGRC="$PWD/template.rc"
+
+HEIGHT=20
+WIDTH=60
+
+. templates/$1
+
+DIALOG_TITLE="Questions for template $2"
+
+for i in `seq 0 $(( ${#QUESTION_LIST[@]} - 1 ))`;
+do
+  eval ENV_CHECK="\$BDT_${QUESTION_LIST[$i]}" # prepending BDT_ to not actidently catch things like HOSTNAME from existing env
+  if [ "x$ENV_CHECK" != "x" ];
+  then
+    eval "${QUESTION_LIST[$i]}=\"$ENV_CHECK\""
+
+  else
+    if [ "x${TYPE_LIST[$i]}" = "xinputbox" ]
+    then
+      TMP="$(dialog --stdout --no-cancel --title "$DIALOG_TITLE" --inputbox "${DESC_LIST[$i]}" $HEIGHT $WIDTH ${DEFAULT_LIST[$i]})"
+
+    elif [ "x${TYPE_LIST[$i]}" = "xyesno" ]
+    then
+      if [ "x${DEFAULT_LIST[$i]}" = "xno" ]
+      then
+        dialog --stdout --title "$DIALOG_TITLE" --defaultno --yesno "${DESC_LIST[$i]}" $HEIGHT $WIDTH && TMP="yes" || TMP="no"
+      else
+        dialog --stdout --title "$DIALOG_TITLE" --yesno "${DESC_LIST[$i]}" $HEIGHT $WIDTH && TMP="yes" || TMP="no"
+      fi
+
+    elif [[ "x${TYPE_LIST[$i]}" == xmenu:* ]]
+    then
+      ITEMS=$( echo ${TYPE_LIST[$i]} | cut -b6- )
+      IFS='_' read -r -a ITEMS <<< "$ITEMS"
+      TMP="$( dialog --stdout --no-cancel --title "$DIALOG_TITLE" --default-item "${DEFAULT_LIST[$i]}" --menu "${DESC_LIST[$i]}" $HEIGHT $WIDTH 6 "${ITEMS[@]}" )"
+
+    else
+      echo "Unknown question type '${TYPE_LIST[$i]}'"
+      exit 1
+    fi
+
+    eval "${QUESTION_LIST[$i]}=\"$TMP\""
+  fi
+done
+
+post_process
+
+STOP_AT=$(set | grep -n "^_=" | head -n1 | cut -d: -f1)
+VAR_NAMES=($(set | head -n${STOP_AT} | cut -d= -f1))
+
+for i in `seq 0 $(( ${#VAR_NAMES[@]} - 1 ))`;
+do
+  VAR=${VAR_NAMES[$i]}
+  CONFIG="${CONFIG//__${VAR}__/$(eval echo '$'${VAR})}"
+  EXTLINUX="${EXTLINUX//__${VAR}__/$(eval echo '$'${VAR})}"
+  EXTMENU="${EXTMENU//__${VAR}__/$(eval echo '$'${VAR})}"
+done
+
+echo "$CONFIG" > "$2"
+echo "$EXTLINUX" > "$3"
+echo "$EXTMENU" > "$4"

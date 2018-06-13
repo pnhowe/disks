@@ -1,0 +1,15 @@
+#!/bin/sh
+
+set -e
+set -x
+
+#  $1 - name of dep
+#  $2 - target root fs dir
+#  $3 - source dir
+#  $4 - dep build dir
+
+pwd
+
+. deps/$1
+
+install $2 $3 $4

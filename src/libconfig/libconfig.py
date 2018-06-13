@@ -7,9 +7,8 @@ import hashlib
 import pwd
 import grp
 from datetime import datetime
-from platoclient.libplato import DeviceNotFound
-from platoclient.jinja2 import FileSystemLoader, Environment, nodes
-from platoclient.jinja2.ext import Extension, do as do_ext
+from libconfig.jinja2 import FileSystemLoader, Environment, nodes
+from libconfig.jinja2.ext import Extension, do as do_ext
 
 
 def unique_list( value ):
@@ -18,6 +17,7 @@ def unique_list( value ):
 # Thought: what if there was a way to make sure a value is presnt, and if missing cause an error
 # mabey a {% required myvalue, myothervalue %} type thing, otherwise all templates will have to
 # fail sane, mabey there are times when that isn't approporate
+
 
 class TargetWriter( Extension ):
   tags = set( [ 'target' ] )
@@ -28,7 +28,7 @@ class TargetWriter( Extension ):
     environment.globals[ '_root_dir' ] = ''
 
   def parse( self, parser ):
-    lineno = parser.stream.next().lineno
+    lineno = next( parser.stream ).lineno
 
     args = [ parser.parse_expression() ]
 
@@ -38,6 +38,7 @@ class TargetWriter( Extension ):
         args.append( parser.parse_expression() )
       else:
         args.append( nodes.Const( '0644' ) )
+
     else:
       args.append( nodes.Const( 'root.root' ) )
       args.append( nodes.Const( '0644' ) )
@@ -48,7 +49,7 @@ class TargetWriter( Extension ):
   def _write( self, filename, owner, mode, caller ):
     self.environment.globals[ '_target_list' ].append( str( filename ) )
     if not self.environment.globals[ '_dry_run' ]:
-      target_file = '%s%s' % ( self.environment.globals[ '_root_dir' ], filename )
+      target_file = os.path.join( self.environment.globals[ '_root_dir' ], *( filename.split( '/' ) ) )
 
       if not os.path.exists( os.path.dirname( target_file ) ):
         os.makedirs( os.path.dirname( target_file ) )
@@ -64,25 +65,24 @@ class TargetWriter( Extension ):
 
         os.chmod( target_file, int( mode, 8 ) )
       else:
-        print 'WARNING: not running as root, unable to set owner nor mode of target file'
+        print( 'WARNING: not running as root, unable to set owner nor mode of target file' )
 
-    return "<%s %s %s>" % ( filename, owner, mode )
+    return "<{0} {1} {2}>".format( filename, owner, mode )
 
 
-class Config( object ):
-  def __init__( self, plato, template_dir, config_db, root_dir, configurator ): # root_dir should not affect template nor config_db paths
-    super( Config, self ).__init__()
-    self.plato = plato
+class Config():
+  def __init__( self, provider, template_dir, config_db, root_dir, configurator ):  # root_dir should not affect template nor config_db paths
+    super().__init__()
+    self.provider = provider
     self.template_dir = template_dir
     self.root_dir = root_dir
     self.configurator = configurator
     self.extra_values = {}
-    self._checkDB( config_db ) # check db before we connect to it
+    self._checkDB( config_db )  # check db before we connect to it
     self.conn = sqlite3.connect( config_db )
 
   def __del__( self ):
     self.conn.close()
-    #super( Config, self ).__del__()
 
   # utility functions
   def _checkDB( self, config_db ):
@@ -166,7 +166,6 @@ class Config( object ):
       "modified" datetime DEFAULT CURRENT_TIMESTAMP
   );""" )
 
-
       cur = conn.cursor()
       cur.execute( 'SELECT "package", "template", "templatehash", "target", "targethash", "lastChecked", "lastBuilt", "created", "modified" FROM "templates";' )
       for ( package, template, template_hash, target, target_hash, lastChecked, lastBuilt, created, modified ) in cur.fetchall():
@@ -206,8 +205,8 @@ class Config( object ):
 
   def _getPackageTemplates( self, package ):
     result = []
-    for line in os.listdir( '%s%s' % ( self.template_dir, package ) ):
-      tmpfile = '%s%s/%s' % ( self.template_dir, package, line )
+    for line in os.listdir( os.path.join( self.template_dir, package ) ):
+      tmpfile = os.path.join( self.template_dir, package, line )
       if not os.path.isfile( tmpfile ) or not os.access( tmpfile, os.R_OK ):
         continue
       if line.endswith( '.tpl' ):
@@ -217,7 +216,7 @@ class Config( object ):
   def _getTemplates( self, package ):
     result = {}
     cur = self.conn.cursor()
-    cur.execute( 'SELECT "template", "templateHash" FROM "templates" WHERE package = "%s" ORDER BY template;' % package )
+    cur.execute( 'SELECT "template", "templateHash" FROM "templates" WHERE package = "{0}" ORDER BY template;'.format( package ) )
     for ( template, template_hash ) in cur.fetchall():
       result[ str( template ) ] = { 'hash': str( template_hash ) }
 
@@ -228,7 +227,7 @@ class Config( object ):
   def _getTargets( self, package, template ):
     result = {}
     cur = self.conn.cursor()
-    cur.execute( 'SELECT "target", "targethash", "lastChecked", "lastBuilt" FROM "targets" WHERE package = "%s" AND template = "%s" ORDER BY target;' % ( package, template ) )
+    cur.execute( 'SELECT "target", "targethash", "lastChecked", "lastBuilt" FROM "targets" WHERE package = "{0}" AND template = "{1}" ORDER BY target;'.format( package, template ) )
     for ( target, target_hash, checked, built ) in cur.fetchall():
       result[ str( target ) ] = { 'hash': str( target_hash ), 'last_checked': str( checked ), 'last_built': str( built ) }
 
@@ -237,40 +236,31 @@ class Config( object ):
     return result
 
   def _renderTemplate( self, package, config, template, root_dir ):
-    eng = Environment( loader=FileSystemLoader( '%s%s' % ( self.template_dir, package ) ), extensions=[ TargetWriter, do_ext ] )
+    eng = Environment( loader=FileSystemLoader( os.path.join( self.template_dir, package ) ), extensions=[ TargetWriter, do_ext ] )
     eng.filters[ 'unique_list' ] = unique_list
     eng.globals.update( _dry_run=False )
-    eng.globals.update( _root_dir='%s%s' % ( self.root_dir, root_dir ) )
-    tmpl = eng.get_template( '%s.tpl' % template )
+    eng.globals.update( _root_dir=os.path.join( self.root_dir, root_dir ) )
+    tmpl = eng.get_template( '{0}.tpl'.format( template ) )
     tmpl.render( config )
     return eng.globals[ '_target_list' ]
 
   def _targetFiles( self, package, config, template ):
-    eng = Environment( loader=FileSystemLoader( '%s%s' % ( self.template_dir, package ) ), extensions=[ TargetWriter, do_ext ] )
+    eng = Environment( loader=FileSystemLoader( os.path.join( self.template_dir, package ) ), extensions=[ TargetWriter, do_ext ] )
     eng.filters[ 'unique_list' ] = unique_list
     eng.globals.update( _dry_run=True )
-    tmpl = eng.get_template( '%s.tpl' % template )
+    tmpl = eng.get_template( '{0}.tpl'.format( template ) )
     tmpl.render( config )
     return eng.globals[ '_target_list' ]
 
   def getMasterConfig( self ):
-    values = None
-
-    try:
-      values = self.plato.getConfig()
-    except DeviceNotFound:
-      pass
+    values = self.provider.getConfig()
 
     if not values:
-      print 'Master server returned empty config - Device Not found.'
+      print( 'Provider returned empty config - Device Not found.' )
       sys.exit( 1 )
 
-    if self.plato.uuid is None or self.plato.id is None:
-      print 'Retrieved config is not valid'
-      sys.exit( 1 )
-
-    if 'config_uuid' not in values or values[ 'config_uuid' ] is None:
-      print 'No config UUID, make sure the config/device is set to configured in plato and has a config_uuid.'
+    if self.provider.uuid is None or self.provider.id is None:
+      print( 'Retrieved config is not valid' )
       sys.exit( 1 )
 
     return values
@@ -307,7 +297,7 @@ class Config( object ):
 
     template_db_list = self._getTemplates( package )
     template_list = self._getPackageTemplates( package )
-    package_dir = '%s%s/' % ( self.template_dir, package )
+    package_dir = os.path.join( self.template_dir, package )
 
     results = []
     last_modified = None
@@ -318,11 +308,11 @@ class Config( object ):
       target_list = self._targetFiles( package, config, template )
       target_db_list = self._getTargets( package, template )
 
-      template_file = '%s%s.tpl' % ( package_dir, template )
-      template_hash = hashlib.sha1( open( template_file, 'r' ).read() ).hexdigest()
+      template_file = os.path.join( package_dir, '{0}.tpl'.format( template ) )
+      template_hash = hashlib.sha1( open( template_file, 'r' ).read().encode() ).hexdigest()
 
       for target in target_list:
-        target_file = '%s%s' % ( self.root_dir, target )
+        target_file = os.path.join( self.root_dir, target )
         tmp = {}
         tmp[ 'template' ] = template
         tmp[ 'target' ] = target
@@ -336,7 +326,7 @@ class Config( object ):
 
         else:
           if os.path.isfile( target_file ):
-            target_hash = hashlib.sha1( open( target_file, 'r' ).read() ).hexdigest()
+            target_hash = hashlib.sha1( open( target_file, 'r' ).read().encode() ).hexdigest()
 
             if target_db_list[ target ][ 'hash' ] != target_hash:
               tmp[ 'localmod' ] = 'Yes'
@@ -387,7 +377,7 @@ class Config( object ):
   def getPackageList( self ):
     result = []
     for package in os.listdir( self.template_dir ):
-      if not os.path.isdir( '%s%s' % ( self.template_dir, package ) ):
+      if not os.path.isdir( os.path.join( self.template_dir, package ) ):
         continue
       result.append( package )
 
@@ -397,28 +387,28 @@ class Config( object ):
     if config is None:
       config = self.getConfigCache()
 
-    config = config.copy() # just incase, we don't want to mess up what we were passed
+    config = config.copy()  # just incase, we don't want to mess up what we were passed
     config.update( self.extra_values )
     config[ '__configurator__' ] = self.configurator
 
-    last_modified = None
+    last_modified = '0'  # TODO: treat last_modified as a actuall dateetime
     if 'last_modified' in config:
       last_modified = config[ 'last_modified' ]
 
     template_list = self._getPackageTemplates( package )
     template_db_list = self._getTemplates( package )
-    package_dir = '%s%s/' % ( self.template_dir, package )
+    package_dir = os.path.join( self.template_dir, package )
 
     for template in template_list:
       if template not in master_template_list:
         continue
 
-      template_file = '%s%s.tpl' % ( package_dir, template )
+      template_file = os.path.join( package_dir, '{0}.tpl'.format( template ) )
       if not os.path.isfile( template_file ):
-        print 'Template "%s" for package "%s" is not found, skipped...' % ( template, package )
+        print( 'Template "{0}" for package "{1}" is not found, skipped...'.format( template, package ) )
         continue
 
-      template_hash = hashlib.sha1( open( template_file, 'r' ).read() ).hexdigest()
+      template_hash = hashlib.sha1( open( template_file, 'r' ).read().encode() ).hexdigest()
 
       target_list = self._targetFiles( package, config, template )
       target_db_list = self._getTargets( package, template )
@@ -428,12 +418,12 @@ class Config( object ):
 
       for target in target_list:
         if dest_rootdir:
-          target_file = '%s%s%s' % ( self.root_dir, dest_rootdir, target )
+          target_file = os.path.join( self.root_dir, *( dest_rootdir.split( '/' ) + target.split( '/' ) ) )
         else:
-          target_file = '%s%s' % ( self.root_dir, target )
+          target_file = os.path.join( self.root_dir, *( target.split( '/' ) ) )
 
         if os.path.isfile( target_file ):
-          target_hash = hashlib.sha1( open( target_file, 'r' ).read() ).hexdigest()
+          target_hash = hashlib.sha1( open( target_file, 'r' ).read().encode() ).hexdigest()
         else:
           target_hash = None
 
@@ -445,46 +435,46 @@ class Config( object ):
             need_build = True
 
           if not target_hash:
-            msg = None # it's missing, quietly rebuild
+            msg = None  # it's missing, quietly rebuild
             need_build = True
           elif target_hash != target_db_list[ target ][ 'hash' ]:
             msg = 'has local changes'
             need_build = True
           else:
-            msg = None # all good
+            msg = None  # all good
 
         elif target_hash:
           msg = 'allready exists'
         else:
-          msg = None # file dosne't allready exist ( no target_hash ) and isn't allready in the db, so slightly create it
+          msg = None  # file dosne't allready exist ( no target_hash ) and isn't allready in the db, so slightly create it
 
         if need_build and msg:
           if not force:
-            print 'Target "%s" for Template "%s" in package "%s" %s, skipped.' % ( target, template, package, msg )
+            print( 'Target "{0}" for Template "{1}" in package "{2}" {3}, skipped.'.format( target, template, package, msg ) )
             no_build = True
 
           elif no_backups:
-            print 'Target "%s" for Template "%s" in package "%s" %s, forcefully overwritten.' % ( target, template, package, msg )
+            print( 'Target "{0}" for Template "{1}" in package "{2}" {3}, forcefully overwritten.'.format( target, template, package, msg ) )
 
           else:
-            print 'Target "%s" for Template "%s" in package "%s" %s, old file saved.' % ( target, template, package, msg )
+            print( 'Target "{0}" for Template "{1}" in package "{2}" {3}, old file saved.'.format( target, template, package, msg ) )
             if not dry_run:
-              os.rename( target_file, '%s.%s-%s' % ( target_file, self.configurator, datetime.utcnow().strftime( '%Y-%m-%d-%H-%M' ) ) )
+              os.rename( target_file, '{0}.{1}-{2}'.format( target_file, self.configurator, datetime.utcnow().strftime( '%Y-%m-%d-%H-%M' ) ) )
 
       if no_build:
-        print 'Template "%s" skipped.' % template
+        print( 'Template "{0}" skipped.'.format( template ) )
         continue
 
       if template not in template_db_list:
-        print 'Template "%s" in "%s" is new, building.' % ( template, package )
+        print( 'Template "{0}" in "{1}" is new, building.'.format( template, package ) )
         need_build = True
 
       elif template_hash != template_db_list[ template ][ 'hash' ]:
-        print 'Template "%s" in "%s" has been modified, rebuilding.' % ( template, package )
+        print( 'Template "{0}" in "{1}" has been modified, rebuilding.'.format( template, package ) )
         need_build = True
 
       if not need_build and re_generate:
-        print 'Template "%s" in "%s" rebuild not required, but re-generate specified, rebuilding.' % ( template, package )
+        print( 'Template "{0}" in "{1}" rebuild not required, but re-generate specified, rebuilding.'.format( template, package ) )
         need_build = True
 
       if dry_run:
@@ -508,7 +498,7 @@ class Config( object ):
         continue
 
       if not dest_rootdir:
-        print '(Re)Building "%s" in "%s"...' % ( template, package )
+        print( '(Re)Building "{0}" in "{1}"...'.format( template, package ) )
 
       self._renderTemplate( package, config, template, dest_rootdir )
 
@@ -521,7 +511,7 @@ class Config( object ):
         self.conn.execute( 'INSERT INTO "templates" ( "templatehash", "package", "template", "lastChecked", "lastBuilt" ) VALUES ( ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP );', ( template_hash, package, template ) )
 
       for target in target_list:
-        target_hash = hashlib.sha1( open( '%s%s' % ( self.root_dir, target ), 'r' ).read() ).hexdigest()
+        target_hash = hashlib.sha1( open( os.path.join( self.root_dir, *( target.split( '/' ) ) ), 'r' ).read().encode() ).hexdigest()
 
         if template in template_db_list:
           self.conn.execute( 'UPDATE "targets" SET "lastChecked"=CURRENT_TIMESTAMP, "targethash"=?, "lastBuilt"=CURRENT_TIMESTAMP, "modified"=CURRENT_TIMESTAMP WHERE "package"=? AND "template"=? AND "target"=?;', ( target_hash, package, template, target ) )
