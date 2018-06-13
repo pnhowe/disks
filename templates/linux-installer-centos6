@@ -5,27 +5,27 @@
 QUESTION_LIST=( "MIRROR_SERVER" "HOSTNAME" "SWAP_SIZE" "USE_PROXY" "PROXY" "IS_VM" "RAID_TYPE"  )
 DESC_LIST=( "Mirror Server" "Hostname" "Swap Size" "Use HTTP Proxy" "HTTP Proxy (ignored if use proxy is n)" "Is VM" "RAID Type (ignored if VM)" )
 TYPE_LIST=( "inputbox" "inputbox" "inputbox" "yesno" "inputbox" "yesno" "menu:single_Single Disk_mirror_Mirror Two Disks_raid10_All disks into RAID 10_raid6_All disks into RAID 6_single-lvm_Single Disk LVM_dual-lvm_Two Disk LVM" )
-DEFAULT_LIST=( "us.archive.ubuntu.com" "xenial" "2048" "yes" "http://proxy:3128/" "no" "single"  )
+DEFAULT_LIST=( "mirror.centos.org" "centos6" "2048" "yes" "http://proxy:3128/" "no" "single"  )
 
-CONFIG='DISTRO="ubuntu"
-VERSION="xenial"
-SOURCE="http://__MIRROR_SERVER__/ubuntu"
+CONFIG='DISTRO="centos"
+VERSION="6"
+SOURCE="http://__MIRROR_SERVER__/centos-6/"
 
 cat > /config.json << CONFIG_EOF
 {
-  "packages": "openssh-server openssh-client __PACKAGES__",
+  "packages": "openssh-server __PACKAGES__",
   "swap_size": "__SWAP_SIZE__",
   "partition_scheme": "__PART_SCHEME__",
-  "repo_list": [ {"distribution": "xenial", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"}, {"distribution": "xenial-updates", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"}, {"distribution": "xenial-security", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"} ]
+  "repo_list": [ { "type":"yum", "name": "base", "uri": "http://__MIRROR_SERVER__/centos-6/6/os/\$basearch/", "key_file": "/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6", "proxy": "__PROXY__" },{ "type":"yum", "name": "updates", "uri": "http://__MIRROR_SERVER__/centos-6/6/updates/\$basearch/", "key_file": "/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6", "proxy": "__PROXY__" },{ "type":"yum", "name": "extras", "uri": "http://__MIRROR_SERVER__/centos-6/6/extras/\$basearch/", "key_file": "/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6", "proxy": "__PROXY__" } ]
 }
 CONFIG_EOF
 
 cat > /config_values.json << CONFIG_VALUES_EOF
 {
-  "repo_list": [ {"distribution": "xenial", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"}, {"distribution": "xenial-updates", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"}, {"distribution": "xenial-security", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"} ],
+  "repo_list": [ { "type":"yum", "name": "base", "uri": "http://__MIRROR_SERVER__/centos-6/6/os/\$basearch/", "key_file": "/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6", "proxy": "__PROXY__" },{ "type":"yum", "name": "updates", "uri": "http://__MIRROR_SERVER__/centos-6/6/updates/\$basearch/", "key_file": "/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6", "proxy": "__PROXY__" },{ "type":"yum", "name": "extras", "uri": "http://__MIRROR_SERVER__/centos-6/6/extras/\$basearch/", "key_file": "/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6", "proxy": "__PROXY__" } ],
   "hostname": "__HOSTNAME__",
   "http_proxy": "__PROXY__",
-  "distro_version": "xenial",
+  "distro_version": "6",
   "id": 0,
   "uuid": "00000000-0000-0000-0000-000000000000",
   "interfaces": {
