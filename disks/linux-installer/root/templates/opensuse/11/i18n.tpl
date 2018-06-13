@@ -1,4 +1,4 @@
-{% target '/etc/sysconfig/network' %}#HEADER
+{% target '/etc/sysconfig/network' %}# Auto Generated During Install
 
 LANG=LANG=en_US.UTF-8
 LC_CTYPE=en_US.UTF-8

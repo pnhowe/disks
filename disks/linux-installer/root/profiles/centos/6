@@ -2,7 +2,8 @@
 
 [filesystem]
 partition_type=gpt
-fs_type=ext4
+fs_type=ext3
+boot_fs_type=ext3
 md_meta_version=1.0
 extra_mount_1=proc:proc:/proc
 extra_mount_2=sysfs:sysfs:/sys
@@ -29,7 +30,6 @@ base_templates=hosts network ifcfg i18n yum
 
 [booting]
 bootloader_templates=grub
-grub_conf=/boot/grub/grub.conf
 bootloader_install=/sbin/grub-install {0}
 
 [users]

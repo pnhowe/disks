@@ -1,4 +1,4 @@
-{% target '/etc/hosts' %}#HEADER
+{% target '/etc/hosts' %}# Auto Generated During Install
 
 127.0.0.1 localhost
 {% for interface in interfaces %}{% if interface != 'ipmi' %}{% for address in interfaces[interface].address_list %}{% if address.address == 'dhcp' %}{% set ip_addr = '127.0.1.1' %}{% else %}{% set ip_addr = address.address %}{% endif %}

@@ -1,5 +1,5 @@
 {% set _hide_interfaces = [] %}
-{% target '/etc/network/interfaces' %}#HEADER
+{% target '/etc/network/interfaces' %}# Auto Generated During Install
 
 auto lo
 iface lo inet loopback

@@ -17,6 +17,7 @@ install_dep "dosfstools"
 install_dep "gpgv"
 install_dep "debootstrap"
 install_dep "pkgdetails"
+install_dep "squashfs"
 
 install_src "libconfig"
 install_src "libdrive"

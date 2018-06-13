@@ -1,4 +1,4 @@
-{% target '/etc/sysconfig/network' %}#HEADER
+{% target '/etc/sysconfig/network' %}# Auto Generated During Install
 
 NETWORKING=yes
 HOSTNAME={{ hostname }}.{{ domain }}

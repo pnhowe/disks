@@ -1,4 +1,4 @@
-{% if sol_console %}{% target '/etc/init/' + sol_console + '.conf' %}#HEADER
+{% if sol_console %}{% target '/etc/init/' + sol_console + '.conf' %}# Auto Generated During Install
 
 # {{ sol_console }} - getty
 

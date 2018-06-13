@@ -12,7 +12,7 @@
 {% endif %}
 {% endfor %}
 
-{% target '/etc/apt/sources.list' %}#HEADER
+{% target '/etc/apt/sources.list' %}# Auto Generated During Install
 
 {% for tmp in _order %}
 deb {% if tmp[2] %}[{{ tmp[2] }}] {% endif %}{{ tmp[0] }} {{ tmp[1] }}{% for component in _entries[ tmp ]|unique_list %} {{ component }}{% endfor %}

@@ -280,6 +280,10 @@ def partition( profile, config ):
   if fs_type not in mkfs_map.keys():
     raise FileSystemException( 'Invalid fs_type "{0}"'.format( fs_type ) )
 
+  boot_fs_type = profile.get( 'filesystem', 'boot_fs_type' )
+  if boot_fs_type not in mkfs_map.keys():
+    raise FileSystemException( 'Invalid boot_fs_type "{0}"'.format( boot_fs_type ) )
+
   md_meta_version = profile.get( 'filesystem', 'md_meta_version' )
   try:
     if config[ 'md_meta_version' ]:
@@ -438,7 +442,10 @@ def partition( profile, config ):
     try:
       part_type = item[ 'type' ]
     except KeyError:
-      part_type = fs_type
+      if item[ 'mount_point' ] == '/boot':
+        part_type = boot_fs_type
+      else:
+        part_type = fs_type
 
     try:
       if item[ 'options' ] != 'defaults':
@@ -774,6 +781,7 @@ def fsConfigValues():
     try:
       if fs[ 'mount_point' ] == '/':
         tmp[ 'root_uuid' ] = fs[ 'uuid' ]
+        tmp[ 'block_device' ] = fs[ 'block_device' ]
     except KeyError:
       pass
 

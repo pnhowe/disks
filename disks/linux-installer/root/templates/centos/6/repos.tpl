@@ -13,7 +13,7 @@
 {% endfor %}
 
 {% for group in _order %}
-{% target '/etc/yum.repos.d/' + group + '.repo' %}#HEADER
+{% target '/etc/yum.repos.d/' + group + '.repo' %}# Auto Generated During Install
 
 {% for repo in _entries[ group ] %}
 [{{ repo.name }}]

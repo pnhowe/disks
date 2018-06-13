@@ -1,4 +1,4 @@
-{% target '/etc/yum.conf' %}#HEADER
+{% target '/etc/yum.conf' %}# Auto Generated During Install
 
 [main]
 cachedir=/var/cache/yum/$basearch/$releasever

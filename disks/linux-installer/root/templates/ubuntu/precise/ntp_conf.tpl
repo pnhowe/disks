@@ -1,4 +1,4 @@
-{% target '/etc/ntp.conf' %}#HEADER
+{% target '/etc/ntp.conf' %}# Auto Generated During Install
 
 driftfile /var/lib/ntp/ntp.drift
 statsdir /var/log/ntpstats/

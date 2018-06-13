@@ -7,7 +7,7 @@
 {% if address.sub_interface %}
 {% set filename = filename + ':' + address.sub_interface|string %}
 {% endif %}
-{% target '/etc/sysconfig/network-scripts/' + filename %}#HEADER
+{% target '/etc/sysconfig/network-scripts/' + filename %}# Auto Generated During Install
 
 {% if interfaces[interface].master_interface and not address.vlan and not address.tagged and not address.sub_interface %}
 BONDING_MASTER=yes
