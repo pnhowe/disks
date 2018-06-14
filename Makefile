@@ -124,8 +124,8 @@ images/img/%: $(PXE_FILES)
 	if [ -f templates/$* ];                                                                                                             \
 	then                                                                                                                                \
 	  mkdir -p build.images/templates/$*/ ;                                                                                             \
-	  scripts/build_template $* build.images/templates/$*/config build.images/templates/$*/boot.config build.images/templates/$*/boot.menu;    \
 		DISK=$$( grep -m 1 '#DISK:' templates/$* | sed s/'#DISK: '// );                                                                   \
+	  scripts/build_template $* build.images/templates/$*/config build.images/templates/$*/boot.config build.images/templates/$*/boot.menu && \
 	  sudo scripts/makeimg $@ images/pxe/$$DISK.vmlinuz images/pxe/$$DISK.initrd build.images/templates/$*/boot.config build.images/templates/$*/config build.images/templates/$*/boot.menu; \
 	elif [ -f $(FILE).config_file ] && [ -f $(FILE).boot_menu ];                                                                        \
 	then                                                                                                                                \
@@ -151,8 +151,8 @@ images/iso/%.iso: $(PXE_FILES)
 	if [ -f templates/$* ];                                                                                                             \
 	then                                                                                                                                \
 	  mkdir -p build.images/templates/$*/ ;                                                                                             \
-		scripts/build_template $* build.images/templates/$*/config build.images/templates/$*/boot.config build.images/templates/$*/boot.menu;    \
 		DISK=$$( grep -m 1 '#DISK:' templates/$* | sed s/'#DISK: '// );                                                                   \
+		scripts/build_template $* build.images/templates/$*/config build.images/templates/$*/boot.config build.images/templates/$*/boot.menu && \
 	  scripts/makeiso $@ images/pxe/$$DISK.vmlinuz images/pxe/$$DISK.initrd build.images/templates/$*/boot.config build.images/templates/$*/config build.images/templates/$*/boot.menu; \
 	elif [ -f $(FILE).config_file ] && [ -f $(FILE).boot_menu ];                                                                        \
 	then                                                                                                                                \

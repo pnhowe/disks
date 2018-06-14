@@ -53,6 +53,17 @@ do
   fi
 done
 
+clear
+
+echo "Shortcut env exports:"
+echo "---------------------------------------------------------------------"
+for i in `seq 0 $(( ${#QUESTION_LIST[@]} - 1 ))`;
+do
+  NAME=${QUESTION_LIST[$i]}
+  echo "export BDT_${QUESTION_LIST[$i]}=\"${!NAME}\""
+done
+echo "---------------------------------------------------------------------"
+
 post_process
 
 STOP_AT=$(set | grep -n "^_=" | head -n1 | cut -d: -f1)
