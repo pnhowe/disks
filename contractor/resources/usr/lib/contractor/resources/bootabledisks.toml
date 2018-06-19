@@ -1,0 +1,56 @@
+[ structure.ubuntu-base ]
+  description = 'Base Ubuntu'
+  parents = [ 'linux-base' ]
+  config_values = { 'installer_pxe' = 'bootabledisk-linux-installer', 'mirror_server' = 'us.archive.ubuntu.com', 'distro' = 'ubuntu' }
+
+[ structure.ubuntu-precise-base ]
+  description = 'Base Ubuntu Precise Pangolin (12.04 LTS)'
+  parents = [ 'ubuntu-base' ]
+  config_values = { 'distro_version' = 'precise' }
+
+[ structure.ubuntu-trusty-base ]
+  description = 'Base Ubuntu Trusty Tahr (14.04 LTS)"'
+  parents = [ 'ubuntu-base' ]
+  config_values = { 'distro_version' = 'trusty' }
+
+[ structure.ubuntu-xenial-base ]
+  description = 'Base Ubuntu Xenial Xerus (16.04 LTS)'
+  parents = [ 'ubuntu-base' ]
+  config_values = { 'distro_version' = 'xenial', 'awsec2_image_id' = 'ami-efd0428f', 'docker_image' = 'xenial/ssh' }
+
+[ structure.ubuntu-bionic-base ]
+  description = 'Base Ubuntu Bionic Beaver (18.04 LTS)'
+  parents = [ 'ubuntu-base' ]
+  config_values = { 'distro_version' = 'bionic' }
+
+[ structure.centos-base ]
+  description = 'Base CentOS'
+  parents = [ 'linux-base' ]
+  config_values = { 'installer_pxe' = 'bootabledisk-linux-installer', 'mirror_server' = 'mirror.centos.org', 'distro' = 'centos' }
+
+[ structure.centos-6-base]
+  description = 'Base CentOS 6'
+  parents = [ 'centos-base' ]
+  config_values = { 'distro_version' = '6' }
+
+[ structure.centos-7-base]
+  description = 'Base CentOS 7'
+  parents = [ 'centos-base' ]
+  config_values = { 'distro_version' = '7' }
+
+
+[ pxe.bootabledisk-linux-installer ]
+  description = 'Bootabledisks - Linux Installer'
+  boot_script = """echo Linux Installer
+kernel http://{{ pxe_location }}/bootabledisks/linux-installer.vmlinuz interface_mac={{ '{' }}{ interfaces.{{ interface_provisioning }}.mac }{{ '}' }} config={{ __pxe_template_location }} {% if http_proxy %} http_proxy={{ http_proxy }}{% endif %} hostname={{ hostname }} local_config
+initrd http://{{ pxe_location }}/bootabledisks/linux-installer.initrd
+boot
+"""
+  template = """# Generated at: {{ timestamp }}
+# blueprint {{ blueprint }}
+{
+  'packages': 'openssh-server openssh-client {{ packages }}',
+  'swap_size': '{{ swap_size }}',
+  'partition_scheme': '{{ linux_partition_scheme|default:'single' }}',
+  'repo_list': [ {'distribution': 'xenial', 'type': 'apt', 'uri': 'http://{{ mirror_server }}/ubuntu/', 'components': ['main'], 'proxy': '{{ mirror_proxy }}'}, {'distribution': 'xenial-updates', 'type': 'apt', 'uri': 'http://{{ mirror_server }}/ubuntu/', 'components': ['main'], 'proxy': '{{ mirror_proxy }}'}, {'distribution': 'xenial-security', 'type': 'apt', 'uri': 'http://{{ mirror_server }}/ubuntu/', 'components': ['main'], 'proxy': '{{ mirror_proxy }}'} ]
+}"""

@@ -46,11 +46,14 @@ cat > /config_values.json << CONFIG_VALUES_EOF
           "mtu": 1500
         }
       ],
+      "mac": "--MAC--",
       "name": "eth0"
     }
   }
 }
 CONFIG_VALUES_EOF
+
+sed s/--MAC--/$( cat /sys/class/net/eth0/address )/ -i /config_values.json
 '
 
 EXTLINUX='PROMPT 1

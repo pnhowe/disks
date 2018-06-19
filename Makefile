@@ -174,8 +174,29 @@ templates:
 
 # clean up
 
-localclean: clean-deps clean-images clean-src
+localclean: clean-deps clean-images clean-src respkg-clean
 
 distclean: clean-deps clean-images clean-src clean-downloads
 
-.PHONY: all all-pxe all-imgs clean-src clean-downloads clean-deps clean-images localclean distclean pxe-targets templates
+.PHONY:: all all-pxe all-imgs clean-src clean-downloads clean-deps clean-images localclean distclean pxe-targets templates
+
+respkg-distros:
+	echo xenial
+
+respkg-requires:
+	echo respkg
+
+respkg: all-pxe
+	mkdir -p contractor/resources/var/www/bootabledisks
+	cp images/pxe/*.initrd contractor/resources/var/www/bootabledisks
+	cp images/pxe/*.vmlinuz contractor/resources/var/www/bootabledisks
+	cd contractor && respkg -b ../bootabledisks-contractor_0.0.respkg -n bootabledisks-contractor -e 0.0 -c "Bootable Disks for Contractor" -t load_data.sh -d resources -s contractor-os-base
+	touch respkg
+
+respkg-file:
+	echo $(shell ls *.respkg)
+
+respkg-clean:
+	$(RM) -fr resources/var/www/bootabledisks
+
+.PHONY:: respkg-distros respkg-requires respkg respkg-file respkg-clean
