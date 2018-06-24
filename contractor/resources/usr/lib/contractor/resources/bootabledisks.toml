@@ -42,15 +42,23 @@
 [ pxe.bootabledisk-linux-installer ]
   description = 'Bootabledisks - Linux Installer'
   boot_script = """echo Linux Installer
-kernel http://{{ pxe_location }}/bootabledisks/linux-installer.vmlinuz interface_mac={{ '{' }}{ interfaces.{{ interface_provisioning }}.mac }{{ '}' }} config={{ __pxe_template_location }} {% if http_proxy %} http_proxy={{ http_proxy }}{% endif %} hostname={{ hostname }} local_config
-initrd http://{{ pxe_location }}/bootabledisks/linux-installer.initrd
+kernel {{ __pxe_location }}/bootabledisks/linux-installer.vmlinuz interface_mac={{ _provisioning_interface_mac }} config_url={{ __pxe_template_location }} {% if http_proxy %} http_proxy={{ http_proxy }}{% endif %} hostname={{ hostname }}
+initrd {{ __pxe_location }}/bootabledisks/linux-installer.initrd
 boot
 """
-  template = """# Generated at: {{ timestamp }}
+  template = """# Generated at: {{ __timestamp }}
 # blueprint {{ blueprint }}
+DISTRO="{{ distro }}"
+VERSION="{{ distro_version }}"
+SOURCE="http://{{ mirror_server }}/ubuntu"
+
+cat > /config.json << CONFIG_EOF
 {
-  'packages': 'openssh-server openssh-client {{ packages }}',
-  'swap_size': '{{ swap_size }}',
-  'partition_scheme': '{{ linux_partition_scheme|default:'single' }}',
-  'repo_list': [ {'distribution': 'xenial', 'type': 'apt', 'uri': 'http://{{ mirror_server }}/ubuntu/', 'components': ['main'], 'proxy': '{{ mirror_proxy }}'}, {'distribution': 'xenial-updates', 'type': 'apt', 'uri': 'http://{{ mirror_server }}/ubuntu/', 'components': ['main'], 'proxy': '{{ mirror_proxy }}'}, {'distribution': 'xenial-security', 'type': 'apt', 'uri': 'http://{{ mirror_server }}/ubuntu/', 'components': ['main'], 'proxy': '{{ mirror_proxy }}'} ]
+  "packages": "openssh-server openssh-client {{ packages }}",
+  "swap_size": "{{ swap_size }}",
+  "partition_scheme": "{{ linux_partition_scheme|default('single') }}",
+  "repo_list": [ {"distribution": "xenial", "type": "apt", "uri": "http://{{ mirror_server }}/ubuntu/", "components": ["main"], "proxy": "{{ mirror_proxy }}"}, {"distribution": "xenial-updates", "type": "apt", "uri": "http://{{ mirror_server }}/ubuntu/", "components": ["main"], "proxy": "{{ mirror_proxy }}"}, {"distribution": "xenial-security", "type": "apt", "uri": "http://{{ mirror_server }}/ubuntu/", "components": ["main"], "proxy": "{{ mirror_proxy }}"} ]
+}
+CONFIG_EOF
+list': [ {'distribution': 'xenial', 'type': 'apt', 'uri': 'http://{{ mirror_server }}/ubuntu/', 'components': ['main'], 'proxy': '{{ mirror_proxy }}'}, {'distribution': 'xenial-updates', 'type': 'apt', 'uri': 'http://{{ mirror_server }}/ubuntu/', 'components': ['main'], 'proxy': '{{ mirror_proxy }}'}, {'distribution': 'xenial-security', 'type': 'apt', 'uri': 'http://{{ mirror_server }}/ubuntu/', 'components': ['main'], 'proxy': '{{ mirror_proxy }}'} ]
 }"""

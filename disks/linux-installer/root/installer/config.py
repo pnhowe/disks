@@ -4,6 +4,7 @@ from io import StringIO
 from libconfig.libconfig import Config
 from libconfig.jinja2 import FileSystemLoader, Environment
 from libconfig.providers import StaticProvider, HTTPProvider
+from controller import getClient
 
 config = None
 template = None
@@ -14,16 +15,16 @@ config_values = { '_installer': {} }
 def initConfig( install_root, template_path, profile_path ):
   global config, template
 
-  if os.access( '/config_values.json', os.R_OK ):
+  if os.access( '/config_values.json', os.R_OK ):  # TODO: when standalone libconfig is figured out, it will probably need a built in controller Client, that could be started from the Client in the bootdisks, at that point get the static, file, http sources unified there and here.  Also need to allow top level do_task to send down hints
     provider = StaticProvider( '/config_values.json' )
 
   else:
-    provider = HTTPProvider( host=os.environ.get( 'plato_host', 'http://plato' ), proxy=os.environ.get( 'plato_proxy', None ) )
+    provider = HTTPProvider( getClient() )
 
   config = Config( provider, template_path, '/tmp/config.db', install_root, 'linux-installer' )
   # plato.allow_config_change = True
   config.updateConfigCacheFromMaster()
-  # plato.allow_config_change = True
+  # plato.allow_config_change = False
 
   env = Environment( loader=FileSystemLoader( os.path.dirname( profile_path ) ) )
   template = env.get_template( os.path.basename( profile_path ) )

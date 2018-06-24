@@ -4,7 +4,7 @@ import os
 from installer.procutils import execute, chroot_execute
 
 
-def bootstrap( mount_point, source, profile, config ):
+def bootstrap( mount_point, source, profile, config ):  # TODO: bootstrap http proxy
   bootstrap_type = profile.get( 'bootstrap', 'type' )
 
   # debians copy over /etc/hostname and /etc/resolv.conf, but cent dosen't (SELS Unknown), and pre_base_cmd is chrooted, so for now we will do these here
