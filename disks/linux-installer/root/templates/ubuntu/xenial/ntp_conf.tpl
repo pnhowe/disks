@@ -1,1 +1,0 @@
-../precise/ntp_conf.tpl

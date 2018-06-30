@@ -1,52 +1,68 @@
 [ structure.ubuntu-base ]
   description = 'Base Ubuntu'
   parents = [ 'linux-base' ]
-  config_values = { 'installer_pxe' = 'bootabledisk-linux-installer', 'mirror_server' = 'us.archive.ubuntu.com', 'distro' = 'ubuntu' }
+[ structure.ubuntu-base.config_values ]
+  installer_pxe = 'bootabledisk-linux-installer'
+  mirror_server = 'us.archive.ubuntu.com'
+  distro = 'ubuntu'
+  repo_components = [ 'main' ]
+  >repo_list = [
+    { distribution = '{{ distro_version }}', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy }}' },
+    { distribution = '{{ distro_version }}-updates', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy }}' },
+    { distribution = '{{ distro_version }}-security', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy }}' },
+  ]
 
 [ structure.ubuntu-precise-base ]
   description = 'Base Ubuntu Precise Pangolin (12.04 LTS)'
   parents = [ 'ubuntu-base' ]
-  config_values = { 'distro_version' = 'precise' }
+  config_values = { distro_version = 'precise' }
 
 [ structure.ubuntu-trusty-base ]
-  description = 'Base Ubuntu Trusty Tahr (14.04 LTS)"'
+  description = 'Base Ubuntu Trusty Tahr (14.04 LTS)'
   parents = [ 'ubuntu-base' ]
-  config_values = { 'distro_version' = 'trusty' }
+  config_values = { distro_version = 'trusty' }
 
 [ structure.ubuntu-xenial-base ]
   description = 'Base Ubuntu Xenial Xerus (16.04 LTS)'
   parents = [ 'ubuntu-base' ]
-  config_values = { 'distro_version' = 'xenial', 'awsec2_image_id' = 'ami-efd0428f', 'docker_image' = 'xenial/ssh' }
+  config_values = { distro_version = 'xenial', awsec2_image_id = 'ami-efd0428f', docker_image = 'xenial/ssh' }
 
 [ structure.ubuntu-bionic-base ]
   description = 'Base Ubuntu Bionic Beaver (18.04 LTS)'
   parents = [ 'ubuntu-base' ]
-  config_values = { 'distro_version' = 'bionic' }
+  config_values = { distro_version = 'bionic' }
 
 [ structure.centos-base ]
   description = 'Base CentOS'
   parents = [ 'linux-base' ]
-  config_values = { 'installer_pxe' = 'bootabledisk-linux-installer', 'mirror_server' = 'mirror.centos.org', 'distro' = 'centos' }
+[ structure.centos-base.config_values ]
+  installer_pxe = 'bootabledisk-linux-installer'
+  mirror_server = 'mirror.centos.org'
+  distro = 'centos'
+  >repo_list = [
+    { type = 'yum', name = 'base', uri = 'http://{{ mirror_server }}/centos-{{ distro_version }}/{{ distro_version }}/os/\$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-{{ distro_version }}', proxy = '{{ mirror_proxy }}' },
+    { type = 'yum', name = 'updates', uri = 'http://{{ mirror_server }}/centos-{{ distro_version }}/{{ distro_version }}/updates/\$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-{{ distro_version }}', proxy = '{{ mirror_proxy }}' },
+    { type = 'yum', name = 'extras', uri = 'http://{{ mirror_server }}/centos-{{ distro_version }}/{{ distro_version }}/extras/\$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-{{ distro_version }}', proxy = '{{ mirror_proxy }}' },
+  ]
 
 [ structure.centos-6-base]
   description = 'Base CentOS 6'
   parents = [ 'centos-base' ]
-  config_values = { 'distro_version' = '6' }
+  config_values = { distro_version = '6' }
 
 [ structure.centos-7-base]
   description = 'Base CentOS 7'
   parents = [ 'centos-base' ]
-  config_values = { 'distro_version' = '7' }
-
+  config_values = { distro_version = '7' }
 
 [ pxe.bootabledisk-linux-installer ]
   description = 'Bootabledisks - Linux Installer'
-  boot_script = """echo Linux Installer
-kernel {{ __pxe_location }}/bootabledisks/linux-installer.vmlinuz interface_mac={{ _provisioning_interface_mac }} config_url={{ __pxe_template_location }} {% if http_proxy %} http_proxy={{ http_proxy }}{% endif %} hostname={{ hostname }}
+  boot_script = '''echo Linux Installer
+kernel {{ __pxe_location }}/bootabledisks/linux-installer.vmlinuz interface_mac={{ _provisioning_interface_mac }} config_url={{ __pxe_template_location }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ hostname }}
 initrd {{ __pxe_location }}/bootabledisks/linux-installer.initrd
 boot
-"""
-  template = """# Generated at: {{ __timestamp }}
+'''
+  template = '''# Generated at: {{ __timestamp }}
 # blueprint {{ blueprint }}
 DISTRO="{{ distro }}"
 VERSION="{{ distro_version }}"
@@ -56,9 +72,8 @@ cat > /config.json << CONFIG_EOF
 {
   "packages": "openssh-server openssh-client {{ packages }}",
   "swap_size": "{{ swap_size }}",
-  "partition_scheme": "{{ linux_partition_scheme|default('single') }}",
-  "repo_list": [ {"distribution": "xenial", "type": "apt", "uri": "http://{{ mirror_server }}/ubuntu/", "components": ["main"], "proxy": "{{ mirror_proxy }}"}, {"distribution": "xenial-updates", "type": "apt", "uri": "http://{{ mirror_server }}/ubuntu/", "components": ["main"], "proxy": "{{ mirror_proxy }}"}, {"distribution": "xenial-security", "type": "apt", "uri": "http://{{ mirror_server }}/ubuntu/", "components": ["main"], "proxy": "{{ mirror_proxy }}"} ]
+  "partition_scheme": "{{ linux_partition_scheme|default( 'single' ) }}",
+  "repo_list": {{ repo_list|tojson }}
 }
 CONFIG_EOF
-list': [ {'distribution': 'xenial', 'type': 'apt', 'uri': 'http://{{ mirror_server }}/ubuntu/', 'components': ['main'], 'proxy': '{{ mirror_proxy }}'}, {'distribution': 'xenial-updates', 'type': 'apt', 'uri': 'http://{{ mirror_server }}/ubuntu/', 'components': ['main'], 'proxy': '{{ mirror_proxy }}'}, {'distribution': 'xenial-security', 'type': 'apt', 'uri': 'http://{{ mirror_server }}/ubuntu/', 'components': ['main'], 'proxy': '{{ mirror_proxy }}'} ]
-}"""
+'''

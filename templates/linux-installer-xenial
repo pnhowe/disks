@@ -28,8 +28,8 @@ cat > /config_values.json << CONFIG_VALUES_EOF
   "distro_version": "xenial",
   "id": 0,
   "uuid": "00000000-0000-0000-0000-000000000000",
-  "interfaces": {
-    "eth0": {
+  "interface_list": [
+    {
       "address_list": [
         {
           "address": "dhcp",
@@ -43,8 +43,8 @@ cat > /config_values.json << CONFIG_VALUES_EOF
       ],
       "mac": "--MAC--",
       "name": "eth0"
-    }
-  }
+    },
+  ]
 }
 CONFIG_VALUES_EOF
 

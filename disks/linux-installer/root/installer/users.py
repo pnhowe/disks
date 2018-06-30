@@ -6,7 +6,7 @@ from installer.procutils import chroot_execute
 
 
 def setupUsers( mount_point, profile, config ):
-  pass_hash = '\\$6\\$rootroot\\$oLo.loyMV45VA7/0sKV5JH/xBAXiq/igL4hQrGz3yd9XUavmC82tZm1lxW2N.5eLxQUlqp53wXKRzifZApP0/1.'  # root
+  pass_hash = '\\$6\\$rootroot\\$oLo.loyMV45VA7/0sKV5JH/xBAXiq/igL4hQrGz3yd9XUavmC82tZm1lxW2N.5eLxQUlqp53wXKRzifZApP0/1'  # root
   try:
     if config[ 'root_pass' ]:
       pass_hash = config[ 'root_pass' ]
