@@ -83,7 +83,7 @@ class Client():
     # elif config_id is not None:
     #   parms[ 'config_id' ] = config_id
 
-    return self.request( 'get', '/config/config/', parms, timeout=10, retry_count=2 )  # the defaults cause configManager to hang to a long time when it can't talk to the controller
+    return self.request( 'get', '/config/config/', parms, timeout=10, retry_count=2 )  # the defaults cause libconfig to hang to a long time when it can't talk to the controller
 
   def signalComplete( self ):
     return

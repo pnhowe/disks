@@ -3,7 +3,7 @@ import configparser
 from io import StringIO
 from libconfig.libconfig import Config
 from libconfig.jinja2 import FileSystemLoader, Environment
-from libconfig.providers import StaticProvider, HTTPProvider
+from libconfig.providers import FileProvider, HTTPProvider
 from controller import getClient
 
 config = None
@@ -16,7 +16,7 @@ def initConfig( install_root, template_path, profile_path ):
   global config, template
 
   if os.access( '/config_values.json', os.R_OK ):  # TODO: when standalone libconfig is figured out, it will probably need a built in controller Client, that could be started from the Client in the bootdisks, at that point get the static, file, http sources unified there and here.  Also need to allow top level do_task to send down hints
-    provider = StaticProvider( '/config_values.json' )
+    provider = FileProvider( '/config_values.json' )
 
   else:
     provider = HTTPProvider( getClient() )

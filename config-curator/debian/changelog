@@ -1,0 +1,5 @@
+config-curator (0.1-1) DIST; urgency=medium
+
+  * Initial release.
+
+ -- Peter Howe <peter.howe@virtustream.com>  Tue, 03 Jul 2018 13:05:33 -0600

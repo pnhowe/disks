@@ -1,0 +1,13 @@
+Source: config-curator
+Section: multiverse
+Priority: optional
+Maintainer: Peter Howe <peter.howe@virtustream.com>
+Build-Depends: debhelper (>= 9), python3 (>= 3.4), python3-dev (>=3.4), python3-setuptools (>= 20.0), lsb-release
+Standards-Version: 3.8.3
+X-Python3-Version: >= 3.4
+
+Package: config-curator
+Architecture: all
+Depends: python3 (>= 3.4), ${shlibs:Depends}, ${misc:Depends}, ${python3:Depends}
+Description: config-curator
+  merge Jinja2 templates with config retrieved via HTTP/JSON.  Can check for changes and show diffs.

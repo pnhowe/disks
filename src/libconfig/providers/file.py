@@ -2,7 +2,7 @@ import json
 from libconfig.providers.provider import Provider
 
 
-class StaticProvider( Provider ):
+class FileProvider( Provider ):
   def __init__( self, filepath ):
     super().__init__()
     self.config_values = json.loads( open( filepath, 'r' ).read() )

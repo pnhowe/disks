@@ -7,3 +7,6 @@ images
 respkg
 *.respkg
 contractor/resources/var
+
+*.pyc
+__pycache__

@@ -1,0 +1,278 @@
+#!/usr/bin/python -u
+
+import sys
+import subprocess
+import shutil
+import shlex
+from optparse import OptionParser
+import ConfigParser
+import tempfile
+from config_curator.controller import HTTPClient  # TODO: make a simplifed and embeded version, this thing has a bunch of stuff only for jobs in it
+from libconfig.providers import FileProvider, HTTPProvider
+from libconfig import Config
+
+# TODO!!!! add pre/post run to @index, optionall, what to run after doing templates... ie /etc/init.d/networking restart, only run if that template changes
+
+# TODO: diff like debian's a 3 way with current, expected current, new
+
+# TODO: also need to maintain packages, or provide api to remote controll package managment allong with the api for remote config managment
+# TODO: also have deb-conf stuffs ???
+# Each package will create a folder with the same name as the package, and files in that for each config file, the filename is less importnat
+
+# TODO: detect when a config file has moved to a new location in the file system compared with the db
+# TODO: detect if a dest_file is refrenced by more than one template/package
+
+# TODO: interface with dpkg so it dosne't notice our changes?  figure out how to get it to ignore them (for things like system files that our outptu files overwrite their package files)
+# TODO: option to output config template replacment values
+# TODO: package registration - ie. a package db
+# TODO: some kind of history... what templates were rebuilt, what config values changed, etc...
+
+# TODO: cache in sql the values used in each template so we can compute diffrences, both in changing of value from server, and changes to templates
+
+oparser = OptionParser( description='Config Curator', usage='%prog [options] <package> [<package> ...]\n-l/--list, -d/--diff, -c/--config, and -p/--update-config are mutually exclusive, only one of the will process'   )
+
+oparser.add_option( '-p', '--update-config', help='Download latest config from master and update local db only.', dest='update_config', default=False, action='store_true' )
+
+oparser.add_option( '-l', '--list', help='List last known config values, known templates and their status, tracked packages and their status, (-a assumed unless packages are specified)', dest='list', default=False, action='store_true' )
+
+oparser.add_option( '-d', '--diff', help='Show diffrences in config values and templates from what is on disk to what would be changed if a config run is done, dosn\'t update local cached config values', dest='diff', default=False, action='store_true' )
+oparser.add_option( '', '--diff-options', help='Paramaters to pass to diff for diffing target files, (ie: "-y -w")', dest='diff_options', default='' )
+
+oparser.add_option( '-c', '--config', help='Build Configuration for the specified package, unless -o is specified -p is implied.', dest='config', default=False, action='store_true' )
+oparser.add_option( '-f', '--force', help='Build Configuration file even if local changes are detected, use with -c/--config', dest='force', default=False, action='store_true' )
+oparser.add_option( '-n', '--no-change', help='Don\'t change anything, just print what would be done (dry-run) (only applies to -c and -i/-u)', dest='no_change', default=False, action='store_true' )
+oparser.add_option( '-b', '--no-backups', help='Don\'t create backups of files changed by something else', dest='no_backups', default=False, action='store_true' )
+oparser.add_option( '-g', '--re-generate', help='Re-Generate all files, regardless of if they need it or not, --force is still needed to overwrite local changes', dest='re_generate', default=False, action='store_true' )
+oparser.add_option( '-o', '--local-cache', help='Use the Local Cached config values, ie. don\'t try to talk to master, use with -c/--config', dest='local_cache', default=False, action='store_true' )
+
+oparser.add_option( '-a', '--all', help='Target All Packages, use with -l/--list, -c/--config, or -d/--diff', dest='all', default=False, action='store_true' )
+oparser.add_option( '-t', '--template', help='Build Configuration for the specified template in the specified package(s), use with -l/--list, -c/--config, or -d/--diff (can be used more than once)', action='append', dest='template' )
+
+# oparser.add_option( '-k', '--track', help='Track package(s)', dest='track', default=False, action='store_true' )
+# oparser.add_option( '-i', '--install', help='Install and track package(s)', dest='install', default=False, action='store_true' )
+# oparser.add_option( '-u', '--uninstall', help='UnInstall and stop tracking package(s)', dest='uninstall', default=False, action='store_true' )
+# oparser.add_option( '-e', '--version', help='Set Desired Version of the package(s), use with -k/--track or -i/--install (Default behavior is to maintain the latest version)', dest='version' )
+
+oparser.add_option( '-v', '--verbose', help='Be Verbose', dest='verbose', default=False, action='store_true' )
+
+oparser.add_option( '--config-host', help='Override the configured config url, USE WITH CAUTION', dest='config_host' )
+oparser.add_option( '--config-proxy', help='Override the configured config proxy (ignored unless config-url is used), USE WITH CAUTION', dest='config_proxy' )
+oparser.add_option( '--config-uuid', help='Override the configured config uuid, USE WITH CAUTION', dest='config_uuid' )
+oparser.add_option( '--root', help='Change target root (does not affect template path), USE WITH CAUTION (default: /)', dest='root', default='' )
+
+( options, args ) = oparser.parse_args()
+
+config_file = ConfigParser.ConfigParser()
+
+if not ( options.config_host and options.config_uuid ):  # don't even parse the file, it could be old and really broken
+  try:
+    if not config_file.read( '/etc/config-curator.conf' ):
+      print( 'Error opening config file' )
+      sys.exit( 1 )
+
+  except ConfigParser.Error as e:
+    print( 'Error Parsing config file: {0}'.format( e ) )
+    sys.exit( 1 )
+
+if options.config_host:
+  provider = HTTPProvider( HTTPClient( host=options.config_host, proxy=options.config_proxy ) )
+  # plato.allow_config_change = True
+
+else:
+  provider = FileProvider( config_file )
+
+# if options.config_uuid:
+#   if options.config_uuid == 'new':
+#     plato.uuid = None
+#     plato.allow_config_change = True
+#
+#   else:
+#     plato.uuid = options.config_uuid
+#     plato.allow_config_change = True
+
+config = Config( provider, '/var/lib/config-curator/templates/', '{0}/var/lib/config-curator/config.db'.format( options.root ), options.root, 'config-curator' )
+
+if options.update_config:
+  if options.verbose:
+    print( 'Updating Config from Master...' )
+  config.updateConfigCacheFromMaster()
+  sys.exit( 0 )
+
+# build list of packages
+package_list = None
+if len( args ) > 0:
+  if options.all:
+    oparser.error( 'Package(s) and -a/--config-all specified, pick one or the other please.' )
+    sys.exit( 1 )
+
+  package_list = []
+  tmp_list = args
+  oslist = config.getPackageList()
+  for tmp in tmp_list:
+    if tmp in oslist:
+      package_list.append( tmp )
+    else:
+      print( 'WARNING: Package "{0}" not found, skipped... '.format( tmp ) )
+
+elif options.all or options.list:  # if packages not specified, list get's them all
+  package_list = config.getPackageList()
+
+if not package_list or len( package_list ) < 1:
+  oparser.error( 'No Package(s) Specified' )
+  sys.exit( 1 )
+
+template_list = {}
+for package in package_list:
+  tmp_list = config.getTemplateList( package )
+
+  if options.template:
+    template_list[package] = []
+    for tmp in options.template:
+      if tmp in tmp_list:
+        template_list[package].append( tmp )
+      else:
+        print( 'WARNING: Template "{0}" in Package "{1}" not found, skipped... '.format( tmp, package ) )
+
+  else:
+    template_list[package] = tmp_list
+
+for package in package_list:
+  if not template_list[package]:
+    del template_list[package]  # cleanup empty lists
+
+if options.verbose:
+  print( 'Package List:' )
+  for package in package_list:
+    print( ' * {0}'.format( package ) )
+
+  print( 'Template List:' )
+  for package in template_list:
+    print( ' * {0}'.formaT( package ) )
+    print( '  - {0}'.format( '\n  - '.join( template_list[package] ) ) )
+
+# do the -l/--list
+if options.list:
+  if options.verbose:
+    print( 'Loading Config Cache...' )
+  cache = config.getConfigCache()
+  print( '{0:>40} {1}'.format( 'Name', 'Value' ) )
+  for name in cache:
+    print( '{0:>40} {1}'.format( name, cache[ name ] ) )
+
+  print( '{0:>20} {1:>20} {2:>20} {3:>20} {4:>10} {5:>20} {6:>10}'.format( 'Package', 'Template', 'Destination File', 'Locally', 'Needs', 'Last Build', 'Still  ' ) )
+  print( '{0:>20} {1:>20} {2:>20} {3:>20} {4:>10} {5:>20} {6:>10}'.format( '', '', '', 'Modified', 'Update', 'Date   ', 'Refrenced' ) )
+
+  for package in package_list:
+    if options.verbose:
+      print( 'Getting Target Status for "{0}"...'.format( package ) )
+    target_list = config.getTargetStatus( package )
+
+    for target in target_list:
+       print( '{0:>20} {1:>20} {2:>20} {3:>20} {4:>10} {5:>20} {6:>10}'.format( package, target['template'], target['target'], target['localmod'], target['need_update'], target['last_built'], target['refrenced'] ) )
+
+  sys.exit( 0 )
+
+if not template_list or len( template_list ) < 1:
+  oparser.error( 'No Templates(s) Specified' )
+  sys.exit( 1 )
+
+# do the -d/--diff
+if options.diff:
+  if options.verbose:
+    print( 'Loading Config Cache...' )
+  cached_values = config.getConfigCache()
+
+  if options.local_cache:
+    if options.verbose:
+      print( 'Using Cache as Master Config...' )
+    cur_values = config.getConfigConfig()
+  else:
+    if options.verbose:
+      print( 'Getting Master Config...' )
+    cur_values = config.getMasterConfig()
+
+  if options.verbose:
+    print( 'Caculating Config Diffrences...' )
+  # http://stackoverflow.com/questions/1165352/fast-comparison-between-two-python-dictionary
+  cached_names = set( cached_values.keys() )
+  cur_names = set( cur_values.keys() )
+  added = cur_names - cached_names
+  if added:
+    print( 'Added Values:' )
+    print( '{0:>40} {1}'.format( 'Name', 'Value' ) )
+    for name in added:
+      print( '{0:>40} {1}'.format( name, cur_values[ name ] ) )
+
+  removed = cached_names - cur_names
+  if removed:
+    print( 'Removed Values:' )
+    print( '{0:>40} {1}'.format( 'Name', 'Value' ) )
+    for name in removed:
+      print( '{0:>40} {1}'.format( name, cached_values[ name ] ) )
+
+  changed = set( name for name in cur_names.intersection( cached_names ) if cached_values[name] != cur_values[name] )
+  if changed:
+    print( 'Changed Values:' )
+    print( '{0:>40} {1} {2}'.format( 'Name', 'Current Value', 'New Value' ) )
+    for name in changed:
+      print( '{0:>40} {1} {2}'.format( name, cached_values[ name ], cur_values[ name ] ) )
+
+  tmploc = tempfile.mkdtemp()
+  for package in template_list:
+    if options.verbose:
+      print( 'Building tmp templates with new values for {0}...'.format( package ) )
+    config.configPackage( package, template_list[package], True, False, True, True, dest_rootdir=tmploc, config=cur_values )
+
+    for template in template_list[package]:
+      target_list = config.getTargetFiles( package, template, config=cur_values )
+      for target in target_list:
+        if options.verbose:
+          print( 'Diffing "{0}" and "{1}" from "{2}"'.format( target, '{0}{1}'.format( tmploc, target ), template ) )
+        print( '\n--- Template: {2} --- File: {1} ---'.format( template, target ) )
+        proc = subprocess.Popen( ['diff'] + shlex.split( options.diff_options ) + [ target, '{0}{1}'.format( tmploc, target ) ] )  # add option for options to pass through to diff and pick diff tool
+        proc.wait()
+
+  shutil.rmtree( tmploc )
+
+  sys.exit( 0 )
+
+# do -c/--config
+if options.config:
+  if not options.no_change and not options.local_cache:
+    if options.verbose:
+      print( 'Updating Config from Master...' )
+    config.updateConfigCacheFromMaster()
+
+  for package in template_list:
+    if options.verbose:
+      print( 'Rebuilding for package {0}...'.format( package ) )
+    config.configPackage( package, template_list[package], options.force, options.no_change, options.no_backups, options.re_generate )
+
+  sys.exit( 0 )
+
+# do -t and -i
+# if options.track or options.install:
+#  if options.version:
+#    version = options.version
+#  else:
+#    version = None
+#
+#  for package in package_list:
+#    cur = conn.cursor()
+#    cur.execute( 'SELECT "package" FROM "packages" WHERE package = "{0}"'.format( package ) )
+#    cur.fetchall() # so rowcount can caculate how many there are
+#    if options.track:
+#      if cur.rowcount == 0:
+#        conn.execute( 'INSERT INTO "packages" ( "package", "version", "lastChecked", "lastUpdated" ) VALUES ( ?, ?, NULL, NULL )', ( package, version ) )
+#      continue
+#
+#    #install/update the package
+#    if cur.rowcount == 0:  #only update lastUpdated if we do something
+#      conn.execute( 'INSERT INTO "packages" ( "package", "version", "lastChecked", "lastUpdated" ) VALUES ( ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP )', ( package, version ) )
+#    else:
+#      conn.execute( 'UPDATE "packages" SET "version"=? "lastChecked"=CURRENT_TIMESTAMP "lastUpdated"=CURRENT_TIMESTAMP WHERE"package"=?', ( version, package ) )
+#
+#  sys.exit( 0 )
+
+oparser.print_help()
+sys.exit( 1 )
