@@ -6,7 +6,7 @@ import json
 import optparse
 import shutil
 
-from controller import getClient
+from controller.client import getClient
 from installer.procutils import open_output, set_chroot, execute, execute_lines, chroot_execute
 from installer.filesystem import partition, mkfs, mount, remount, unmount, writefstab, fsConfigValues, grubConfigValues, MissingDrives, installFilesystemUtils
 from installer.bootstrap import bootstrap

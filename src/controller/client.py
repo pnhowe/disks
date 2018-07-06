@@ -156,11 +156,11 @@ class HTTPClient( Client ):
     if host[-1] == '/':
       raise ValueError( 'hostname must not end with "/"' )
 
-    self.proxy = proxy
     self.host = host
+    self.proxy = proxy
     logging.debug( 'controller: new client host: "{0}", via: "{1}"'.format( self.host, self.proxy ) )
 
-    if self.proxy is not None:  # have a proxy option to take it from the envrionment vars
+    if self.proxy:  # not doing 'is not None', so empty strings don't try and proxy   # have a proxy option to take it from the envrionment vars
       self.opener = request.build_opener( HTTPErrorProcessorPassthrough, request.ProxyHandler( { 'http': self.proxy, 'https': self.proxy } ) )
     else:
       self.opener = request.build_opener( HTTPErrorProcessorPassthrough, request.ProxyHandler( {} ) )
@@ -260,7 +260,7 @@ class HTTPClient( Client ):
       except ( CommunicationError, Timeout ) as e:
         if not retry_count == -1 and count >= retry_count:
           raise e
-        logging.debug( 'controller: request: Got Excpetion "{0}",  request {1} of {2} retrying...' )
+        logging.debug( 'controller: request: Got Excpetion "{0}", request {1} of {2} retrying...'.format( e, count, retry_count ) )
 
       count += 1
       _backOffDelay( count )

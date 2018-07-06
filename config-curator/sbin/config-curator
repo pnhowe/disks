@@ -4,6 +4,7 @@ import sys
 import subprocess
 import shutil
 import shlex
+import logging
 from datetime import datetime
 from optparse import OptionParser
 import configparser
@@ -59,11 +60,21 @@ oparser.add_option( '-v', '--verbose', help='Be Verbose', dest='verbose', defaul
 oparser.add_option( '--config-host', help='Override the configured config url, USE WITH CAUTION', dest='config_host' )
 oparser.add_option( '--config-proxy', help='Override the configured config proxy (ignored unless config-url is used), USE WITH CAUTION', dest='config_proxy' )
 oparser.add_option( '--config-uuid', help='Override the configured config uuid, USE WITH CAUTION', dest='config_uuid' )
-oparser.add_option( '--root', help='Change target root (does not affect template path), USE WITH CAUTION (default: /)', dest='root', default='' )
+oparser.add_option( '--root', help='Change target root (does not affect template path), USE WITH CAUTION (default: /)', dest='root', default='/' )
+
+oparser.add_option( '--debug', help='display debugging into', dest='debug', action='store_true' )
 
 ( options, args ) = oparser.parse_args()
 
 config_file = configparser.ConfigParser()
+
+logging.basicConfig()
+logger = logging.getLogger()
+
+if options.debug:
+  logger.setLevel( logging.DEBUG )
+else:
+  logger.setLevel( logging.INFO )
 
 if not ( options.config_host and options.config_uuid ):  # don't even parse the file, it could be old and really broken
   try:
