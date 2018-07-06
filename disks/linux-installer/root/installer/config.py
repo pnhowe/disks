@@ -4,7 +4,7 @@ from io import StringIO
 from libconfig.libconfig import Config
 from libconfig.jinja2 import FileSystemLoader, Environment
 from libconfig.providers import FileProvider, HTTPProvider
-from controller import getClient
+from controller.client import getClient
 
 config = None
 template = None

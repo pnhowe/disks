@@ -17,7 +17,7 @@ def http_getfile( url, proxy=None ):
   else:
     opener = request.build_opener( HTTPErrorProcessorPassthrough, request.ProxyHandler( { 'http': None, 'https': None } ) )  # use environ
 
-  opener.addheaders = [( 'User-agent', 'bootabledisks-linux-installer' )]
+  opener.addheaders = [ ( 'User-agent', 'bootabledisks-linux-installer' ) ]
 
   conn = opener.open( url )
 

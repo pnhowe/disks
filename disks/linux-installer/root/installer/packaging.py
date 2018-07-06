@@ -32,10 +32,10 @@ def configSources( install_root, profile, config ):
         tmp = http_getfile( uri, proxy=proxy )
 
         if manager_type == 'apt':
-          chroot_execute( '/usr/bin/apt-key add -', tmp )
+          chroot_execute( '/usr/bin/apt-key add -', tmp.decode() )
 
         if 'key_file' in repo:
-          open( os.path.join( install_root, repo[ 'key_file' ] ), 'w' ).write( tmp )
+          open( os.path.join( install_root, repo[ 'key_file' ] ), 'wb' ).write( tmp )
 
         key_uris.append( uri )
 

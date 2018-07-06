@@ -1,15 +1,16 @@
-#!/usr/bin/python -u
+#!/usr/bin/env python3
 
 import sys
 import subprocess
 import shutil
 import shlex
+from datetime import datetime
 from optparse import OptionParser
-import ConfigParser
+import configparser
 import tempfile
-from config_curator.controller import HTTPClient  # TODO: make a simplifed and embeded version, this thing has a bunch of stuff only for jobs in it
-from libconfig.providers import FileProvider, HTTPProvider
-from libconfig import Config
+from config_curator.controller.client import HTTPClient  # TODO: make a simplifed and embeded version, this thing has a bunch of stuff only for jobs in it
+from libconfig.providers import HTTPProvider
+from libconfig.libconfig import Config
 
 # TODO!!!! add pre/post run to @index, optionall, what to run after doing templates... ie /etc/init.d/networking restart, only run if that template changes
 
@@ -62,7 +63,7 @@ oparser.add_option( '--root', help='Change target root (does not affect template
 
 ( options, args ) = oparser.parse_args()
 
-config_file = ConfigParser.ConfigParser()
+config_file = configparser.ConfigParser()
 
 if not ( options.config_host and options.config_uuid ):  # don't even parse the file, it could be old and really broken
   try:
@@ -70,7 +71,7 @@ if not ( options.config_host and options.config_uuid ):  # don't even parse the 
       print( 'Error opening config file' )
       sys.exit( 1 )
 
-  except ConfigParser.Error as e:
+  except configparser.Error as e:
     print( 'Error Parsing config file: {0}'.format( e ) )
     sys.exit( 1 )
 
@@ -79,7 +80,9 @@ if options.config_host:
   # plato.allow_config_change = True
 
 else:
-  provider = FileProvider( config_file )
+  config_host = config_file.get( 'config', 'config_host' )  # TODO: catch non existant entries, need to add the uuid checking
+  config_proxy = config_file.get( 'config', 'config_proxy' )
+  provider = HTTPProvider( HTTPClient( host=config_host, proxy=config_proxy ) )
 
 # if options.config_uuid:
 #   if options.config_uuid == 'new':
@@ -191,6 +194,8 @@ if options.diff:
       print( 'Getting Master Config...' )
     cur_values = config.getMasterConfig()
 
+  cur_values[ '__timestamp__' ] = datetime.now().isoformat()
+
   if options.verbose:
     print( 'Caculating Config Diffrences...' )
   # http://stackoverflow.com/questions/1165352/fast-comparison-between-two-python-dictionary
@@ -229,7 +234,7 @@ if options.diff:
         if options.verbose:
           print( 'Diffing "{0}" and "{1}" from "{2}"'.format( target, '{0}{1}'.format( tmploc, target ), template ) )
         print( '\n--- Template: {2} --- File: {1} ---'.format( template, target ) )
-        proc = subprocess.Popen( ['diff'] + shlex.split( options.diff_options ) + [ target, '{0}{1}'.format( tmploc, target ) ] )  # add option for options to pass through to diff and pick diff tool
+        proc = subprocess.Popen( [ 'diff' ] + shlex.split( options.diff_options ) + [ target, '{0}{1}'.format( tmploc, target ) ] )  # add option for options to pass through to diff and pick diff tool
         proc.wait()
 
   shutil.rmtree( tmploc )
