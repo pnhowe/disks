@@ -218,9 +218,9 @@ else:
 
 os.unlink( '/target/config_data' )
 
-if os.access( os.path.join( install_root, 'usr/sbin/configManager' ), os.X_OK ):
-  controller.postMessage( 'Running configManager...' )
-  chroot_execute( '/usr/sbin/configManager -c -a -f -b' )
+if os.access( os.path.join( install_root, 'usr/sbin/config-curator' ), os.X_OK ):
+  controller.postMessage( 'Running config-curator...' )
+  chroot_execute( '/usr/sbin/config-curator -c -a -f -b' )
 
 shutil.copyfile( '/tmp/output.log', os.path.join( install_root, 'root/install.log' ) )
 shutil.copyfile( '/tmp/detail.log', os.path.join( install_root, 'root/install.detail.log' ) )

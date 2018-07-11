@@ -29,6 +29,7 @@ def configSources( install_root, profile, config ):
           proxy = repo[ 'proxy' ]
         except Exception:
           proxy = None
+
         tmp = http_getfile( uri, proxy=proxy )
 
         if manager_type == 'apt':

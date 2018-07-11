@@ -3,7 +3,7 @@
 [filesystem]
 partition_type=gpt
 fs_type=ext4
-boot_fs_type=ext3
+boot_fs_type=ext4
 md_meta_version=1.0
 extra_mount_1=proc:proc:/proc
 extra_mount_2=sysfs:sysfs:/sys
@@ -17,7 +17,8 @@ prefix_2=proc  /proc  proc  defaults  0  0
 
 [bootstrap]
 type=debbootstrap
-distro=trusty
+distro=bionic
+packages=gnupg
 
 [packaging]
 manager_type=apt
@@ -46,14 +47,15 @@ divert_4=/usr/sbin/service:/bin/true
 divert_5=/usr/sbin/invoke-rc.d:/bin/true
 
 [config]
-base_templates=interfaces,hosts
+base_templates=netplan,hosts
+base_cmd=/usr/sbin/netplan apply
 
 [booting]
 bootloader_templates=grub
 bootloader_install=/usr/sbin/grub-install {0}
 
 [general]
-after_cmd_1=sed s/"PermitRootLogin [A-Za-z\-]*"/"PermitRootLogin yes"/ -i /etc/ssh/sshd_config
+after_cmd_1=sed s/"#PermitRootLogin [A-Za-z\-]*"/"PermitRootLogin yes"/ -i /etc/ssh/sshd_config
 after_cmd_2=rm -f /etc/resolvconf/resolv.conf.d/original
 after_cmd_3=rm -f /etc/resolvconf/resolv.conf.d/tail
 after_cmd_4=touch /etc/resolvconf/resolv.conf.d/tail

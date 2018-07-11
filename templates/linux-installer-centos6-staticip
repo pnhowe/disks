@@ -35,7 +35,6 @@ cat > /config_values.json << CONFIG_VALUES_EOF
           "address": "__IP_ADDRESS__",
           "gateway": "__GATEWAY__",
           "netmask": "__NETMASK__",
-          "auto": true,
           "primary": true,
           "sub_interface": null,
           "tagged": false,

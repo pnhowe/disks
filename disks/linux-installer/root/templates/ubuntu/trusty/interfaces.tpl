@@ -10,7 +10,7 @@ iface lo inet loopback
 {% for address in interface.address_list %}
 {% if address.vlan and address.tagged %}{% set ifname = ifname + "." + address.vlan|string %}{% endif %}
 {% if address.sub_interface %}{% set ifname = ifname + ":" + address.sub_interface %}{% endif %}
-{% if address.auto %}auto {{ ifname }}{% endif %}
+auto {{ ifname }}
 {% if address.address == 'dhcp' %}
 iface {{ ifname }} inet dhcp
 {% else %}

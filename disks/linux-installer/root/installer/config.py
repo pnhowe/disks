@@ -1,6 +1,8 @@
 import os
 import configparser
 from io import StringIO
+from configparser import NoOptionError
+from installer.procutils import chroot_execute
 from libconfig.libconfig import Config
 from libconfig.jinja2 import FileSystemLoader, Environment
 from libconfig.providers import FileProvider, HTTPProvider
@@ -68,6 +70,10 @@ def renderTemplates( template_list ):
 
 def baseConfig( profile ):
   renderTemplates( profile.get( 'config', 'base_templates' ).split( ',' ) )
+  try:
+    chroot_execute( profile.get( 'config', 'base_cmd' ) )
+  except NoOptionError:
+    pass
 
 
 def fullConfig():

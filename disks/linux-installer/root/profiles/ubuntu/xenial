@@ -37,14 +37,13 @@ selection_12=grub-pc        grub2/linux_cmdline_default      string
 selection_13=grub-pc        grub-pc/hidden_timeout           boolean false
 prebase_cmd_1=/usr/sbin/dpkg-reconfigure -f noninteractive tzdata
 base=ubuntu-standard
-packages=resolvconf aptitude console-setup language-pack-en-base
+packages=resolvconf console-setup language-pack-en-base
 source_templates=sources,apt
 divert_1=/sbin/initctl:/bin/true
 divert_2=/sbin/status:/bin/true
 divert_3=/sbin/start:/bin/true
 divert_4=/usr/sbin/service:/bin/true
 divert_5=/usr/sbin/invoke-rc.d:/bin/true
-
 
 [config]
 base_templates=interfaces,hosts

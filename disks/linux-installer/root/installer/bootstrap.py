@@ -1,6 +1,8 @@
 import re
 import shutil
 import os
+from configparser import NoOptionError
+
 from installer.procutils import execute, chroot_execute
 
 
@@ -11,8 +13,16 @@ def bootstrap( mount_point, source, profile, config ):  # TODO: bootstrap http p
   shutil.copyfile( '/etc/hostname', os.path.join( mount_point, 'etc/hostname' ) )
   shutil.copyfile( '/etc/resolv.conf', os.path.join( mount_point, 'etc/resolv.conf' ) )
 
+  try:
+    packages = profile.get( 'bootstrap', 'packages' )
+  except NoOptionError:
+    packages = ''
+
   if bootstrap_type == 'debbootstrap':
-    execute( '/usr/sbin/debootstrap --arch amd64 {0} {1} {2}'.format( profile.get( 'bootstrap', 'distro' ), mount_point, source ) )
+    if packages:
+      execute( '/usr/sbin/debootstrap --arch amd64 --include {0} {1} {2} {3}'.format( packages, profile.get( 'bootstrap', 'distro' ), mount_point, source ) )
+    else:
+      execute( '/usr/sbin/debootstrap --arch amd64 {0} {1} {2}'.format( profile.get( 'bootstrap', 'distro' ), mount_point, source ) )
 
   elif bootstrap_type == 'squashimg':
     version = profile.get( 'bootstrap', 'version' )

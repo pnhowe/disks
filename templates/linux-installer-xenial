@@ -33,7 +33,6 @@ cat > /config_values.json << CONFIG_VALUES_EOF
       "address_list": [
         {
           "address": "dhcp",
-          "auto": true,
           "primary": true,
           "sub_interface": null,
           "tagged": false,

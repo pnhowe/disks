@@ -60,6 +60,7 @@ def _execute( cmd, stdout, stderr, stdin, env ):
   debug_stdout.write( '\n-------------------------------------------------\n' )
   debug_stdout.write( 'rc: {0}\n'.format( proc.returncode ) )
   debug_stdout.write( '{0}\n'.format( datetime.utcnow() ) )
+  debug_stdout.flush()
 
   if proc.returncode != 0:
     raise Exception( 'Error Executing "{0}"'.format( cmd ) )

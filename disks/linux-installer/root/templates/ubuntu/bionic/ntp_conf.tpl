@@ -1,0 +1,1 @@
+../trusty/ntp_conf.tpl

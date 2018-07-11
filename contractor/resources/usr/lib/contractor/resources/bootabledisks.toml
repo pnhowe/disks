@@ -14,11 +14,6 @@
     { distribution = '{{ distro_version }}-security', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy }}' },
   ]
 
-[ structure.ubuntu-precise-base ]
-  description = 'Base Ubuntu Precise Pangolin (12.04 LTS)'
-  parents = [ 'ubuntu-base' ]
-  config_values = { distro_version = 'precise' }
-
 [ structure.ubuntu-trusty-base ]
   description = 'Base Ubuntu Trusty Tahr (14.04 LTS)'
   parents = [ 'ubuntu-base' ]
