@@ -17,6 +17,11 @@ ifeq (xenial, $(DISTRO_NAME))
 	$(RM) $(DESTDIR)/usr/lib/python3/dist-packages/libconfig/jinja2/asyncfilters.py
 	$(RM) $(DESTDIR)/usr/lib/python3/dist-packages/libconfig/jinja2/asyncsupport.py
 endif
+ifeq (trusty, $(DISTRO_NAME))
+	# These two files are not compatible with the python3 version in trusty
+	$(RM) $(DESTDIR)/usr/lib/python3/dist-packages/libconfig/jinja2/asyncfilters.py
+	$(RM) $(DESTDIR)/usr/lib/python3/dist-packages/libconfig/jinja2/asyncsupport.py
+endif
 
 clean:
 	./setup.py clean
