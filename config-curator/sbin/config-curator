@@ -31,7 +31,7 @@ from libconfig.libconfig import Config
 
 # TODO: cache in sql the values used in each template so we can compute diffrences, both in changing of value from server, and changes to templates
 
-oparser = OptionParser( description='Config Curator', usage='%prog [options] <package> [<package> ...]\n-l/--list, -d/--diff, -c/--config, and -p/--update-config are mutually exclusive, only one of the will process'   )
+oparser = OptionParser( description='Config Curator', usage='%prog [options] <package> [<package> ...]\n-l/--list, -d/--diff, -c/--config, and -p/--update-config are mutually exclusive, only one of the will process' )
 
 oparser.add_option( '-p', '--update-config', help='Download latest config from master and update local db only.', dest='update_config', default=False, action='store_true' )
 

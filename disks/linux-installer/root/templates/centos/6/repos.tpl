@@ -15,6 +15,10 @@
 {% for group in _order %}
 {% target '/etc/yum.repos.d/' + group + '.repo' %}# Auto Generated During Install
 
+[main]
+http_caching=all
+#http_caching=packages
+
 {% for repo in _entries[ group ] %}
 [{{ repo.name }}]
 name={{ distro }} - {{ distro_version }} - {{ group }} - {{ repo.name }}

@@ -69,7 +69,7 @@ def _backOffDelay( count ):
     count = 1
 
   factor = int( DELAY_MULTIPLIER * math.log( count ) )
-  time.sleep( factor + ( random.random() * factor ) )
+  time.sleep( int( factor + ( random.random() * factor ) ) )
 
 
 class Client():

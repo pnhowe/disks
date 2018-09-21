@@ -28,7 +28,7 @@ Version:        $VERSION
 Release:        $RELEASE.$DISTRO_RELEASE
 License:        Apache2
 Group:          multiverse
-Requires:       python3
+Requires:       python34
 BuildArch:      noarch
 
 %description
@@ -44,6 +44,13 @@ make install DESTDIR=%{buildroot}/
 %changelog
 
 %post
+FLAGS=""
+if [ \$1 -eq 1 ]; #First time install
+then
+  FLAGS="\$FLAGS -f --config-uuid new"
+fi
+
+/usr/sbin/config-curator \$FLAGS -c config-curator
 
 %postun
 
