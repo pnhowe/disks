@@ -73,6 +73,7 @@ clean-downloads:
 clean-deps:
 	$(RM) -r build.deps
 
+
 # global image targets
 
 images:
@@ -174,11 +175,11 @@ templates:
 
 # clean up
 
-localclean: clean-deps clean-images clean-src respkg-clean
+clean: clean-deps clean-images clean-src respkg-clean pkg-clean
 
-distclean: clean-deps clean-images clean-src clean-downloads
+distclean: clean-deps clean-images clean-src clean-downloads pkg-distclean
 
-.PHONY:: all all-pxe all-imgs clean-src clean-downloads clean-deps clean-images localclean distclean pxe-targets templates
+.PHONY:: all all-pxe all-imgs clean clean-src clean-downloads clean-deps clean-images distclean pxe-targets templates
 
 respkg-distros:
 	echo xenial
@@ -200,3 +201,59 @@ respkg-clean:
 	$(RM) -fr resources/var/www/bootabledisks
 
 .PHONY:: respkg-distros respkg-requires respkg respkg-file respkg-clean
+
+# MCP targets
+
+pkg-clean:
+	for dir in config-curator; do $(MAKE) -C $$dir clean || exit $$?; done
+
+pkg-distclean:
+	for dir in config-curator; do $(MAKE) -C $$dir distclean || exit $$?; done
+
+test-distros:
+	echo ubuntu-xenial
+
+test-requires:
+	for dir in src config-curator; do $(MAKE) -C $$dir test-requires || exit $$?; done
+
+test:
+	for dir in src config-curator; do $(MAKE) -C $$dir test || exit $$?; done
+
+lint:
+	for dir in src config-curator; do $(MAKE) -C $$dir lint || exit $$?; done
+
+.PHONY:: test-distros lint test-requires test
+
+dpkg-distros:
+	for dir in config-curator; do $(MAKE) -C $$dir dpkg-distros || exit $$?; done
+
+dpkg-requires:
+	for dir in config-curator; do $(MAKE) -C $$dir dpkg-requires || exit $$?; done
+
+dpkg-setup:
+	for dir in config-curator; do $(MAKE) -C $$dir dpkg-setup || exit $$?; done
+
+dpkg:
+	for dir in config-curator; do $(MAKE) -C $$dir dpkg || exit $$?; done
+
+dpkg-file:
+	echo $(shell ls config-curator/config-curator*.deb)
+
+.PHONY:: dpkg-distros dpkg-requires dpkg-file dpkg
+
+rpm-distros:
+	for dir in config-curator; do $(MAKE) -C $$dir rpm-distros || exit $$?; done
+
+rpm-requires:
+	for dir in config-curator; do $(MAKE) -C $$dir rpm-requires || exit $$?; done
+
+rpm-setup:
+	for dir in config-curator; do $(MAKE) -C $$dir rpm-setup || exit $$?; done
+
+rpm:
+	for dir in config-curator; do $(MAKE) -C $$dir rpm || exit $$?; done
+
+rpm-file:
+	echo $(shell ls config-curator/rpmbuild/RPMS/*/nullunit-*.rpm)
+
+.PHONY:: rpm-distros rpm-requires rpm-file rpm

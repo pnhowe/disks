@@ -10,4 +10,10 @@ install:
 	cp -a markupsafe $(DESTDIR)/libconfig
 	cp -a providers $(DESTDIR)/libconfig
 
-.PHONY: all clean install
+test-requires:
+
+test:
+
+lint:
+
+.PHONY: all clean install test-requires test lint

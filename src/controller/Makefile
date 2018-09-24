@@ -7,4 +7,10 @@ install:
 	cp __init__.py $(DESTDIR)/controller
 	cp client.py $(DESTDIR)/controller
 
-.PHONY: all clean install
+test-requires:
+
+test:
+
+lint:
+
+.PHONY: all clean install test-requires test lint

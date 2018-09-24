@@ -51,12 +51,46 @@ dist-clean: clean
 	$(RM) -f dpkg-setup
 	$(RM) -f rpm-setup
 
+.PHONY:: all install clean dist-clean
+
+test-requires:
+	echo flake8
+
+test:
+
+lint:
+	flake8 --ignore=E501,E201,E202,E111,E126,E114,E402,W605 --statistics .
+
+.PHONY:: test-requires test lint
+
+dpkg-distros:
+	echo ubuntu-trusty ubuntu-xenial ubuntu-bionic
+
+dpkg-requires:
+	echo dpkg-dev debhelper python3-dev python3-setuptools
+
+dpkg-setup:
+	./debian-setup
+	touch dpkg-setup
+
 dpkg:
 	dpkg-buildpackage -b -us -uc
 	touch dpkg
+
+.PHONY:: dpkg-distros dpkg-requires dpkg-file
+
+rpm-distros:
+	echo centos-6
+
+rpm-requires:
+	echo rpm-build python34-setuptools
+
+rpm-setup:
+	./rpmbuild-setup
+	touch rpm-setup
 
 rpm:
 	rpmbuild -v -bb rpmbuild/config.spec
 	touch rpm
 
-.PHONY: all install clean dist-clean
+.PHONY:: rpm-distros rpm-requires rpm-file

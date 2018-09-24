@@ -101,18 +101,14 @@ clean:
 
 full-clean: clean
 
-test-requires:
-
 test:
 
-lint-requires:
-ifeq (trusty, $(DISTRO_NAME))
-	echo linter
-endif
+test-requires:
+
+test-requires:
+	echo flake8
 
 lint:
-ifeq (trusty, $(DISTRO_NAME))
-	linter -i libdrive_h.py -i libenclosure_h.py
-endif
+	flake8 --exclude *_h.py --ignore=E501,E201,E202,E111,E126,E114,E402,W605 --statistics .
 
-.PHONY: all clean esx-lib install-disks install-client-pkg install-esx test lint test-requires lint-requires
+.PHONY: all clean esx-lib install-disks install-client-pkg install-esx test lint test-requires
