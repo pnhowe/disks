@@ -182,7 +182,7 @@ distclean: clean-deps clean-images clean-src clean-downloads pkg-distclean
 .PHONY:: all all-pxe all-imgs clean clean-src clean-downloads clean-deps clean-images distclean pxe-targets templates
 
 respkg-distros:
-	echo xenial
+	echo ubuntu-xenial
 
 respkg-requires:
 	echo respkg
