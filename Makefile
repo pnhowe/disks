@@ -182,10 +182,10 @@ distclean: clean-deps clean-images clean-src clean-downloads pkg-distclean
 .PHONY:: all all-pxe all-imgs clean clean-src clean-downloads clean-deps clean-images distclean pxe-targets templates
 
 respkg-distros:
-	echo ubuntu-xenial
+	echo ubuntu-bionic
 
 respkg-requires:
-	echo respkg
+	echo respkg build-essential libelf-dev bc zlib1g-dev libssl-dev gperf libreadline-dev libsqlite3-dev libbz2-dev liblzma-dev uuid-dev libdevmapper-dev libgcrypt-dev libgpg-error-dev libassuan-dev libksba-dev libnpth0-dev python3-dev python3-setuptools pkg-config
 
 respkg: all-pxe
 	mkdir -p contractor/resources/var/www/bootabledisks

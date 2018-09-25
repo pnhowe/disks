@@ -161,7 +161,7 @@ if options.verbose:
 
   print( 'Template List:' )
   for package in template_list:
-    print( ' * {0}'.formaT( package ) )
+    print( ' * {0}'.format( package ) )
     print( '  - {0}'.format( '\n  - '.join( template_list[package] ) ) )
 
 # do the -l/--list
@@ -244,7 +244,7 @@ if options.diff:
       for target in target_list:
         if options.verbose:
           print( 'Diffing "{0}" and "{1}" from "{2}"'.format( target, '{0}{1}'.format( tmploc, target ), template ) )
-        print( '\n--- Template: {2} --- File: {1} ---'.format( template, target ) )
+        print( '\n--- Template: {0} --- File: {1} ---'.format( template, target ) )
         proc = subprocess.Popen( [ 'diff' ] + shlex.split( options.diff_options ) + [ target, '{0}{1}'.format( tmploc, target ) ] )  # add option for options to pass through to diff and pick diff tool
         proc.wait()
 
