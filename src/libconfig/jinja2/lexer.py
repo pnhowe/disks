@@ -48,8 +48,11 @@ else:
     # remove the pattern from memory after building the regex
     import sys
     del sys.modules['libconfig.jinja2._identifier']
-    from libconfig import jinja2
-    del jinja2._identifier
+    try:
+      from libconfig import jinja2  # on python 3.4.0 this causes import errors
+      del jinja2._identifier
+    except ImportError:
+      pass
     del _identifier
 
 float_re = re.compile(r'(?<!\.)\d+\.\d+')

@@ -1,0 +1,1 @@
+../trusty/default_locale.tpl

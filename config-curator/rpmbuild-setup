@@ -1,0 +1,57 @@
+#!/bin/sh
+set -e
+set -x
+
+DISTRO_RELEASE="el$( lsb_release -sr | awk -F "." '{ print $1 }' )_1"
+
+DEB_RELEASE="$( head debian-common/changelog -n1 | sed 's/.*(\([^)]*\)).*/\1/' )"
+RELEASE="$( echo "$DEB_RELEASE" | cut -d '-' -f2 )"
+VERSION="$( echo "$DEB_RELEASE" | cut -d '-' -f1 )"
+
+echo "Setting up for '$DISTRO_RELEASE' Version: '$VERSION' Release: '$RELEASE'"
+
+TOPDIR="$( pwd )/rpmbuild"
+SRCDIR="$( pwd )"
+
+mkdir -p "$TOPDIR"
+mkdir -p "$TOPDIR/RPMS"
+mkdir -p "$TOPDIR/BUILD"
+mkdir -p "$TOPDIR/BUILDROOT"
+
+cat > rpmbuild/config.spec <<SPECFILE
+%define _topdir $TOPDIR
+%define _srcdir $SRCDIR
+
+Name:           config-curator
+Summary:        Configuration Curator
+Version:        $VERSION
+Release:        $RELEASE.$DISTRO_RELEASE
+License:        Apache2
+Group:          multiverse
+Requires:       python34
+BuildArch:      noarch
+
+%description
+Merges Jinja2 templates with config retrieved via HTTP/JSON.  Can check for changes and show diffs.
+
+%install
+cd %{_srcdir}
+make install DESTDIR=%{buildroot}/
+
+%files
+/*
+
+%changelog
+
+%post
+FLAGS=""
+if [ \$1 -eq 1 ]; #First time install
+then
+  FLAGS="\$FLAGS -f --config-uuid new"
+fi
+
+/usr/sbin/config-curator \$FLAGS -c config-curator
+
+%postun
+
+SPECFILE

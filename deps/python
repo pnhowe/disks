@@ -14,7 +14,7 @@ build()
 {
   tar --strip-components=1 -xJf $1
   ./configure --prefix= --enable-ipv6
-  make -j4 python
+  make python
   LIBSUBDIRS=$SUBDIRS make -e build_all
 }
 

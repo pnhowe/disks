@@ -1,12 +1,17 @@
 CC = gcc
 CFLAGS = -Wall -Os $(EXTRA_CFLAGS)
 
-.PHONY: all clean
+all: ttytee
 
-all:    ttytee
-
-ttytee:   ttytee.c
+ttytee: ttytee.c
 
 clean:
 	rm -f *.o ttytee
 
+test-requires:
+
+test:
+
+lint:
+
+.PHONY: clean install test-requires test lint

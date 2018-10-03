@@ -10,11 +10,14 @@ libhardware = cdll.LoadLibrary( 'libhardware.so.' + __VERSION__.split( '.' )[0] 
 
 ENTRY_LIST_SIZE = 1024
 
+
 class dmiEntryList( Structure ):
   _fields_ = [ ( 'list', dmi_entry * ENTRY_LIST_SIZE ) ]
 
+
 class pciEntryList( Structure ):
   _fields_ = [ ( 'list', pci_entry * ENTRY_LIST_SIZE ) ]
+
 
 _set_verbose_ident = libhardware.set_verbose
 _set_verbose_ident.argtypes = [ c_int ]
@@ -28,8 +31,10 @@ _get_pci_info_ident = libhardware.get_pci_info
 _get_pci_info_ident.argtypes = [ POINTER( pciEntryList ), POINTER( c_int ), c_char_p ]
 _get_pci_info_ident.restype = c_int
 
+
 def setVerbose( verbose ):
   _set_verbose_ident( verbose )
+
 
 def dmiInfo():
   counter = c_int( 0 )
@@ -57,6 +62,7 @@ def dmiInfo():
     results[ tmp[group]['type'] ].append( dict( zip( tmp[group]['names'], tmp[group]['values'] ) ) )
 
   return results
+
 
 def pciInfo():
   counter = c_int( 0 )

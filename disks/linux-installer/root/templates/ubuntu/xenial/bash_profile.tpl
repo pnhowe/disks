@@ -1,1 +1,0 @@
-../precise/bash_profile.tpl

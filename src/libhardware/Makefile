@@ -121,17 +121,11 @@ clean:
 full-clean: clean
 
 test-requires:
+	echo flake8
 
 test:
 
-lint-requires:
-ifeq (trusty, $(DISTRO_NAME))
-	echo linter
-endif
-
 lint:
-ifeq (trusty, $(DISTRO_NAME))
-	linter -i libhardware_h.py
-endif
+	flake8 --exclude *_h.py --ignore=E501,E201,E202,E111,E126,E114,E402,W605 --statistics .
 
-.PHONY: all clean esx-lib install-disks install-client-pkg install-esx test-requires lint-requires
+.PHONY: all clean esx-lib install-disks install-client-pkg install-esx test-requires test lint

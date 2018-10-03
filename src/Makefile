@@ -1,4 +1,4 @@
-SUBDIRS = ttytee nscd libconfig libdrive libhardware platoclient
+SUBDIRS = ttytee nscd libconfig libdrive libhardware platoclient controller
 
 all:
 	for dir in $(SUBDIRS); do $(MAKE) -C $$dir all || exit $$?; done
@@ -6,4 +6,13 @@ all:
 clean:
 	for dir in $(SUBDIRS); do $(MAKE) -C $$dir clean || exit $$?; done
 
-.PHONY: all clean
+test-requires:
+	for dir in $(SUBDIRS); do $(MAKE) -C $$dir test-requires || exit $$?; done
+
+test:
+	for dir in $(SUBDIRS); do $(MAKE) -C $$dir test || exit $$?; done
+
+lint:
+	for dir in $(SUBDIRS); do $(MAKE) -C $$dir lint || exit $$?; done
+
+.PHONY: all clean test-requires test lint

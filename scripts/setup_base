@@ -38,5 +38,5 @@ ln -sf libm-2.27.so $1/lib/libm.so.6
 ./scripts/install_dep udev $1 $2 $3
 ./scripts/install_dep python $1 $2 $3
 
-# install plato libs
-cp -a $2/platoclient $1/lib/python3.6/
+# install controller libs
+cp -a $2/controller $1/lib/python3.6/

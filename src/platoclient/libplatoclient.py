@@ -2,8 +2,10 @@ import json
 import urllib
 from platoclient.libplato import Plato
 
+
 class PlatoClientException( Exception ):
   pass
+
 
 def _parseDriveStatus( result ):
   if result is None:
@@ -21,7 +23,7 @@ def _parseDriveStatus( result ):
 
   try:
     health = int( tmp[0].split()[1] )
-  except:
+  except Exception:
     raise Exception( 'Unexpected Health Value from getting status: "{0}"'.format( result ) )
 
   if health >= 8:
@@ -49,7 +51,7 @@ def _parseHardwareStatus( result ):
 
   try:
     health = int( tmp[0].split()[1] )
-  except:
+  except Exception:
     raise Exception( 'Unexpected Health Value from getting status: "{0}"'.format( result ) )
 
   if health >= 8:
@@ -74,7 +76,7 @@ def _parseConfigStatus( result ):
 
   try:
     health = int( tmp[0].split()[1] )
-  except:
+  except Exception:
     raise Exception( 'Unexpected Health Value from getting status: "{0}"'.format( result ) )
 
   if health >= 8:
@@ -115,7 +117,7 @@ class PlatoClient( Plato ):
     else:
       raise PlatoClientException( 'Unknown Result When Getting Thrashed Status: "{0}"'.format( result ) )
 
-  def reportDriveStatus( self, drive, event, status, check_only=False, current_health=None  ): # status from drive.driveReportingStatus()
+  def reportDriveStatus( self, drive, event, status, check_only=False, current_health=None  ):  # status from drive.driveReportingStatus()
     POSTData = { 'data': json.dumps( { 'info': drive.reporting_info, 'event': event, 'location': drive.location, 'name': drive.name, 'status': status, 'check_only': check_only, 'current_health': current_health } ) }
 
     result = self.postRequest( 'storage/recorddrivestatus/{0}/'.format( urllib.quote( drive.serial ), {}, POSTData ) )

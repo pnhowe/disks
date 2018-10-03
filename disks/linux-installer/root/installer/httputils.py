@@ -17,9 +17,17 @@ def http_getfile( url, proxy=None ):
   else:
     opener = request.build_opener( HTTPErrorProcessorPassthrough, request.ProxyHandler( { 'http': None, 'https': None } ) )  # use environ
 
-  opener.addheaders = [( 'User-agent', 'plato-linux-installer' )]
+  opener.addheaders = [ ( 'User-agent', 'bootabledisks-linux-installer' ) ]
 
   conn = opener.open( url )
+
+  if conn.getcode() in ( 301, 302 ):
+    new_url = conn.getheader( 'Location' )
+    print( 'Redirecting to "{0}"....'.format( new_url ) )
+    if new_url is None or new_url == url:
+      raise Exception( 'Got Redirect to same URL "{0}" to "{1}"'.format( url, new_url ) )
+
+    return http_getfile( new_url, proxy )
 
   if conn.getcode() != 200:
     raise Exception( 'Error with request, HTTP Error "{0}"'.format( conn.getcode() ) )

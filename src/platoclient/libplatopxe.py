@@ -1,13 +1,15 @@
-import urllib
 import time
 
 from platoclient.libplato import Plato, PlatoConnectionException
 
+
 class PlatoPxeException( Exception ):
   pass
 
+
 class PlatoPxeNoJobException( PlatoPxeException ):
   pass
+
 
 class PlatoPxeUnknowResponse( PlatoPxeException ):
   pass
@@ -72,7 +74,7 @@ class PlatoPXE( Plato ):
 
     if result == 'No Job':
       return
-      #Don't raise PlatoPXENoJobException, it's non critical and it would be a burden to catch it everytime postMessage is called
+      # Don't raise PlatoPXENoJobException, it's non critical and it would be a burden to catch it everytime postMessage is called
 
     if result != 'Saved':
       raise PlatoPxeUnknowResponse( 'Expected "Saved" got "{0}"'.format( result ) )

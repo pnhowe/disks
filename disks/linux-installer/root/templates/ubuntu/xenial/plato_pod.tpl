@@ -1,1 +1,0 @@
-../precise/plato_pod.tpl

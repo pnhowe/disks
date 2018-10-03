@@ -389,7 +389,7 @@ class Config():
 
     config = config.copy()  # just incase, we don't want to mess up what we were passed
     config.update( self.extra_values )
-    config[ '__configurator__' ] = self.configurator
+    config[ '__configurator__' ] = self.configurator  # TODO: mabey set __id__, __uuid__ to self.id, and self.uuid so they can be used in the templates?
 
     last_modified = '0'  # TODO: treat last_modified as a actuall dateetime
     if 'last_modified' in config:
