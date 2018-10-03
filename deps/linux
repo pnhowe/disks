@@ -10,5 +10,5 @@ build()
 {
   tar --strip-components=1 -xJf $1
   cp ../../configs/linux .config
-  make -j4
+  make
 }

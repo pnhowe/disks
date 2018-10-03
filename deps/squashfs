@@ -9,7 +9,7 @@ set -x
 build()
 {
   tar --strip-components=1 -xzf $1
-  make -C squashfs-tools -j4
+  make -C squashfs-tools
 }
 
 install()

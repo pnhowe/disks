@@ -10,7 +10,7 @@ build()
 {
   tar --strip-components=1 -xzf $1
   ./configure --prefix= --disable-selinux
-  make -j4
+  make
 }
 
 install()

@@ -10,7 +10,7 @@ build()
 {
   tar --strip-components=1 -xjf $1
   ./configure --prefix= --disable-ntbtls --disable-gnutls --disable-ldap --disable-nls --disable-card-support
-  make -j4
+  make
 }
 
 install()

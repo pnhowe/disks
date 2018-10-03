@@ -12,7 +12,7 @@ build()
   tar --strip-components=1 -xzf $1
   patch -Np1 -i ../../configs/ssh.patch
   ./configure --prefix= --sysconfdir=/etc/ssh --with-md5-passwords --with-privsep-path=/var/empty
-  make -j4
+  make
 }
 
 install()
