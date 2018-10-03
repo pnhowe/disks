@@ -237,7 +237,7 @@ dpkg:
 	for dir in config-curator; do $(MAKE) -C $$dir dpkg || exit $$?; done
 
 dpkg-file:
-	echo $(shell ls config-curator/config-curator*.deb)
+	echo $(shell ls config-curator*.deb)
 
 .PHONY:: dpkg-distros dpkg-requires dpkg-file dpkg
 
@@ -254,6 +254,6 @@ rpm:
 	for dir in config-curator; do $(MAKE) -C $$dir rpm || exit $$?; done
 
 rpm-file:
-	echo $(shell ls config-curator/rpmbuild/RPMS/*/nullunit-*.rpm)
+	echo $(shell ls config-curator/rpmbuild/RPMS/*/config-curator-*.rpm)
 
 .PHONY:: rpm-distros rpm-requires rpm-file rpm
