@@ -47,7 +47,7 @@ cat > /config_values.json << CONFIG_VALUES_EOF
       ],
       "mac": "--MAC--",
       "name": "eth0"
-    },
+    }
   ]
 }
 CONFIG_VALUES_EOF

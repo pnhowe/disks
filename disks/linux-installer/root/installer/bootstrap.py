@@ -1,7 +1,7 @@
 import re
 import shutil
 import os
-from configparser import NoOptionError
+from configparser import ConfigParser, NoOptionError
 
 from installer.procutils import execute, chroot_execute
 
@@ -26,17 +26,23 @@ def bootstrap( mount_point, source, profile, config ):  # TODO: bootstrap http p
 
   elif bootstrap_type == 'squashimg':
     version = profile.get( 'bootstrap', 'version' )
-    source_version = '{0}{1}'.format( source, version )
+    repo_root = '{0}{1}/os/x86_64/'.format( source, version )
+
+    print( 'Getting Treeinfo...' )
+    execute( '/bin/wget -O /tmp/treeinfo {0}.treeinfo'.format( repo_root ) )
+    treeinfo = ConfigParser()
+    treeinfo.parse( '/tmp/treeinfo' )
+    image = treeinfo.get( 'stage2', 'mainimage' )
 
     print( 'Downloading image...' )
-    execute( '/bin/wget -O /tmp/bootstrap.img {0}'.format( os.path.join( source_version, 'os/x86_64/images/install.img' ) ) )
+    execute( '/bin/wget -O /tmp/bootstrap.img {0}{1}'.format( repo_root, image ) )
 
     print( 'Extractig image...' )
     execute( '/bin/unsquashfs -f -d {0} /tmp/bootstrap.img'.format( mount_point ) )
     execute( 'rm /tmp/bootstrap.img' )
 
     print( 'Retreiving Package List...' )
-    execute( '/bin/wget -q -O /tmp/pkglist {0}'.format( os.path.join( source_version, 'os/x86_64/Packages/' ) ) )
+    execute( '/bin/wget -q -O /tmp/pkglist {0}os/x86_64/Packages/'.format( repo_root ) )
     yum_match = re.compile( '"(yum-[^"]*\.rpm)"' )
     release_match = re.compile( '"(centos-release-[^"]*\.rpm)"' )
     yum_filename = None
@@ -58,13 +64,13 @@ def bootstrap( mount_point, source, profile, config ):  # TODO: bootstrap http p
     print( '   release rpm filename "{0}"'.format( release_filename ) )
 
     print( 'Retreiving YUM...' )
-    execute( '/bin/wget -q -O {0} {1}'.format( os.path.join( mount_point, 'tmp.rpm' ), os.path.join( source_version, 'os/x86_64/Packages', yum_filename ) ) )
+    execute( '/bin/wget -q -O {0} {1}os/x86_64/Packages/{2}'.format( os.path.join( mount_point, 'tmp.rpm' ), repo_root, yum_filename ) )
     print( 'Instaiing YUM...' )
     chroot_execute( '/usr/bin/rpm -i --nodeps /tmp.rpm' )
     chroot_execute( 'rm /tmp.rpm' )
 
     print( 'Retreiving Release...' )
-    execute( '/bin/wget -q -O {0} {1}'.format( os.path.join( mount_point, 'tmp.rpm' ), os.path.join( source_version, 'os/x86_64/Packages', release_filename ) ) )
+    execute( '/bin/wget -q -O {0} {1}os/x86_64/Packages/{2}'.format( os.path.join( mount_point, 'tmp.rpm' ), repo_root, release_filename ) )
     print( 'Instaiing Release...' )
     chroot_execute( '/usr/bin/rpm -i --nodeps /tmp.rpm' )
     chroot_execute( 'rm /tmp.rpm' )
