@@ -1,5 +1,5 @@
 {% target '/etc/sysconfig/network' %}# Auto Generated During Install
 
 NETWORKING=yes
-HOSTNAME={{ hostname }}.{{ domain }}
+HOSTNAME={{ _hostname }}.{{ domain_name }}
 {% endtarget %}

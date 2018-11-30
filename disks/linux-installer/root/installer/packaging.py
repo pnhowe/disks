@@ -142,14 +142,16 @@ def preBaseSetup( profile ):
       chroot_execute( item[1] )
 
 
-def cleanPackaging():
+def cleanPackaging( install_root ):
   if manager_type == 'apt':
     chroot_execute( '/usr/bin/apt-get clean' )
+
   elif manager_type == 'yum':
     chroot_execute( '/usr/bin/yum clean all' )
-    execute( '/bin/find -name *.rpmnew -exec rm {} \;' )
-    execute( '/bin/find -name *.rpmsave -exec rm {} \;' )
+    execute( '/bin/find {0} \( -path {0}/proc -o -path {0}/sys \) -prune -o -name *.rpmnew -exec rm {{}} \;'.format( install_root ) )
+    execute( '/bin/find {0} \( -path {0}/proc -o -path {0}/sys \) -prune -o -name *.rpmsave -exec rm {{}} \;'.format( install_root ) )
+
   elif manager_type == 'zypper':
     chroot_execute( '/usr/bin/zypper --non-interactive clean' )
-    execute( '/bin/find -name *.rpmnew -exec rm {} \;' )
-    execute( '/bin/find -name *.rpmsave -exec rm {} \;' )
+    execute( '/bin/find {0} \( -path {0}/proc -o -path {0}/sys \) -prune -o -name *.rpmnew -exec rm {{}} \;'.format( install_root ) )
+    execute( '/bin/find {0} \( -path {0}/proc -o -path {0}/sys \) -prune -o -name *.rpmsave -exec rm {{}} \;'.format( install_root ) )

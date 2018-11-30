@@ -9,6 +9,7 @@ set -x
 build()
 {
   tar --strip-components=1 -xzf $1
+  sed s/'#XZ_SUPPORT = 1'/'XZ_SUPPORT = 1'/ -i squashfs-tools/Makefile
   make -C squashfs-tools
 }
 

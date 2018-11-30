@@ -688,7 +688,7 @@ def mount( mount_point, profile ):
   if not os.path.isdir( os.path.join( mount_point, 'etc' ) ):
     os.makedirs( os.path.join( mount_point, 'etc' ) )
 
-  execute( 'ln -s /proc/mounts {0}'.format( os.path.join( mount_point, 'etc', 'mtab' ) ) )  # TODO: write a mtab don't symlink it
+  execute( 'ln -s /proc/self/mounts {0}'.format( os.path.join( mount_point, 'etc', 'mtab' ) ) )
 
 
 def remount():
@@ -702,9 +702,13 @@ def remount():
       _do_mount( *mount )
 
 
-def unmount( mount_point ):  # don't umount -a, other things after the installer still need /proc and such
+def unmount( mount_point, profile ):  # don't umount -a, other things after the installer still need /proc and such
   execute( 'rm {0}'.format( os.path.join( mount_point, 'etc', 'mtab' ) ) )
-  execute( 'touch {0}'.format( os.path.join( mount_point, 'etc', 'mtab' ) ) )
+  mtab = profile.get( 'filesystem', 'mtab' )
+  if mtab == 'file':
+    execute( 'touch {0}'.format( os.path.join( mount_point, 'etc', 'mtab' ) ) )
+  else:
+    execute( 'ln -s {0} {1}'.format( mtab, os.path.join( mount_point, 'etc', 'mtab' ) ) )
 
   count = 0
   pid_list = [ int( i ) for i in execute_lines( 'sh -c "lsof | grep target | cut -f 1 | uniq"' ) ]

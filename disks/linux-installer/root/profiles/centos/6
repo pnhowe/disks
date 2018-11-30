@@ -5,6 +5,7 @@ partition_type=gpt
 fs_type=ext3
 boot_fs_type=ext3
 md_meta_version=1.0
+mtab=file
 extra_mount_1=proc:proc:/proc
 extra_mount_2=sysfs:sysfs:/sys
 extra_mount_3=:/dev:/dev:bind
@@ -36,7 +37,9 @@ bootloader_install=/sbin/grub-install {0}
 skel_dir=etc/skel/
 
 [general]
-after_cmd_1=restorecon -R /
+after_cmd_1=touch /.autorelabel
+after_cmd_2=rm /etc/localtime
+after_cmd_3=ln -s ../usr/share/zoneinfo/UTC /etc/localtime
 
 [packages]
 bootloader_package=grub

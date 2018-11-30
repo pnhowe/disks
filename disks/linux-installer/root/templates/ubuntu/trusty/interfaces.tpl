@@ -4,13 +4,14 @@
 auto lo
 iface lo inet loopback
 
-{% for interface in _foundation_interface_list %}{% if interface != 'ipmi' %}
+{% for interface_name in _interface_map %}{% if interface_name != 'ipmi' %}
+{% set interface = _interface_map[ interface_name ] %}
 {% if interface.address_list %}
-{% set ifname = interface.name %}
+{% set ifname = interface_name %}
 {% for address in interface.address_list %}
 {% if address.vlan and address.tagged %}{% set ifname = ifname + "." + address.vlan|string %}{% endif %}
 {% if address.sub_interface %}{% set ifname = ifname + ":" + address.sub_interface %}{% endif %}
-auto {{ ifname }}
+{% if address.auto %}auto {{ ifname }}{% endif %}
 {% if address.address == 'dhcp' %}
 iface {{ ifname }} inet dhcp
 {% else %}
