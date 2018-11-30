@@ -1,2 +1,2 @@
-{% target '/etc/hostname' %}{{ hostname }}
+{% target '/etc/hostname' %}{{ _hostname }}
 {% endtarget %}

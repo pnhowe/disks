@@ -4,11 +4,11 @@ network:
   version: 2
   renderer: networkd
   ethernets:
-{% for interface in _foundation_interface_list %}{% if interface != 'ipmi' %}{% if interface.address_list %}
-    {{ interface.name }}:
+{% for interface_name in _interface_map %}{% if interface_name != 'ipmi' %}{% set interface = _interface_map[ interface_name ] %}{% if interface.address_list %}
+    {{ interface_name }}:
       match:
         macaddress: {{ interface.mac }}
-#      set-name: {{ interface.name }}  # when https://bugs.launchpad.net/netplan/+bug/1768827 is resolved we should be able to re-enable this line
+#      set-name: {{ interface_name }}  # when https://bugs.launchpad.net/netplan/+bug/1768827 is resolved we should be able to re-enable this line
 {% for address in interface.address_list %}{% if address.primary %}      mtu: {{ address.mtu }}
 {% if address.address == 'dhcp' %}      dhcp4: yes
       dhcp6: no

@@ -1,6 +1,7 @@
-{% for interface in interface_list %}
+{% for interface_name in _interface_map %}
+{% set interface = _interface_map[ interface_name ] %}
 {% for address in interface.address_list %}
-{% set filename = 'ifcfg-' + interface.name %}
+{% set filename = 'ifcfg-' + interface_name %}
 {% if address.vlan and address.tagged %}
 {% set filename = filename + '.' + address.vlan|string %}
 {% endif %}
@@ -18,7 +19,7 @@ BONDING_SLAVE{{ loop.index }}={{ name_map[slave] }}
 {% endfor %}
 {% endif %}
 
-DEVICE="{{ interface.name }}"
+DEVICE="{{ interface_name }}"
 ONBOOT="{% if address.auto %}yes{% else %}no{% endif %}"
 TYPE="Ethernet"
 HWADDR="{{ interface.mac }}"

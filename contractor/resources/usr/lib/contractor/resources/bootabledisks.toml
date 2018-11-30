@@ -14,6 +14,9 @@
     { distribution = '{{ distro_version }}-updates', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy }}' },
     { distribution = '{{ distro_version }}-security', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy }}' },
   ]
+  >packages = 'openssh-server openssh-client'
+  vcenter_guest_id = 'ubuntu64Guest'
+  timezone = 'Etc/UTC'
 
 [ structure.ubuntu-trusty-base ]
   description = 'Base Ubuntu Trusty Tahr (14.04 LTS)'
@@ -46,21 +49,22 @@
     { type = 'yum', name = 'extras', uri = 'http://{{ mirror_server }}/centos-{{ distro_version }}/{{ distro_version }}/extras/\$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-{{ distro_version }}', proxy = '{{ mirror_proxy }}' },
     { type = 'yum', name = 'epel', uri = 'http://download.fedoraproject.org/pub/epel/{{ distro_version }}/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-{{ distro_version }}', key_uri = 'http://download.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ distro_version }}', proxy = '{{ mirror_proxy }}' },
   ]
+  >packages = 'openssh-server'
 
 [ structure.centos-6-base]
   description = 'Base CentOS 6'
   parents = [ 'centos-base' ]
-  config_values = { distro_version = '6' }
+  config_values = { distro_version = '6', vcenter_guest_id = 'rhel6_64Guest' }
 
 [ structure.centos-7-base]
   description = 'Base CentOS 7'
   parents = [ 'centos-base' ]
-  config_values = { distro_version = '7' }
+  config_values = { distro_version = '7', vcenter_guest_id = 'rhel7_64Guest' }
 
 [ pxe.bootabledisk-linux-installer ]
   description = 'Bootabledisks - Linux Installer'
   boot_script = '''echo Linux Installer
-kernel {{ __pxe_location }}/bootabledisks/linux-installer.vmlinuz interface_mac={{ _provisioning_interface_mac }} config_url={{ __pxe_template_location }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ hostname }}
+kernel {{ __pxe_location }}/bootabledisks/linux-installer.vmlinuz interface_mac={{ _provisioning_interface_mac }} config_url={{ __pxe_template_location }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ _hostname }}
 initrd {{ __pxe_location }}/bootabledisks/linux-installer.initrd
 boot
 '''
@@ -72,7 +76,7 @@ SOURCE="{{ bootstrap_source }}"
 
 cat > /config.json << CONFIG_EOF
 {
-  "packages": "openssh-server openssh-client {{ packages }}",
+  "packages": "{{ packages }}",
   "swap_size": "{{ swap_size }}",
   "partition_scheme": "{{ linux_partition_scheme|default( 'single' ) }}",
   "repo_list": {{ repo_list|tojson }}

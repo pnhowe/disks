@@ -70,6 +70,8 @@ else:
 
   profile_file = os.path.join( '/profiles', options.distro, options.version )
   template_path = os.path.join( '/templates', options.distro, options.version )
+  print( 'Using profile "{0}"'.format( profile_file ) )
+  print( 'Using template "{0}"'.format( template_path ) )
 
 if os.access( '/genconfig.sh', os.X_OK ):
   controller.postMessage( 'Running genconfig...' )
@@ -200,7 +202,7 @@ if not options.package:
   undivert( profile )
 
   controller.postMessage( 'Cleaning up...' )
-  cleanPackaging()
+  cleanPackaging( install_root )
 
 else:
   controller.postMessage( 'Setting Up Users....' )
@@ -226,6 +228,6 @@ shutil.copyfile( '/tmp/output.log', os.path.join( install_root, 'root/install.lo
 shutil.copyfile( '/tmp/detail.log', os.path.join( install_root, 'root/install.detail.log' ) )
 
 controller.postMessage( 'Unmounting...' )
-unmount( install_root )
+unmount( install_root, profile )
 
 controller.postMessage( 'Done!' )
