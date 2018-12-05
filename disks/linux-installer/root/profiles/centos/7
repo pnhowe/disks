@@ -25,6 +25,8 @@ prebase_templates=
 base=Base
 packages=dhclient
 source_templates=repos
+install_env_var_1=CONFIG_CURATOR_HOST:{{ config_host }}
+install_env_var_2=CONFIG_CURATOR_PROXY:{{ config_proxy }}
 
 [config]
 base_templates=hosts network ifcfg i18n yum

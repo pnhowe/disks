@@ -80,7 +80,7 @@ dpkg:
 .PHONY:: dpkg-distros dpkg-requires dpkg-file
 
 rpm-distros:
-	echo centos-6
+	echo centos-6 centos-7
 
 rpm-requires:
 	echo rpm-build python34-setuptools
