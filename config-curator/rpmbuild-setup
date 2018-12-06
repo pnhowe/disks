@@ -39,7 +39,9 @@ cd %{_srcdir}
 make install DESTDIR=%{buildroot}/
 
 %files
-/*
+/usr/lib/python3.4/site-packages/*
+/usr/sbin/*
+/var/lib/config-curator/templates/*
 
 %changelog
 
