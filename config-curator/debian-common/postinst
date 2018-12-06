@@ -32,7 +32,7 @@ case "$1" in
           db_get config-curator/config-host || RET=http://controller
           FLAGS="$FLAGS -f --config-host $RET --config-uuid new"
           db_get config-curator/config-proxy || RET=
-          if [ "x$RET" != "x" ];
+          if test -n "$RET";
           then
             FLAGS="$FLAGS --config-proxy $RET"
           fi

@@ -39,15 +39,36 @@ cd %{_srcdir}
 make install DESTDIR=%{buildroot}/
 
 %files
-/*
+/usr/lib/python3.4/site-packages/*
+/usr/sbin/*
+/var/lib/config-curator/templates/*
 
 %changelog
 
 %post
 FLAGS=""
-if [ \$1 -eq 1 ]; #First time install
+HOST=http://controller  # would be nice to get this from a db_get type thing
+PROXY=
+
+if test -n "\$CONFIG_CURATOR_HOST"
 then
-  FLAGS="\$FLAGS -f --config-uuid new"
+  HOST=\$CONFIG_CURATOR_HOST
+fi
+
+if test -n "\$CONFIG_CURATOR_PROXY"
+then
+  PROXY=\$CONFIG_CURATOR_PROXY
+fi
+
+if [ \$1 -eq 1 ]
+then
+   #First time install
+  FLAGS="\$FLAGS -f --config-host \$HOST --config-uuid new"
+fi
+
+if [ "x$RET" != "x" ]
+then
+  FLAGS="\$FLAGS --config-proxy \$PROXY"
 fi
 
 /usr/sbin/config-curator \$FLAGS -c config-curator

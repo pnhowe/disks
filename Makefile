@@ -185,13 +185,13 @@ respkg-distros:
 	echo ubuntu-bionic
 
 respkg-requires:
-	echo respkg build-essential libelf-dev bc zlib1g-dev libssl-dev gperf libreadline-dev libsqlite3-dev libbz2-dev liblzma-dev uuid-dev libdevmapper-dev libgcrypt-dev libgpg-error-dev libassuan-dev libksba-dev libnpth0-dev python3-dev python3-setuptools pkg-config libblkid-dev
+	echo respkg build-essential libelf-dev bc zlib1g-dev libssl-dev gperf libreadline-dev libsqlite3-dev libbz2-dev liblzma-dev uuid-dev libdevmapper-dev libgcrypt-dev libgpg-error-dev libassuan-dev libksba-dev libnpth0-dev python3-dev python3-setuptools pkg-config libblkid-dev gettext
 
 respkg: all-pxe
 	mkdir -p contractor/resources/var/www/bootabledisks
 	cp images/pxe/*.initrd contractor/resources/var/www/bootabledisks
 	cp images/pxe/*.vmlinuz contractor/resources/var/www/bootabledisks
-	cd contractor && respkg -b ../bootabledisks-contractor_0.0.respkg -n bootabledisks-contractor -e 0.0 -c "Bootable Disks for Contractor" -t load_data.sh -d resources -s contractor-os-base
+	cd contractor && respkg -b ../bootabledisks-contractor_0.0.respkg -n bootabledisks-contractor -e 0.1 -c "Bootable Disks for Contractor" -t load_data.sh -d resources -s contractor-os-base
 	touch respkg
 
 respkg-file:

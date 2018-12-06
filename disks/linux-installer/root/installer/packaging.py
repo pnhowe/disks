@@ -1,5 +1,5 @@
 import os
-from installer.procutils import chroot_execute, execute
+from installer.procutils import chroot_execute, execute, chroot_env
 from installer.httputils import http_getfile
 from installer.config import renderTemplates
 
@@ -131,6 +131,11 @@ def undivert( profile ):
 
 def preBaseSetup( profile ):
   renderTemplates( profile.get( 'packaging', 'prebase_templates' ).split( ',' ) )
+
+  for item in profile.items( 'packaging' ):
+    if item[0].startswith( 'install_env_var_' ):
+      ( name, value ) = item[1].split( ':', 1 )
+      chroot_env[ name ] = value  # tehinically we are affecting all the chroot commands, for now this is ok.
 
   if manager_type == 'apt':
     for item in profile.items( 'packaging' ):
