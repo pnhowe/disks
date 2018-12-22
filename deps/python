@@ -7,8 +7,8 @@ set -e
 set -x
 
 # we don't need everything, so only these subdirs
-# lib2to3 is there b/c the install will not work with out it, going to remove that late
-SUBDIRS="encodings serial json config ctypes logging sqlite3 collections urllib email http asyncio concurrent concurrent/futures multiprocessing importlib lib2to3"
+# lib2to3 is there b/c the install will not work with out it, going to remove that later
+SUBDIRS="encodings serial json config ctypes logging sqlite3 collections urllib email http asyncio concurrent concurrent/futures multiprocessing importlib lib2to3 time"
 
 build()
 {

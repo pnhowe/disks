@@ -1,3 +1,5 @@
 UseDNS no
 
+PermitRootLogin yes
+
 Subsystem sftp /sbin/sftp-server

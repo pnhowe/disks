@@ -102,7 +102,7 @@ build.images/%.root: disks/%/build_root build.deps/build build-src
 	touch $@
 
 images/pxe/%.initrd: build.images/%.root images
-	cd build.images/$* && find ./ | grep -v ^./boot | cpio -H newc -o | gzip -9 > $(PWD)/$@
+	cd build.images/$* && find ./ | grep -v ^./boot | cpio --owner=+0:+0 -H newc -o | gzip -9 > $(PWD)/$@
 
 images/pxe/%.vmlinuz: build.images/%.root images
 	cp -f build.images/$*/boot/vmlinuz $@
@@ -177,7 +177,7 @@ templates:
 
 clean: clean-deps clean-images clean-src respkg-clean pkg-clean
 
-distclean: clean-deps clean-images clean-src clean-downloads pkg-distclean
+dist-clean: clean-deps clean-images clean-src clean-downloads pkg-distclean
 
 .PHONY:: all all-pxe all-imgs clean clean-src clean-downloads clean-deps clean-images distclean pxe-targets templates
 
