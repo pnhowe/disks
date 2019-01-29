@@ -12,7 +12,7 @@ build()
   tar --strip-components=1 -xzf $1
   sed s/have_kmod=no/have_kmod=yes/ -i configure
 
-  KMOD_CFLAGS=-I`pwd`/kmod-src/libkmod KMOD_LIBS='-L`pwd`/kmod-src/libkmod/.libs/ -lkmod' PKG_CONFIG_PATH=`pwd`/kmod-src/libkmod ./configure --prefix= --bindir=/sbin --sbindir=/sbin --with-rootprefix= --with-rootlibdir=/lib --enable-kmod
+  KMOD_CFLAGS=-I`pwd`/../kmod/libkmod KMOD_LIBS="-L`pwd`/../kmod/libkmod/.libs/ -lkmod" PKG_CONFIG_PATH=`pwd`/../kmod/libkmod ./configure --prefix= --bindir=/sbin --sbindir=/sbin --with-rootprefix= --with-rootlibdir=/lib --enable-kmod
   make
 }
 

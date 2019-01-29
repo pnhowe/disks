@@ -32,7 +32,13 @@ do
   cp -L $LIB $1/lib
 done
 
-chroot $1 /sbin/ldconfig -l /lib/libc-2.27.so -l /lib/libm-2.27.so
+sudo chroot $1 /sbin/ldconfig -l /lib/libc-2.27.so -l /lib/libm-2.27.so
+
+
+# setup locale
+cp `which locale` $1/sbin/locale
+mkdir -p $1/usr/lib/locale
+localedef --prefix=$1 -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 
 # have these two use the function in disk_functions?
 ./scripts/install_dep udev $1 $2 $3
