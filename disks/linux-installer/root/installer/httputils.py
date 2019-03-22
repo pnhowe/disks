@@ -1,6 +1,11 @@
 from urllib import request
 
 
+import ssl
+
+ssl._create_default_https_context = ssl._create_unverified_context   # TODO: really should verify the certs
+
+
 class HTTPErrorProcessorPassthrough( request.HTTPErrorProcessor ):
   def http_response( self, request, response ):
     return response
