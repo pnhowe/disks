@@ -10,11 +10,11 @@
   distro = 'ubuntu'
   repo_components = [ 'main' ]
   >repo_list = [
-    { distribution = '{{ distro_version }}', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy }}' },
-    { distribution = '{{ distro_version }}-updates', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy }}' },
-    { distribution = '{{ distro_version }}-security', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy }}' },
+    { distribution = '{{ distro_version }}', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
+    { distribution = '{{ distro_version }}-updates', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
+    { distribution = '{{ distro_version }}-security', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
   ]
-  >packages = 'openssh-server openssh-client'
+  >packages = [ 'openssh-server', 'openssh-client' ]
   vcenter_guest_id = 'ubuntu64Guest'
   timezone = 'Etc/UTC'
 
@@ -44,22 +44,22 @@
   bootstrap_source = 'http://{{ mirror_server }}/centos/'
   distro = 'centos'
   >repo_list = [
-    { type = 'yum', name = 'base', uri = 'http://{{ mirror_server }}/centos-{{ distro_version }}/{{ distro_version }}/os/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-{{ distro_version }}', proxy = '{{ mirror_proxy }}' },
-    { type = 'yum', name = 'updates', uri = 'http://{{ mirror_server }}/centos-{{ distro_version }}/{{ distro_version }}/updates/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-{{ distro_version }}', proxy = '{{ mirror_proxy }}' },
-    { type = 'yum', name = 'extras', uri = 'http://{{ mirror_server }}/centos-{{ distro_version }}/{{ distro_version }}/extras/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-{{ distro_version }}', proxy = '{{ mirror_proxy }}' },
-    { type = 'yum', name = 'epel', uri = 'http://download.fedoraproject.org/pub/epel/{{ distro_version }}/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-{{ distro_version }}', key_uri = 'http://download.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ distro_version }}', proxy = '{{ mirror_proxy }}' },
+    { type = 'yum', name = 'base', uri = 'http://{{ mirror_server }}/centos-{{ distro_version }}/{{ distro_version }}/os/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-{{ distro_version }}', proxy = '{{ mirror_proxy|default( "local" ) }}' },
+    { type = 'yum', name = 'updates', uri = 'http://{{ mirror_server }}/centos-{{ distro_version }}/{{ distro_version }}/updates/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-{{ distro_version }}', proxy = '{{ mirror_proxy|default( "local" ) }}' },
+    { type = 'yum', name = 'extras', uri = 'http://{{ mirror_server }}/centos-{{ distro_version }}/{{ distro_version }}/extras/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-{{ distro_version }}', proxy = '{{ mirror_proxy|default( "local" ) }}' },
+    { type = 'yum', name = 'epel', uri = 'http://download.fedoraproject.org/pub/epel/{{ distro_version }}/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-{{ distro_version }}', key_uri = 'http://download.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ distro_version }}', proxy = '{{ mirror_proxy|default( "local" ) }}' },
   ]
-  >packages = 'openssh-server'
+  >packages = [ 'openssh-server' ]
 
 [ structure.centos-6-base]
   description = 'Base CentOS 6'
   parents = [ 'centos-base' ]
-  config_values = { distro_version = '6', vcenter_guest_id = 'rhel6_64Guest' }
+  config_values = { distro_version = '6', vcenter_guest_id = 'centos6_64Guest' }
 
 [ structure.centos-7-base]
   description = 'Base CentOS 7'
   parents = [ 'centos-base' ]
-  config_values = { distro_version = '7', vcenter_guest_id = 'rhel7_64Guest' }
+  config_values = { distro_version = '7', vcenter_guest_id = 'centos7_64Guest' }
 
 [ pxe.bootabledisk-linux-installer ]
   description = 'Bootabledisks - Linux Installer'
@@ -76,7 +76,7 @@ SOURCE="{{ bootstrap_source }}"
 
 cat > /config.json << CONFIG_EOF
 {
-  "packages": "{{ packages }}",
+  "packages": "{{ packages|join( ' ' ) }}",
   "swap_size": "{{ swap_size }}",
   "partition_scheme": "{{ linux_partition_scheme|default( 'single' ) }}",
   "repo_list": {{ repo_list|tojson }}
