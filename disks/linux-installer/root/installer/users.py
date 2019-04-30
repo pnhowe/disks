@@ -5,11 +5,11 @@ from configparser import NoOptionError, NoSectionError
 from installer.procutils import chroot_execute
 
 
-def setupUsers( mount_point, profile, config ):
+def setupUsers( mount_point, profile, value_map ):
   pass_hash = '\\$6\\$rootroot\\$oLo.loyMV45VA7/0sKV5JH/xBAXiq/igL4hQrGz3yd9XUavmC82tZm1lxW2N.5eLxQUlqp53wXKRzifZApP0/1'  # root
   try:
-    if config[ 'root_pass' ]:
-      pass_hash = config[ 'root_pass' ]
+    if value_map[ 'root_pass' ]:
+      pass_hash = value_map[ 'root_pass' ]
   except Exception:
     pass
 

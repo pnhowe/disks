@@ -2,7 +2,6 @@
 import os
 import stat
 import sys
-import json
 import optparse
 import shutil
 
@@ -12,7 +11,8 @@ from installer.filesystem import partition, mkfs, mount, remount, unmount, write
 from installer.bootstrap import bootstrap
 from installer.packaging import configSources, installBase, installOtherPackages, updatePackages, divert, undivert, preBaseSetup, cleanPackaging
 from installer.booting import installBoot
-from installer.config import getProfile, initConfig, writeShellHelper, baseConfig, fullConfig, updateConfig
+from installer.misc import postInstallScripts
+from installer.config import getProfile, initConfig, writeShellHelper, baseConfig, fullConfig, updateConfig, config
 from installer.users import setupUsers
 
 STDOUT_OUTPUT = '/dev/instout'
@@ -73,15 +73,6 @@ else:
   print( 'Using profile "{0}"'.format( profile_file ) )
   print( 'Using template "{0}"'.format( template_path ) )
 
-if os.access( '/genconfig.sh', os.X_OK ):
-  controller.postMessage( 'Running genconfig...' )
-  execute( '/genconfig.sh' )
-
-config = {}
-if not os.access( '/config.json', os.R_OK ):
-  print( 'Config file /config.json not found' )
-config = json.loads( open( '/config.json', 'r' ).read() )
-
 if options.target == 'drive':
   install_root = '/target'
 
@@ -90,6 +81,8 @@ set_chroot( install_root )
 controller.postMessage( 'Setting Up Configurator...' )
 initConfig( install_root, template_path, profile_file )
 updateConfig( 'filesystem', fsConfigValues() )
+
+value_map = config.getValues()
 
 profile = getProfile()
 
@@ -101,7 +94,7 @@ for item in profile.items( 'kernel' ):
 if options.target == 'drive':
   controller.postMessage( 'Partitioning....' )
   try:
-    partition( profile, config )
+    partition( profile, value_map )
   except MissingDrives as e:
     print( 'Timeout while waiting for drive "{0}"'.format( e ) )
     sys.exit( 1 )
@@ -118,7 +111,7 @@ mount( install_root, profile )
 
 if not options.package:
   controller.postMessage( 'Bootstrapping....' )
-  bootstrap( install_root, options.source, profile, config )
+  bootstrap( install_root, options.source, profile )
   remount()
 
 else:
@@ -144,14 +137,10 @@ writeShellHelper()
 
 if not options.package:
   controller.postMessage( 'Setting Up Package Manager...' )
-  configSources( install_root, profile, config )
+  configSources( install_root, profile, value_map )
 
   controller.postMessage( 'Writing Base OS Config...' )
   baseConfig( profile )
-
-  if os.access( '/before.sh', os.X_OK ):
-    controller.postMessage( 'Running Before Packages Task...' )
-    execute( '/before.sh' )
 
   controller.postMessage( 'Setting up Diverts....' )
   divert( profile )
@@ -164,7 +153,7 @@ if not options.package:
   remount()
 
   controller.postMessage( 'Setting Up Users....' )
-  setupUsers( install_root, profile, config )
+  setupUsers( install_root, profile, value_map )
 
   updateConfig( 'bootloader', grubConfigValues( install_root ) )
 
@@ -172,7 +161,7 @@ if not options.package:
   installBoot( install_root, profile )  # bootloader before other packages, incase other packages pulls in bootloader before we have it configured
 
   controller.postMessage( 'Installing Packages...' )
-  installOtherPackages( profile, config )
+  installOtherPackages( profile, value_map )
 
   controller.postMessage( 'Installing Filesystem Utils...' )
   installFilesystemUtils( profile )
@@ -190,13 +179,8 @@ if not options.package:
     if item[0].startswith( 'after_cmd_' ):
       chroot_execute( item[1] )
 
-  if os.access( '/after.sh', os.X_OK ):
-    controller.postMessage( 'Running After Packages Task...' )
-    after_path = os.path.join( install_root, 'after.sh' )
-    shutil.copyfile( '/after.sh', after_path )
-    os.chmod( after_path, os.stat( after_path ).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH )
-    chroot_execute( '/after.sh "{0}"'.format( ' '.join( fsConfigValues()[ 'boot_drives' ] ) ) )
-    os.unlink( after_path )
+  controller.postMessage( 'Post Install Scripts...' )
+  postInstallScripts( install_root, value_map )
 
   controller.postMessage( 'Removing Diverts...' )
   undivert( profile )
@@ -206,7 +190,7 @@ if not options.package:
 
 else:
   controller.postMessage( 'Setting Up Users....' )
-  setupUsers( install_root, profile, config )
+  setupUsers( install_root, profile, value_map )
 
   controller.postMessage( 'Running Package Setup...' )
   if not os.access( '/package/setup.sh', os.R_OK ):

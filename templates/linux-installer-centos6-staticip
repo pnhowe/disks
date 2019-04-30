@@ -13,19 +13,17 @@ SOURCE="http://__MIRROR_SERVER__/centos-6/"
 
 cat > /config.json << CONFIG_EOF
 {
+  "distro_version": "6",
+  "hostname": "__HOSTNAME__",
   "packages": "openssh-server __PACKAGES__",
   "swap_size": "__SWAP_SIZE__",
-  "partition_scheme": "__PART_SCHEME__",
-  "repo_list": [ { "type":"yum", "name": "base", "uri": "http://__MIRROR_SERVER__/centos-6/6/os/\$basearch/", "key_file": "/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6", "proxy": "__PROXY__" },{ "type":"yum", "name": "updates", "uri": "http://__MIRROR_SERVER__/centos-6/6/updates/\$basearch/", "key_file": "/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6", "proxy": "__PROXY__" },{ "type":"yum", "name": "extras", "uri": "http://__MIRROR_SERVER__/centos-6/6/extras/\$basearch/", "key_file": "/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6", "proxy": "__PROXY__" } ]
-}
-CONFIG_EOF
-
-cat > /config_values.json << CONFIG_VALUES_EOF
-{
-  "repo_list": [ { "type":"yum", "name": "base", "uri": "http://__MIRROR_SERVER__/centos-6/6/os/\$basearch/", "key_file": "/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6", "proxy": "__PROXY__" },{ "type":"yum", "name": "updates", "uri": "http://__MIRROR_SERVER__/centos-6/6/updates/\$basearch/", "key_file": "/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6", "proxy": "__PROXY__" },{ "type":"yum", "name": "extras", "uri": "http://__MIRROR_SERVER__/centos-6/6/extras/\$basearch/", "key_file": "/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6", "proxy": "__PROXY__" } ],
-  "hostname": "__HOSTNAME__",
   "http_proxy": "__PROXY__",
-  "distro_version": "6",
+  "partition_scheme": "__PART_SCHEME__",
+  "repo_list": [
+    { "type":"yum", "name": "base", "uri": "http://__MIRROR_SERVER__/centos-6/6/os/\$basearch/", "key_file": "/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6", "proxy": "__PROXY__" },
+    { "type":"yum", "name": "updates", "uri": "http://__MIRROR_SERVER__/centos-6/6/updates/\$basearch/", "key_file": "/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6", "proxy": "__PROXY__" },
+    { "type":"yum", "name": "extras", "uri": "http://__MIRROR_SERVER__/centos-6/6/extras/\$basearch/", "key_file": "/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6", "proxy": "__PROXY__" }
+  ],
   "id": 0,
   "uuid": "00000000-0000-0000-0000-000000000000",
   "interface_list": [
@@ -47,9 +45,9 @@ cat > /config_values.json << CONFIG_VALUES_EOF
     },
   ]
 }
-CONFIG_VALUES_EOF
+CONFIG_EOF
 
-sed s/--MAC--/$( cat /sys/class/net/eth0/address )/ -i /config_values.json
+sed s/--MAC--/$( cat /sys/class/net/eth0/address )/ -i /config.json
 '
 
 EXTLINUX='PROMPT 1

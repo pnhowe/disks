@@ -15,23 +15,32 @@
     { distribution = '{{ distro_version }}-security', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
   ]
   >packages = [ 'openssh-server', 'openssh-client' ]
+  '>VCenter:packages' = [ 'open-vm-tools' ]
   vcenter_guest_id = 'ubuntu64Guest'
+  virtualbox_guest_type = 'Ubuntu_64'
   timezone = 'Etc/UTC'
 
 [ structure.ubuntu-trusty-base ]
   description = 'Base Ubuntu Trusty Tahr (14.04 LTS)'
   parents = [ 'ubuntu-base' ]
-  config_values = { distro_version = 'trusty' }
+[ structure.ubuntu-trusty-base.config_values ]
+  distro_version = 'trusty'
+  azure_image = { 'publisher' = 'Canonical', 'offer' = 'UbuntuServer', 'sku' = '14.04-LTS', 'version' = 'latest' }
 
 [ structure.ubuntu-xenial-base ]
   description = 'Base Ubuntu Xenial Xerus (16.04 LTS)'
   parents = [ 'ubuntu-base' ]
-  config_values = { distro_version = 'xenial', awsec2_image_id = 'ami-efd0428f', docker_image = 'xenial/ssh' }
+[ structure.ubuntu-xenial-base.config_values ]
+  distro_version = 'xenial'
+  awsec2_image_id = 'ami-efd0428f'
+  azure_image = { 'publisher' = 'Canonical', 'offer' = 'UbuntuServer', 'sku' = '16.04-LTS', 'version' = 'latest' }
 
 [ structure.ubuntu-bionic-base ]
   description = 'Base Ubuntu Bionic Beaver (18.04 LTS)'
   parents = [ 'ubuntu-base' ]
-  config_values = { distro_version = 'bionic' }
+[ structure.ubuntu-bionic-base.config_values ]
+  distro_version = 'bionic'
+  azure_image = { 'publisher' = 'Canonical', 'offer' = 'UbuntuServer', 'sku' = '18.04-LTS', 'version' = 'latest' }
 
 [ structure.centos-base ]
   description = 'Base CentOS'
@@ -50,16 +59,25 @@
     { type = 'yum', name = 'epel', uri = 'http://download.fedoraproject.org/pub/epel/{{ distro_version }}/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-{{ distro_version }}', key_uri = 'http://download.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ distro_version }}', proxy = '{{ mirror_proxy|default( "local" ) }}' },
   ]
   >packages = [ 'openssh-server' ]
+  '>VCenter:packages' = [ 'open-vm-tools' ]
+  virtualbox_guest_type = 'RedHat_64'
 
 [ structure.centos-6-base]
   description = 'Base CentOS 6'
   parents = [ 'centos-base' ]
-  config_values = { distro_version = '6', vcenter_guest_id = 'centos6_64Guest' }
+[ structure.centos-6-base.config_values ]
+  distro_version = '6'
+  vcenter_guest_id = 'centos6_64Guest'
+  azure_image = { 'publisher' = 'OpenLogic', 'offer' = 'CentOS', 'sku' = '6.10', 'version' = 'latest' }
 
 [ structure.centos-7-base]
   description = 'Base CentOS 7'
   parents = [ 'centos-base' ]
-  config_values = { distro_version = '7', vcenter_guest_id = 'centos7_64Guest' }
+[ structure.centos-7-base.config_values ]
+  memory_size = 2048  # centos 7 requires more minimum memory to install
+  distro_version = '7'
+  vcenter_guest_id = 'centos7_64Guest'
+  azure_image = { 'publisher' = 'OpenLogic', 'offer' = 'CentOS', 'sku' = '7.6', 'version' = 'latest' }
 
 [ pxe.bootabledisk-linux-installer ]
   description = 'Bootabledisks - Linux Installer'
@@ -70,16 +88,12 @@ boot
 '''
   template = '''# Generated at: {{ __timestamp }}
 # blueprint {{ blueprint }}
+{% if image_package %}
+PACKAGE="{{ image_package }}"
+SOURCE="{{ resource_location }}"
+{% else %}
 DISTRO="{{ distro }}"
 VERSION="{{ distro_version }}"
 SOURCE="{{ bootstrap_source }}"
-
-cat > /config.json << CONFIG_EOF
-{
-  "packages": "{{ packages|join( ' ' ) }}",
-  "swap_size": "{{ swap_size }}",
-  "partition_scheme": "{{ linux_partition_scheme|default( 'single' ) }}",
-  "repo_list": {{ repo_list|tojson }}
-}
-CONFIG_EOF
+{% endif %}
 '''

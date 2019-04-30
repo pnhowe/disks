@@ -7,7 +7,7 @@ manager_type = None
 divert_list = []
 
 
-def configSources( install_root, profile, config ):
+def configSources( install_root, profile, value_map ):
   global manager_type
   manager_type = profile.get( 'packaging', 'manager_type' )
 
@@ -18,7 +18,7 @@ def configSources( install_root, profile, config ):
     execute( 'ash -c "rm {0}/etc/yum.repos.d/*"'.format( install_root ) )
 
   key_uris = []
-  for repo in config[ 'repo_list' ]:
+  for repo in value_map[ 'repo_list' ]:
     if 'key_uri' in repo:
       if repo[ 'type' ] != manager_type:
         continue
@@ -66,10 +66,10 @@ def installBase( install_root, profile ):
     chroot_execute( '/usr/bin/zypper --non-interactive install {0}'.format( profile.get( 'packaging', 'base' ) ) )
 
 
-def installOtherPackages( profile, config ):
+def installOtherPackages( profile, value_map ):
   package_list = profile.get( 'packaging', 'packages' )
   try:
-    package_list += ' {0}'.format( config[ 'packages' ] )
+    package_list += value_map[ 'packages' ]
   except KeyError:
     pass
 

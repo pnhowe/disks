@@ -8,11 +8,6 @@ set -e
 
 ttytee -d /dev/instout /dev/tty4 /tmp/detail.log
 
-if [ -r /media/config.json ];
-then
-  cp /media/config.json /
-fi
-
 if [ "x$PACKAGE" != "x" ];
 then
   if [ "x$SOURCE" != "x" ];

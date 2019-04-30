@@ -13,19 +13,17 @@ SOURCE="http://__MIRROR_SERVER__/ubuntu"
 
 cat > /config.json << CONFIG_EOF
 {
+  "distro_version": "xenial",
+  "hostname": "__HOSTNAME__",
   "packages": "openssh-server openssh-client __PACKAGES__",
   "swap_size": "__SWAP_SIZE__",
-  "partition_scheme": "__PART_SCHEME__",
-  "repo_list": [ {"distribution": "xenial", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"}, {"distribution": "xenial-updates", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"}, {"distribution": "xenial-security", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"} ]
-}
-CONFIG_EOF
-
-cat > /config_values.json << CONFIG_VALUES_EOF
-{
-  "repo_list": [ {"distribution": "xenial", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"}, {"distribution": "xenial-updates", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"}, {"distribution": "xenial-security", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"} ],
-  "hostname": "__HOSTNAME__",
   "http_proxy": "__PROXY__",
-  "distro_version": "xenial",
+  "partition_scheme": "__PART_SCHEME__",
+  "repo_list": [
+    { "distribution": "xenial", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__" },
+    { "distribution": "xenial-updates", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__" },
+    { "distribution": "xenial-security", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__" }
+  ],
   "id": 0,
   "uuid": "00000000-0000-0000-0000-000000000000",
   "interface_list": [
@@ -45,9 +43,9 @@ cat > /config_values.json << CONFIG_VALUES_EOF
     }
   ]
 }
-CONFIG_VALUES_EOF
+CONFIG_EOF
 
-sed s/--MAC--/$( cat /sys/class/net/eth0/address )/ -i /config_values.json
+sed s/--MAC--/$( cat /sys/class/net/eth0/address )/ -i /config.json
 '
 
 EXTLINUX='PROMPT 1

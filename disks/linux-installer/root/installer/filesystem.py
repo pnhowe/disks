@@ -269,7 +269,7 @@ def _getTargetDrives( target_drives ):
   return ( result, drive_map )
 
 
-def partition( profile, config ):
+def partition( profile, value_map ):
   global filesystem_list, boot_drives, partition_map
 
   partition_type = profile.get( 'filesystem', 'partition_type' )
@@ -286,13 +286,13 @@ def partition( profile, config ):
 
   md_meta_version = profile.get( 'filesystem', 'md_meta_version' )
   try:
-    if config[ 'md_meta_version' ]:
-      md_meta_version = config[ 'md_meta_version' ]
+    if value_map[ 'md_meta_version' ]:
+      md_meta_version = value_map[ 'md_meta_version' ]
   except KeyError:
     pass
 
   try:
-    tmp_target_drives = config[ 'target_drives' ]
+    tmp_target_drives = value_map[ 'target_drives' ]
   except KeyError:
     tmp_target_drives = None
 
@@ -322,36 +322,36 @@ def partition( profile, config ):
 
   swap_size = 512
   try:
-    if config[ 'swap_size' ]:
-      swap_size = int( config[ 'swap_size' ] )
+    if value_map[ 'swap_size' ]:
+      swap_size = int( value_map[ 'swap_size' ] )
   except KeyError:
     pass
 
   boot_size = 512
   try:
-    if config[ 'boot_size' ]:
-      boot_size = int( config[ 'boot_size' ] )
+    if value_map[ 'boot_size' ]:
+      boot_size = int( value_map[ 'boot_size' ] )
   except KeyError:
     pass
 
   mounting_options = []
   try:
-    if config[ 'mounting_options' ] and config[ 'mounting_options' ] != 'defaults':
-      mounting_options = config[ 'mounting_options' ].split( ',' )
+    if value_map[ 'mounting_options' ] and value_map[ 'mounting_options' ] != 'defaults':
+      mounting_options = value_map[ 'mounting_options' ].split( ',' )
   except KeyError:
     pass
 
   scheme = 'single'
   try:
-    if config[ 'partition_scheme' ]:
-      scheme = config[ 'partition_scheme' ]
+    if value_map[ 'partition_scheme' ]:
+      scheme = value_map[ 'partition_scheme' ]
   except KeyError:
     pass
 
   recipe = None
   if scheme == 'custom':
     try:
-      recipe = config[ 'partition_recipe' ]
+      recipe = value_map[ 'partition_recipe' ]
     except KeyError:
       raise Exception( 'custom paritition_scheme specified, but recipe not found.' )
 
