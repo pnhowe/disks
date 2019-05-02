@@ -212,21 +212,21 @@ class Config():
 
     return result
 
-  def _renderTemplate( self, package, config, template, root_dir ):
+  def _renderTemplate( self, package, value_map, template, root_dir ):
     eng = Environment( loader=FileSystemLoader( os.path.join( self.template_dir, package ) ), extensions=[ TargetWriter, do_ext ] )
     eng.filters[ 'unique_list' ] = unique_list
     eng.globals.update( _dry_run=False )
     eng.globals.update( _root_dir=os.path.join( self.root_dir, root_dir ) )
     tmpl = eng.get_template( '{0}.tpl'.format( template ) )
-    tmpl.render( config )
+    tmpl.render( value_map )
     return eng.globals[ '_target_list' ]
 
-  def _targetFiles( self, package, config, template ):
+  def _targetFiles( self, package, value_map, template ):
     eng = Environment( loader=FileSystemLoader( os.path.join( self.template_dir, package ) ), extensions=[ TargetWriter, do_ext ] )
     eng.filters[ 'unique_list' ] = unique_list
     eng.globals.update( _dry_run=True )
     tmpl = eng.get_template( '{0}.tpl'.format( template ) )
-    tmpl.render( config )
+    tmpl.render( value_map )
     return eng.globals[ '_target_list' ]
 
   def setConfigUUID( self, uuid ):
@@ -254,11 +254,11 @@ class Config():
   def getTemplateList( self, package ):
     return self._getPackageTemplates( package )
 
-  def getTargetFiles( self, package, template, config=None ):
-    if not config:
-      config = self.getCache()
+  def getTargetFiles( self, package, template, value_map=None ):
+    if not value_map:
+      value_map = self.getCache()
 
-    return self._targetFiles( package, config, template )
+    return self._targetFiles( package, value_map, template )
 
   def getValues( self, no_extra=False ):
     result = {}
@@ -370,7 +370,7 @@ class Config():
     return result
 
   def configPackage( self, package, master_template_list, force, dry_run, no_backups, re_generate, dest_rootdir='', value_map=None ):
-    if value_map is None:  # TODO: do we still need this config override paramater?
+    if value_map is None:
       value_map = self.getValues()
     else:
       value_map = value_map.copy()  # just incase, we don't want to mess up what we were passed

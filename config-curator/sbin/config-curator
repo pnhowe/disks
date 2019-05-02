@@ -235,10 +235,10 @@ if options.diff:
   for package in template_list:
     if options.verbose:
       print( 'Building tmp templates with new values for {0}...'.format( package ) )
-    config.configPackage( package, template_list[package], True, False, True, True, dest_rootdir=tmploc, config=cur_values )
+    config.configPackage( package, template_list[package], True, False, True, True, dest_rootdir=tmploc, value_map=cur_values )
 
     for template in template_list[package]:
-      target_list = config.getTargetFiles( package, template, config=cur_values )
+      target_list = config.getTargetFiles( package, template, value_map=cur_values )
       for target in target_list:
         if options.verbose:
           print( 'Diffing "{0}" and "{1}" from "{2}"'.format( target, '{0}{1}'.format( tmploc, target ), template ) )
