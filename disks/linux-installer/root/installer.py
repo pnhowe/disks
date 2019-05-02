@@ -12,7 +12,7 @@ from installer.bootstrap import bootstrap
 from installer.packaging import configSources, installBase, installOtherPackages, updatePackages, divert, undivert, preBaseSetup, cleanPackaging
 from installer.booting import installBoot
 from installer.misc import postInstallScripts
-from installer.config import getProfile, initConfig, writeShellHelper, baseConfig, fullConfig, updateConfig, config
+from installer.config import getProfile, initConfig, writeShellHelper, baseConfig, fullConfig, updateConfig, getValues
 from installer.users import setupUsers
 
 STDOUT_OUTPUT = '/dev/instout'
@@ -82,7 +82,7 @@ controller.postMessage( 'Setting Up Configurator...' )
 initConfig( install_root, template_path, profile_file )
 updateConfig( 'filesystem', fsConfigValues() )
 
-value_map = config.getValues()
+value_map = getValues()
 
 profile = getProfile()
 

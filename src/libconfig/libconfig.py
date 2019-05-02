@@ -98,13 +98,13 @@ class Config():
         "modified" datetime DEFAULT CURRENT_TIMESTAMP
       );""" )
       conn.commit()
-      conn.execute( 'INSERT INTO "control" VALUES ( 0, 0 );' )
+      conn.execute( 'INSERT INTO "control" ( "id", "version" ) VALUES ( 0, 0 );' )
       conn.commit()
 
     cur = conn.cursor()
-    cur.execute( 'SELECT "value" FROM "control" WHERE "key" = "version";' )
+    cur.execute( 'SELECT "version" FROM "control";' )
     ( version, ) = cur.fetchone()
-    if version < '1':
+    if version < 1:
       conn.execute( 'DROP TABLE IF EXISTS "global";' )
       conn.commit()
       conn.execute( """CREATE TABLE "global" (
@@ -114,7 +114,7 @@ class Config():
         "modified" datetime DEFAULT CURRENT_TIMESTAMP
       );""" )
       conn.commit()
-      conn.execute( 'INSERT INTO "global" VALUES ( 0, 0 );' )
+      conn.execute( 'INSERT INTO "global" ( "id", "valuesLastModified" ) VALUES ( 0, 0 );' )
       conn.commit()
 
       conn.execute( 'DROP TABLE IF EXISTS "value_cache";' )
@@ -169,13 +169,12 @@ class Config():
 
     cur = self.conn.cursor()
     cur.execute( 'SELECT "name" FROM "value_cache";' )
-    cur = set( [ i[0] for i in cur.fetchall() ] )
-    for name in cur - set( new_values.keys() ):
+    for name in set( [ i[0] for i in cur.fetchall() ] ) - set( new_values.keys() ):
       self.conn.execute( 'DELETE FROM "value_cache" WHERE "name" = ?;', ( name, ) )
 
     cur.close()
 
-    self.conn.execute( 'UPDATE "global" SET "valuesLastModified" = ?, "modified" = CURRENT_TIMESTAMP;', last_modified )
+    self.conn.execute( 'UPDATE "global" SET "valuesLastModified" = ?, "modified" = CURRENT_TIMESTAMP;', ( last_modified, ) )
 
     self.conn.commit()
 
@@ -382,7 +381,7 @@ class Config():
     package_dir = os.path.join( self.template_dir, package )
 
     value_map[ '__configurator__' ] = self.configurator
-    value_map[ '__uuid__' ] = self.uuid
+    value_map[ '__uuid__' ] = self.config_uuid
     value_map[ '__last_modified__' ] = last_modified
 
     for template in template_list:

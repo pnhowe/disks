@@ -30,6 +30,10 @@ def initConfig( install_root, template_path, profile_path ):
   template = env.get_template( os.path.basename( profile_path ) )
 
 
+def getValues():
+  return config.getValues()
+
+
 def getProfile():
   values = config.getValues()
   configfp = StringIO( template.render( values ) )

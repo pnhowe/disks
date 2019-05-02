@@ -18,7 +18,7 @@ cp $2/nscd/nscd $1/sbin
 
 # install required libraries
 # TODO compile libc and install that instead of taking it from the host system
-mkdir $1/lib64
+mkdir -p $1/lib64
 cp /lib64/ld-linux-x86-64.so.2 $1/lib64
 cp `which ldconfig.real` $1/sbin/ldconfig
 

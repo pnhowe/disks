@@ -67,16 +67,14 @@ def installBase( install_root, profile ):
 
 
 def installOtherPackages( profile, value_map ):
-  package_list = profile.get( 'packaging', 'packages' )
+  package_list = profile.get( 'packaging', 'packages' ).split( ' ' )
   try:
     package_list += value_map[ 'packages' ]
   except KeyError:
     pass
 
-  package_list = package_list.strip()
-
   tmp = []
-  for package in package_list.split( ' ' ):
+  for package in package_list:
     parts = package.split( ':' )
 
     if len( parts ) == 1:
