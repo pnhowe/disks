@@ -76,14 +76,12 @@ class Client():
   def __init__( self ):
     super().__init__()
 
-  def getConfig( self, config_uuid=None, config_id=None ):
+  def getConfig( self, config_uuid=None ):
     parms = {}
-    # if config_uuid is not None:
-    #   parms[ 'config_uuid' ] = config_uuid
-    # elif config_id is not None:
-    #   parms[ 'config_id' ] = config_id
-
-    return self.request( 'get', '/config/config/', parms, timeout=10, retry_count=2 )  # the defaults cause libconfig to hang to a long time when it can't talk to the controller
+    if config_uuid is None:
+      return self.request( 'get', '/config/config/', parms, timeout=10, retry_count=2 )  # the defaults cause libconfig to hang to a long time when it can't talk to the controller
+    else:
+      return self.request( 'get', '/config/config/c/{0}'.format( config_uuid ), parms, timeout=10, retry_count=2 )
 
   def signalComplete( self ):
     return
@@ -271,7 +269,7 @@ class LocalFileClient( Client ):
     self.config = json.loads( open( config_file, 'r' ).read() )
     self.config[ 'last_modified' ] = datetime.fromtimestamp( os.path.getctime( config_file ) ).strftime( '%Y-%m-%d %H:%M:%S' )
 
-  def getConfig( self, config_uuid=None, config_id=None ):
+  def getConfig( self, config_uuid ):
     return self.config.copy()
 
   def request( self, method, uri, data=None, timeout=30, retry_count=0 ):
@@ -282,7 +280,7 @@ class StaticConfigClient( Client ):
   def __init__( self, config_values ):
     self.config = config_values
 
-  def getConfig( self, config_uuid=None, config_id=None ):
+  def getConfig( self, config_uuid ):
     return self.config.copy()
 
   def request( self, method, uri, data=None, timeout=30, retry_count=0 ):

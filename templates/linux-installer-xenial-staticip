@@ -13,22 +13,20 @@ SOURCE="http://__MIRROR_SERVER__/ubuntu"
 
 cat > /config.json << CONFIG_EOF
 {
-  "packages": "openssh-server openssh-client __PACKAGES__",
+  "distro_version": "xenial",
+  "hostname": "__HOSTNAME__",
+  "package_list": [ "openssh-server", "openssh-client" __PACKAGES__ ],
   "swap_size": "__SWAP_SIZE__",
+  "http_proxy": "__PROXY__",
   "partition_scheme": "__PART_SCHEME__",
-  "repo_list": [ {"distribution": "xenial", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"}, {"distribution": "xenial-updates", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"}, {"distribution": "xenial-security", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"} ]
-}
-CONFIG_EOF
-
-cat > /config_values.json << CONFIG_VALUES_EOF
-{
-  "repo_list": [ {"distribution": "xenial", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"}, {"distribution": "xenial-updates", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"}, {"distribution": "xenial-security", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"} ],
+  "repo_list": [
+    { "distribution": "xenial", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__" },
+    { "distribution": "xenial-updates", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__" },
+    { "distribution": "xenial-security", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__" }
+  ],
   "dns_servers": [ "__DNS_SERVER__" ],
   "dns_search": [ "__DOMAIN__" ],
-  "hostname": "__HOSTNAME__",
   "domain": "__DOMAIN__",
-  "http_proxy": "__PROXY__",
-  "distro_version": "xenial",
   "id": 0,
   "uuid": "00000000-0000-0000-0000-000000000000",
   "interface_list": [
@@ -50,9 +48,9 @@ cat > /config_values.json << CONFIG_VALUES_EOF
     }
   ]
 }
-CONFIG_VALUES_EOF
+CONFIG_EOF
 
-sed s/--MAC--/$( cat /sys/class/net/eth0/address )/ -i /config_values.json
+sed s/--MAC--/$( cat /sys/class/net/eth0/address )/ -i /config.json
 '
 
 EXTLINUX='PROMPT 1
@@ -82,7 +80,7 @@ post_process()
   else
     CONSOLE="ttyS1"
     CONSOLE_BAUD="115200"
-    PACKAGES=""
+    PACKAGES=", ""open-vm-tools"""
   fi
 
   if [[ "x$RAID_TYPE" == "xmirror" || "x$RAID_TYPE" == "xraid10" || "x$RAID_TYPE" == "xraid6" || "x$RAID_TYPE" == "xsingle-lvm" || "x$RAID_TYPE" == "xdual-lvm" ]] && [ "x$IS_VM" != "xyes" ];

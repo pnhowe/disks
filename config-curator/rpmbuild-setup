@@ -63,7 +63,7 @@ fi
 if [ \$1 -eq 1 ]
 then
    #First time install
-  FLAGS="\$FLAGS -f --config-host \$HOST --config-uuid new"
+  FLAGS="\$FLAGS -f --config-host \$HOST --config-uuid _new_"
 fi
 
 if [ "x$RET" != "x" ]

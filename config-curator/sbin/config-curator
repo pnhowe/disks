@@ -95,21 +95,18 @@ else:
   config_proxy = config_file.get( 'config', 'config_proxy' )
   provider = HTTPProvider( HTTPClient( host=config_host, proxy=config_proxy ) )
 
-# if options.config_uuid:
-#   if options.config_uuid == 'new':
-#     plato.uuid = None
-#     plato.allow_config_change = True
-#
-#   else:
-#     plato.uuid = options.config_uuid
-#     plato.allow_config_change = True
-
 config = Config( provider, '/var/lib/config-curator/templates/', '{0}/var/lib/config-curator/config.db'.format( options.root ), options.root, 'config-curator' )
+
+if options.config_uuid:  # TODO: this isn't right, just a hip shot
+  if options.config_uuid != '_new_':
+    config.setUUID( options.config_uuid )
+else:
+  config.setUUID( config_file.config_uuid )
 
 if options.update_config:
   if options.verbose:
     print( 'Updating Config from Master...' )
-  config.updateConfigCacheFromMaster()
+  config.updateCacheFromMaster()
   sys.exit( 0 )
 
 # build list of packages
@@ -168,10 +165,10 @@ if options.verbose:
 if options.list:
   if options.verbose:
     print( 'Loading Config Cache...' )
-  cache = config.getConfigCache()
+  value_map = config.getValues()
   print( '{0:>40} {1}'.format( 'Name', 'Value' ) )
-  for name in cache:
-    print( '{0:>40} {1}'.format( name, cache[ name ] ) )
+  for name in value_map:
+    print( '{0:>40} {1}'.format( name, value_map[ name ] ) )
 
   print( '{0:>20} {1:>20} {2:>20} {3:>20} {4:>10} {5:>20} {6:>10}'.format( 'Package', 'Template', 'Destination File', 'Locally', 'Needs', 'Last Build', 'Still  ' ) )
   print( '{0:>20} {1:>20} {2:>20} {3:>20} {4:>10} {5:>20} {6:>10}'.format( '', '', '', 'Modified', 'Update', 'Date   ', 'Refrenced' ) )
@@ -206,6 +203,7 @@ if options.diff:
     cur_values = config.getMasterConfig()
 
   cur_values[ '__timestamp__' ] = datetime.now().isoformat()
+  cur_values[ '__uuid__' ] = config.uuid
 
   if options.verbose:
     print( 'Caculating Config Diffrences...' )
@@ -237,10 +235,10 @@ if options.diff:
   for package in template_list:
     if options.verbose:
       print( 'Building tmp templates with new values for {0}...'.format( package ) )
-    config.configPackage( package, template_list[package], True, False, True, True, dest_rootdir=tmploc, config=cur_values )
+    config.configPackage( package, template_list[package], True, False, True, True, dest_rootdir=tmploc, value_map=cur_values )
 
     for template in template_list[package]:
-      target_list = config.getTargetFiles( package, template, config=cur_values )
+      target_list = config.getTargetFiles( package, template, value_map=cur_values )
       for target in target_list:
         if options.verbose:
           print( 'Diffing "{0}" and "{1}" from "{2}"'.format( target, '{0}{1}'.format( tmploc, target ), template ) )

@@ -6,7 +6,7 @@ from configparser import ConfigParser, NoOptionError
 from installer.procutils import execute, execute_lines, chroot_execute
 
 
-def bootstrap( mount_point, source, profile, config ):  # TODO: bootstrap http proxy
+def bootstrap( mount_point, source, profile ):  # TODO: bootstrap http proxy, also see misc
   bootstrap_type = profile.get( 'bootstrap', 'type' )
 
   # debians copy over /etc/hostname and /etc/resolv.conf, but cent dosen't (SELS Unknown), and pre_base_cmd is chrooted, so for now we will do these here

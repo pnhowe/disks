@@ -1,3 +1,5 @@
+VERSION := 0.2
+
 DEPS = $(shell ls deps)
 DISKS = $(shell ls disks)
 TEMPLATES = $(shell ls templates)
@@ -25,6 +27,9 @@ ISOS = $(foreach disk,$(DISKS),$(patsubst images/iso/%.iso,images/iso/$(disk)_%,
 PWD = $(shell pwd)
 
 all: $(IMAGE_ROOT) all-pxe
+
+version:
+	echo $(VERSION)
 
 # included source
 build-src:
@@ -102,7 +107,7 @@ build.images/%.root: disks/%/build_root build.deps/build build-src
 	touch $@
 
 images/pxe/%.initrd: build.images/%.root images
-	cd build.images/$* && find ./ | grep -v ^./boot | cpio -H newc -o | gzip -9 > $(PWD)/$@
+	cd build.images/$* && find ./ | grep -v ^./boot | cpio --owner=+0:+0 -H newc -o | gzip -9 > $(PWD)/$@
 
 images/pxe/%.vmlinuz: build.images/%.root images
 	cp -f build.images/$*/boot/vmlinuz $@
@@ -177,7 +182,7 @@ templates:
 
 clean: clean-deps clean-images clean-src respkg-clean pkg-clean
 
-distclean: clean-deps clean-images clean-src clean-downloads pkg-distclean
+dist-clean: clean-deps clean-images clean-src clean-downloads pkg-distclean
 
 .PHONY:: all all-pxe all-imgs clean clean-src clean-downloads clean-deps clean-images distclean pxe-targets templates
 
@@ -191,7 +196,7 @@ respkg: all-pxe
 	mkdir -p contractor/resources/var/www/bootabledisks
 	cp images/pxe/*.initrd contractor/resources/var/www/bootabledisks
 	cp images/pxe/*.vmlinuz contractor/resources/var/www/bootabledisks
-	cd contractor && respkg -b ../bootabledisks-contractor_0.0.respkg -n bootabledisks-contractor -e 0.1 -c "Bootable Disks for Contractor" -t load_data.sh -d resources -s contractor-os-base
+	cd contractor && respkg -b ../bootabledisks-contractor_$(VERSION).respkg -n bootabledisks-contractor -e $(VERSION) -c "Bootable Disks for Contractor" -t load_data.sh -d resources -s contractor-os-base
 	touch respkg
 
 respkg-file:

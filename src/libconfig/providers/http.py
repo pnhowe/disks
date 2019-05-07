@@ -4,6 +4,11 @@ from libconfig.providers.provider import Provider
 class HTTPProvider( Provider ):
   def __init__( self, controller ):
     super().__init__()
-    self.config_values = controller.getConfig()
-    self.id = self.config_values[ '_structure_id' ]  # TODO: make this non Contractor specific
-    self.uuid = self.config_values[ '_structure_config_uuid' ]
+    self.controller = controller
+
+  def getValues( self, config_uuid ):
+    result = self.controller.getConfig( config_uuid )
+    self.uuid = result[ '_structure_config_uuid' ]
+    self.last_modified = result[ '__last_modified' ]
+
+    return result
