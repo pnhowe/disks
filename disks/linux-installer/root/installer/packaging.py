@@ -69,7 +69,7 @@ def installBase( install_root, profile ):
 def installOtherPackages( profile, value_map ):
   package_list = profile.get( 'packaging', 'packages' ).split( ' ' )
   try:
-    package_list += value_map[ 'packages' ]
+    package_list += value_map[ 'package_list' ]
   except KeyError:
     pass
 

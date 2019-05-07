@@ -15,7 +15,7 @@ cat > /config.json << CONFIG_EOF
 {
   "distro_version": "xenial",
   "hostname": "__HOSTNAME__",
-  "packages": "openssh-server openssh-client __PACKAGES__",
+  "package_list": [ "openssh-server", "openssh-client" __PACKAGES__ ],
   "swap_size": "__SWAP_SIZE__",
   "http_proxy": "__PROXY__",
   "partition_scheme": "__PART_SCHEME__",
@@ -66,7 +66,6 @@ post_process()
     PROXY=""
     BOOT_PROXY=""
   fi
-
   if [ "x$IS_VM" == "xyes" ];
   then
     CONSOLE=""
@@ -75,7 +74,7 @@ post_process()
   else
     CONSOLE="ttyS1"
     CONSOLE_BAUD="115200"
-    PACKAGES=""
+    PACKAGES=", ""open-vm-tools"""
   fi
 
   if [[ "x$RAID_TYPE" == "xmirror" || "x$RAID_TYPE" == "xraid10" || "x$RAID_TYPE" == "xraid6" || "x$RAID_TYPE" == "xsingle-lvm" || "x$RAID_TYPE" == "xdual-lvm" ]] && [ "x$IS_VM" != "xyes" ];

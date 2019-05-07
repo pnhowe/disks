@@ -1,3 +1,7 @@
+#TODO: rename these something with unique, with the standard aliases to override the contractor-resources ones.  this way some things can depend the enhanced installers here?
+#TODO: find a way for a blueprint to provide a config template?
+#TODO: find a way for a bluepriont to provide static config files?
+
 [ structure.ubuntu-base ]
   description = 'Base Ubuntu'
   parents = [ 'linux-base' ]
@@ -14,8 +18,8 @@
     { distribution = '{{ distro_version }}-updates', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
     { distribution = '{{ distro_version }}-security', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
   ]
-  >packages = [ 'openssh-server', 'openssh-client' ]
-  '>VCenter:packages' = [ 'open-vm-tools' ]
+  '>package_list' = [ 'openssh-server', 'openssh-client' ]
+  '>package_list:VCenter' = [ 'open-vm-tools' ]
   vcenter_guest_id = 'ubuntu64Guest'
   virtualbox_guest_type = 'Ubuntu_64'
   timezone = 'Etc/UTC'
@@ -58,8 +62,8 @@
     { type = 'yum', name = 'extras', uri = 'http://{{ mirror_server }}/centos-{{ distro_version }}/{{ distro_version }}/extras/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-{{ distro_version }}', proxy = '{{ mirror_proxy|default( "local" ) }}' },
     { type = 'yum', name = 'epel', uri = 'http://download.fedoraproject.org/pub/epel/{{ distro_version }}/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-{{ distro_version }}', key_uri = 'http://download.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ distro_version }}', proxy = '{{ mirror_proxy|default( "local" ) }}' },
   ]
-  >packages = [ 'openssh-server' ]
-  '>VCenter:packages' = [ 'open-vm-tools' ]
+  '>package_list' = [ 'openssh-server' ]
+  '>package_list:VCenter' = [ 'open-vm-tools' ]
   virtualbox_guest_type = 'RedHat_64'
 
 [ structure.centos-6-base]
