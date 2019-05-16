@@ -39,7 +39,7 @@ selection_12=grub-pc        grub2/linux_cmdline_default      string
 selection_13=grub-pc        grub-pc/hidden_timeout           boolean false
 prebase_cmd_1=/usr/sbin/dpkg-reconfigure -f noninteractive tzdata
 base=ubuntu-standard
-packages=resolvconf console-setup language-pack-en-base
+packages=console-setup language-pack-en-base
 source_templates=sources,apt
 divert_1=/sbin/initctl:/bin/true
 divert_2=/sbin/status:/bin/true
@@ -57,9 +57,6 @@ bootloader_install=/usr/sbin/grub-install {0}
 
 [general]
 after_cmd_1=sed s/"#PermitRootLogin [A-Za-z\-]*"/"PermitRootLogin yes"/ -i /etc/ssh/sshd_config
-after_cmd_2=rm -f /etc/resolvconf/resolv.conf.d/original
-after_cmd_3=rm -f /etc/resolvconf/resolv.conf.d/tail
-after_cmd_4=touch /etc/resolvconf/resolv.conf.d/tail
 
 [packages]
 bootloader_package=grub-pc

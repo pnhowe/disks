@@ -1,1 +1,7 @@
 build
+dpkg
+dpkg-setup
+rpm
+rpm-setup
+debian
+rpmbuild

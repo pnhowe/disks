@@ -2,27 +2,27 @@
 
 #DISK: linux-installer
 
-QUESTION_LIST=( "IP_ADDRESS" "NETMASK" "GATEWAY" "DNS_SERVER" "MIRROR_SERVER" "HOSTNAME" "DOMAIN" "SWAP_SIZE" "USE_PROXY" "PROXY" "IS_VM" "RAID_TYPE"  )
-DESC_LIST=( "Ip Address" "Netmask" "Gateway" "DNS Server" "Mirror Server" "Hostname" "Domain Name" "Swap Size" "Use HTTP Proxy" "HTTP Proxy (ignored if use proxy is n)" "Is VM" "RAID Type (ignored if VM)" )
-TYPE_LIST=( "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "yesno" "inputbox" "yesno" "menu:single_Single Disk_mirror_Mirror Two Disks_raid10_All disks into RAID 10_raid6_All disks into RAID 6_single-lvm_Single Disk LVM_dual-lvm_Two Disk LVM" )
-DEFAULT_LIST=( "192.168.1.100" "255.255.255.0" "192.168.1.1" "192.168.1.1" "us.archive.ubuntu.com" "xenial" "local" "2048" "yes" "http://proxy:3128/" "no" "single"  )
+QUESTION_LIST=( "IP_ADDRESS" "NETMASK" "PREFIX" "GATEWAY" "DNS_SERVER" "MIRROR_SERVER" "HOSTNAME" "DOMAIN" "SWAP_SIZE" "USE_PROXY" "PROXY" "IS_VM" "RAID_TYPE"  )
+DESC_LIST=( "Ip Address" "Netmask" "Prefix" "Gateway" "DNS Server" "Mirror Server" "Hostname" "Domain Name" "Swap Size" "Use HTTP Proxy" "HTTP Proxy (ignored if use proxy is n)" "Is VM" "RAID Type (ignored if VM)" )
+TYPE_LIST=( "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "yesno" "inputbox" "yesno" "menu:single_Single Disk_mirror_Mirror Two Disks_raid10_All disks into RAID 10_raid6_All disks into RAID 6_single-lvm_Single Disk LVM_dual-lvm_Two Disk LVM" )
+DEFAULT_LIST=( "192.168.1.100" "255.255.255.0" "24" "192.168.1.1" "192.168.1.1" "us.archive.ubuntu.com" "bionic" "local" "2048" "yes" "http://proxy:3128/" "no" "single"  )
 
 CONFIG='DISTRO="ubuntu"
-VERSION="xenial"
+VERSION="bionic"
 SOURCE="http://__MIRROR_SERVER__/ubuntu"
 
 cat > /config.json << CONFIG_EOF
 {
-  "distro_version": "xenial",
+  "distro_version": "bionic",
   "hostname": "__HOSTNAME__",
   "package_list": [ "openssh-server", "openssh-client" __PACKAGES__ ],
   "swap_size": "__SWAP_SIZE__",
   "http_proxy": "__PROXY__",
   "partition_scheme": "__PART_SCHEME__",
   "repo_list": [
-    { "distribution": "xenial", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__" },
-    { "distribution": "xenial-updates", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__" },
-    { "distribution": "xenial-security", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__" }
+    { "distribution": "bionic", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__" },
+    { "distribution": "bionic-updates", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__" },
+    { "distribution": "bionic-security", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__" }
   ],
   "dns_servers": [ "__DNS_SERVER__" ],
   "dns_search": [ "__DOMAIN__" ],
@@ -35,7 +35,7 @@ cat > /config.json << CONFIG_EOF
         {
           "address": "__IP_ADDRESS__",
           "gateway": "__GATEWAY__",
-          "netmask": "__NETMASK__",
+          "prefix": __PREFIX__,
           "primary": true,
           "sub_interface": null,
           "tagged": false,

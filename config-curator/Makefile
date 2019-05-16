@@ -23,12 +23,6 @@ ifeq (6, $(DISTRO_MAJOR_VERSION))
 	$(RM) $(DESTDIR)/usr/lib/python3.4/site-packages/libconfig/jinja2/asyncfilters.py
 	$(RM) $(DESTDIR)/usr/lib/python3.4/site-packages/libconfig/jinja2/asyncsupport.py
 endif
-
-ifeq (7, $(DISTRO_MAJOR_VERSION))
-	# These two files are not compatible with the python3 version in centos 6
-	$(RM) $(DESTDIR)/usr/lib/python3.4/site-packages/libconfig/jinja2/asyncfilters.py
-	$(RM) $(DESTDIR)/usr/lib/python3.4/site-packages/libconfig/jinja2/asyncsupport.py
-endif
 endif
 
 ifeq (xenial, $(DISTRO_NAME))
@@ -89,7 +83,12 @@ rpm-distros:
 	echo centos-6 centos-7
 
 rpm-requires:
-	echo rpm-build python34-setuptools
+	echo rpm-build
+ifeq (6, $(DISTRO_MAJOR_VERSION))
+	echo python34-setuptools
+else
+	echo python36-setuptools
+endif
 
 rpm-setup:
 	./rpmbuild-setup

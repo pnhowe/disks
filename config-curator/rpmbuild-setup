@@ -8,6 +8,12 @@ DEB_RELEASE="$( head debian-common/changelog -n1 | sed 's/.*(\([^)]*\)).*/\1/' )
 RELEASE="$( echo "$DEB_RELEASE" | cut -d '-' -f2 )"
 VERSION="$( echo "$DEB_RELEASE" | cut -d '-' -f1 )"
 
+PYTHON_VERSION_MAJOR=$(python3 --version | cut -d ' ' -f2 | cut -d '.' -f1)
+PYTHON_VERSION_MINOR=$(python3 --version | cut -d ' ' -f2 | cut -d '.' -f2)
+
+PYTHON_REQUIRES="python${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR}, python${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR}-dateutil"
+PYTHON_PATH="python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}"
+
 echo "Setting up for '$DISTRO_RELEASE' Version: '$VERSION' Release: '$RELEASE'"
 
 TOPDIR="$( pwd )/rpmbuild"
@@ -28,7 +34,7 @@ Version:        $VERSION
 Release:        $RELEASE.$DISTRO_RELEASE
 License:        Apache2
 Group:          multiverse
-Requires:       python34
+Requires:       $PYTHON_REQUIRES
 BuildArch:      noarch
 
 %description
@@ -39,7 +45,7 @@ cd %{_srcdir}
 make install DESTDIR=%{buildroot}/
 
 %files
-/usr/lib/python3.4/site-packages/*
+/usr/lib/$PYTHON_PATH/site-packages/*
 /usr/sbin/*
 /var/lib/config-curator/templates/*
 

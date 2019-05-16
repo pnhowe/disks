@@ -184,7 +184,7 @@ clean: clean-deps clean-images clean-src respkg-clean pkg-clean
 
 dist-clean: clean-deps clean-images clean-src clean-downloads pkg-distclean
 
-.PHONY:: all all-pxe all-imgs clean clean-src clean-downloads clean-deps clean-images distclean pxe-targets templates
+.PHONY:: all all-pxe all-imgs clean clean-src clean-downloads clean-deps clean-images distclean pxe-targets templates images/img/% images/iso/%
 
 respkg-distros:
 	echo ubuntu-bionic
