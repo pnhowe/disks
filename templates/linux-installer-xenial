@@ -26,8 +26,8 @@ cat > /config.json << CONFIG_EOF
   ],
   "id": 0,
   "uuid": "00000000-0000-0000-0000-000000000000",
-  "interface_list": [
-    {
+  "_interface_map": { "eth0": {
+      "physical_location": "eth0",
       "address_list": [
         {
           "address": "dhcp",
@@ -35,13 +35,14 @@ cat > /config.json << CONFIG_EOF
           "sub_interface": null,
           "tagged": false,
           "vlan": 0,
-          "mtu": 1500
+          "mtu": 1500,
+          "auto": true
         }
       ],
       "mac": "--MAC--",
       "name": "eth0"
     }
-  ]
+  }
 }
 CONFIG_EOF
 

@@ -1,5 +1,4 @@
 import sqlite3
-import sys
 import pickle
 import base64
 import os
@@ -78,7 +77,7 @@ class Config():
     self.root_dir = root_dir
     self.configurator = configurator
     self.extra_values = {}
-    self.conn = sqlite3.connect( config_db )
+    self.conn = sqlite3.connect( config_db, detect_types=sqlite3.PARSE_DECLTYPES )
     self._checkDB( self.conn )
     self.config_uuid = None
 
@@ -94,8 +93,8 @@ class Config():
       conn.execute( """CREATE TABLE "control" (
         "id" INTEGER PRIMARY KEY CHECK ( "id" = 0 ),
         "version" int,
-        "created" datetime DEFAULT CURRENT_TIMESTAMP,
-        "modified" datetime DEFAULT CURRENT_TIMESTAMP
+        "created" timestamp DEFAULT CURRENT_TIMESTAMP,
+        "modified" timestamp DEFAULT CURRENT_TIMESTAMP
       );""" )
       conn.commit()
       conn.execute( 'INSERT INTO "control" ( "id", "version" ) VALUES ( 0, 0 );' )
@@ -109,12 +108,12 @@ class Config():
       conn.commit()
       conn.execute( """CREATE TABLE "global" (
         "id" INTEGER PRIMARY KEY CHECK ( "id" = 0 ),
-        "valuesLastModified" datetime,
-        "created" datetime DEFAULT CURRENT_TIMESTAMP,
-        "modified" datetime DEFAULT CURRENT_TIMESTAMP
+        "valuesLastModified" timestamp,
+        "created" timestamp DEFAULT CURRENT_TIMESTAMP,
+        "modified" timestamp DEFAULT CURRENT_TIMESTAMP
       );""" )
       conn.commit()
-      conn.execute( 'INSERT INTO "global" ( "id", "valuesLastModified" ) VALUES ( 0, 0 );' )
+      conn.execute( 'INSERT INTO "global" ( "id", "valuesLastModified" ) VALUES ( 0, CURRENT_TIMESTAMP );' )
       conn.commit()
 
       conn.execute( 'DROP TABLE IF EXISTS "value_cache";' )
@@ -122,8 +121,8 @@ class Config():
       conn.execute( """CREATE TABLE "value_cache" (
         "name" char(40) NOT NULL,
         "value" text,
-        "created" datetime DEFAULT CURRENT_TIMESTAMP,
-        "modified" datetime DEFAULT CURRENT_TIMESTAMP
+        "created" timestamp DEFAULT CURRENT_TIMESTAMP,
+        "modified" timestamp DEFAULT CURRENT_TIMESTAMP
       );""" )
 
       conn.execute( 'DROP TABLE IF EXISTS "targets";' )
@@ -133,10 +132,10 @@ class Config():
         "template" char(50) NOT NULL,
         "target" char(200),
         "targetHash" char(40),
-        "lastChecked" datetime,
-        "lastBuilt" datetime,
-        "created" datetime DEFAULT CURRENT_TIMESTAMP,
-        "modified" datetime DEFAULT CURRENT_TIMESTAMP
+        "lastChecked" timestamp,
+        "lastBuilt" timestamp,
+        "created" timestamp DEFAULT CURRENT_TIMESTAMP,
+        "modified" timestamp DEFAULT CURRENT_TIMESTAMP
       );""" )
 
       conn.execute( 'DROP TABLE IF EXISTS "templates";' )
@@ -145,10 +144,10 @@ class Config():
         "package" char(50) NOT NULL,
         "template" char(50) NOT NULL,
         "templateHash" char(40),
-        "lastChecked" datetime,
-        "lastBuilt" datetime,
-        "created" datetime DEFAULT CURRENT_TIMESTAMP,
-        "modified" datetime DEFAULT CURRENT_TIMESTAMP
+        "lastChecked" timestamp,
+        "lastBuilt" timestamp,
+        "created" timestamp DEFAULT CURRENT_TIMESTAMP,
+        "modified" timestamp DEFAULT CURRENT_TIMESTAMP
       );""" )
 
       conn.commit()
@@ -195,7 +194,7 @@ class Config():
     cur = self.conn.cursor()
     cur.execute( 'SELECT "template", "templateHash" FROM "templates" WHERE package = "{0}" ORDER BY template;'.format( package ) )
     for ( template, template_hash ) in cur.fetchall():
-      result[ str( template ) ] = { 'hash': str( template_hash ) }
+      result[ template ] = { 'hash': template_hash }
 
     cur.close()
 
@@ -206,7 +205,7 @@ class Config():
     cur = self.conn.cursor()
     cur.execute( 'SELECT "target", "targethash", "lastChecked", "lastBuilt" FROM "targets" WHERE package = "{0}" AND template = "{1}" ORDER BY target;'.format( package, template ) )
     for ( target, target_hash, checked, built ) in cur.fetchall():
-      result[ str( target ) ] = { 'hash': str( target_hash ), 'last_checked': str( checked ), 'last_built': str( built ) }
+      result[ target ] = { 'hash': target_hash, 'last_checked': checked, 'last_built': built }
 
     cur.close()
 
@@ -230,21 +229,23 @@ class Config():
     return eng.globals[ '_target_list' ]
 
   def setConfigUUID( self, uuid ):
+    if uuid is None:
+      raise Exception( 'Can Not set uuid to None' )
+
     self.config_uuid = uuid
 
   def _getMasterValues( self ):
     values = self.provider.getValues( self.config_uuid )
     if not values:
-      print( 'Provider returned empty config' )
-      sys.exit( 1 )
+      raise Exception( 'Provider returned empty config' )
 
     if self.provider.uuid is None:
-      print( 'Retrieved config is not valid' )
-      sys.exit( 1 )
+      raise Exception( 'Retrieved config is not valid' )
 
-    if self.config_uuid is not None and self.config_uuid != self.provider.uuid:
-      print( 'config uuid mismatch' )
-      sys.exit( 1 )
+    if self.config_uuid is None:
+      self.config_uuid = self.provider.uuid
+    elif self.config_uuid != self.provider.uuid:
+      raise Exception( 'config uuid mismatch' )
 
     return values, self.provider.last_modified
 
@@ -265,12 +266,17 @@ class Config():
     cur = self.conn.cursor()
     cur.execute( 'SELECT "name", "value" FROM "value_cache";' )
     for ( name, value ) in cur.fetchall():
-      result[ str( name ) ] = pickle.loads( base64.b64decode( value ) )
+      result[ name ] = pickle.loads( base64.b64decode( value ) )
 
     cur.close()
 
     if not no_extra:
       result.update( self.extra_values )
+
+    result[ '__timestamp__' ] = datetime.now().isoformat()
+    result[ '__configurator__' ] = self.configurator
+    result[ '__uuid__' ] = self.config_uuid
+    result[ '__last_modified__' ] = self.getLastModified()
 
     return result
 
@@ -379,10 +385,6 @@ class Config():
     template_list = self._getPackageTemplates( package )
     template_db_list = self._getTemplates( package )
     package_dir = os.path.join( self.template_dir, package )
-
-    value_map[ '__configurator__' ] = self.configurator
-    value_map[ '__uuid__' ] = self.config_uuid
-    value_map[ '__last_modified__' ] = last_modified
 
     for template in template_list:
       if template not in master_template_list:
