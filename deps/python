@@ -46,4 +46,8 @@ install()
   do
     cp -L $LIB $1/lib
   done
+
+  pip3 install --no-compile --system --target $1/lib/python3.6/ python-dateutil
+
+  rm -fr $1/lib/python3.6/*.dist-info
 }
