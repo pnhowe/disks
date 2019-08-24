@@ -173,8 +173,8 @@ if options.list:
   for name in value_map:
     print( '{0:>40} {1}'.format( name, value_map[ name ] ) )
 
-  print( '{0:>20} {1:>20} {2:>20} {3:>20} {4:>10} {5:>20} {6:>10}'.format( 'Package', 'Template', 'Destination File', 'Locally', 'Needs', 'Last Build', 'Still  ' ) )
-  print( '{0:>20} {1:>20} {2:>20} {3:>20} {4:>10} {5:>20} {6:>10}'.format( '', '', '', 'Modified', 'Update', 'Date   ', 'Refrenced' ) )
+  print( '{0:>25} {1:>25} {2:>40} {3:>10} {4:>10} {5:>20} {6:>10}'.format( 'Package', 'Template', 'Destination File', 'Locally', 'Needs', 'Last Build', 'Still  ' ) )
+  print( '{0:>25} {1:>25} {2:>40} {3:>10} {4:>10} {5:>20} {6:>10}'.format( '', '', '', 'Modified', 'Update', 'Date   ', 'Refrenced' ) )
 
   for package in package_list:
     if options.verbose:
@@ -182,7 +182,7 @@ if options.list:
     target_list = config.getTargetStatus( package )
 
     for target in target_list:
-       print( '{0:>20} {1:>20} {2:>20} {3:>20} {4:>10} {5:>20} {6:>10}'.format( package, target['template'], target['target'], target['localmod'], target['need_update'], target['last_built'], target['refrenced'] ) )
+       print( '{0:>25} {1:>25} {2:>40} {3:>10} {4:>10} {5:>20} {6:>10}'.format( package, target[ 'template' ], target[ 'target' ], target[ 'localmod' ], target[ 'need_update' ], str( target[ 'last_built' ] ), target[ 'refrenced' ] ) )
 
   sys.exit( 0 )
 
