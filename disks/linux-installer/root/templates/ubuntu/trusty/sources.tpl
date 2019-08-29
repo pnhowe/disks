@@ -1,7 +1,7 @@
 {% set _entries = {} %}
 {% set _order = [] %}
 {% for repo in repo_list %}
-{% if repo.type == 'apt' %}
+{% if repo.type == 'apt' and repo.distribution %}
 {% set tmp = ( repo.uri, repo.distribution, repo.options ) %}
 {% if tmp in _entries %}
 {% do _entries.__setitem__( tmp, _entries[ tmp ] + repo.components ) %}

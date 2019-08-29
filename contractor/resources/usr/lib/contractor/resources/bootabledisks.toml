@@ -17,6 +17,7 @@
     { distribution = '{{ distro_version }}', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
     { distribution = '{{ distro_version }}-updates', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
     { distribution = '{{ distro_version }}-security', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
+    { type = 'apt', uri = 'http://d16r8ew072anqo.cloudfront.net/', proxy = '{{ mirror_proxy|default( "local" ) }}' },  # getting a proxy setting for other servers that get refrenced
   ]
   '>package_list' = [ 'openssh-server', 'openssh-client' ]
   '>package_list:VCenter' = [ 'open-vm-tools' ]

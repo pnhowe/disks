@@ -13,7 +13,7 @@ SUBDIRS="encodings serial json config ctypes logging sqlite3 collections urllib 
 build()
 {
   tar --strip-components=1 -xJf $1
-  ./configure --prefix= --enable-ipv6
+  ./configure --prefix=/ --enable-ipv6
   make python
   LIBSUBDIRS=$SUBDIRS make -e build_all
 }
@@ -22,8 +22,8 @@ install()
 {
   cp -f $3/python/python $1/bin/
 
-  DESTDIR=$1 LIBSUBDIRS=$SUBDIRS make -C $3/python -e libinstall
-  DESTDIR=$1 LIBSUBDIRS=$SUBDIRS make -C $3/python -e sharedinstall
+  prefix=$1 LIBSUBDIRS=$SUBDIRS make -C $3/python -e libinstall
+  prefix=$1 LIBSUBDIRS=$SUBDIRS make -C $3/python -e sharedinstall
 
   rm -fr $1/lib/python3.6/lib2to3
   rm $1/bin/2to3-3.6
@@ -46,4 +46,8 @@ install()
   do
     cp -L $LIB $1/lib
   done
+
+  pip3 install --no-compile --system --target $1/lib/python3.6/ python-dateutil
+
+  rm -fr $1/lib/python3.6/*.dist-info
 }
