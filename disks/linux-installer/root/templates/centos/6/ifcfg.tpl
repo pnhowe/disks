@@ -1,5 +1,5 @@
-{% for interface_name in _interface_map %}
-{% set interface = _interface_map[ interface_name ] %}
+{% for interface_name, interface in _interface_map.values() %}
+# on network {{ interface.network }}
 {% for address in interface.address_list %}
 {% set filename = 'ifcfg-' + interface_name %}
 {% if address.vlan and address.tagged %}
@@ -26,7 +26,7 @@ HWADDR="{{ interface.mac }}"
 {% if address.address == 'dhcp' %}BOOTPROTO="dhcp"{% else %}BOOTPROTO="none"
 IPADDR="{{ address.address }}"
 NETMASK="{{ address.netmask }}"
-NETWORK="{{ address.network }}"
+NETWORK="{{ address.subnet }}"
 GATEWAY="{{ address.gateway }}"
 {% endif %}
 {% if address.vlan and address.tagged %}VLAN="yes"{% endif %}

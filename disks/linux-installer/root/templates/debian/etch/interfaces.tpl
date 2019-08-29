@@ -4,9 +4,10 @@
 auto lo
 iface lo inet loopback
 
-{% for interface in _foundation_interface_list %}{% if interface != 'ipmi' %}
+{% for interface_name, interface in _interface_map.items() %}{% if interface_name != 'ipmi' %}
+# on network {{ interface.network }}
 {% if interface.address_list %}
-{% set ifname = interface.name %}
+{% set ifname = interface_name %}
 {% for address in interface.address_list %}
 {% if address.vlan and address.tagged %}{% set ifname = ifname + "." + address.vlan|string %}{% endif %}
 {% if address.sub_interface %}{% set ifname = ifname + ":" + address.sub_interface %}{% endif %}
@@ -17,18 +18,18 @@ iface {{ ifname }} inet dhcp
 iface {{ ifname }} inet static
   address {{ address.address }}
   netmask {{ address.netmask }}
-{% if address.network %}  network {{ address.network }}{% endif %}
+{% if address.subnet %}  network {{ address.subnet }}{% endif %}
   mtu {{ address.mtu }}
 {% if address.vlan and address.tagged and address_primary.gateway %}{% if address.gateway %}  up ip rule add from {{ address.address }} table {{ address.vlan }}
-  up ip rule add from {{ address.address }} to {{ address.network }}/{{ address.prefix }} table main
+  up ip rule add from {{ address.address }} to {{ address.subnet }}/{{ address.prefix }} table main
   up ip route add default via {{ address.gateway }} table {{ address.vlan }}
   down ip route del default via {{ address.gateway }} table {{ address.vlan }}
-  down ip rule del from {{ address.address }} to {{ address.network }}/{{ address.prefix }} table main
+  down ip rule del from {{ address.address }} to {{ address.subnet }}/{{ address.prefix }} table main
   down ip rule del from {{ address.address }} table {{ address.vlan }}{% else %}
-  up ip rule add from {{ address_primary.address }} to {{ address.network }}/{{ address.prefix }} lookup {{ address.vlan }}
+  up ip rule add from {{ address_primary.address }} to {{ address.subnet }}/{{ address.prefix }} lookup {{ address.vlan }}
   up ip route add default via {{ address_primary.gateway }} table {{ address.vlan }}
   down ip route del default via {{ address_primary.gateway }} table {{ address.vlan }}
-  down ip rule del from {{ address_primary.address }} to {{ address.network }}/{{ address.prefix }} lookup {{ address.vlan }}{% endif %}
+  down ip rule del from {{ address_primary.address }} to {{ address.subnet }}/{{ address.prefix }} lookup {{ address.vlan }}{% endif %}
 {% else %}{% if address.gateway %}  gateway {{ address.gateway }}{% endif %}{% endif %}
 {% for route in address.route_list %}
   up ip route add {{ route.route }} via {{ route.gateway }}
