@@ -1,4 +1,4 @@
-{% for interface_name, interface in _interface_map.values() %}
+{% for interface_name, interface in _interface_map.items() %}
 # on network {{ interface.network }}
 {% for address in interface.address_list %}
 {% set filename = 'ifcfg-' + interface_name %}
