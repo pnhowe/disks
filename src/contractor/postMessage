@@ -2,18 +2,17 @@
 
 import sys
 
-from controller import getClient, NoJobException
+from contractor import getClient, NoJobException
 
 try:
   msg = sys.argv[ 1 ]
 except KeyError:
   print( 'usage: {0} <message>' ).format( sys.argv[0] )
 
-controller = getClient()
+contractor = getClient()
 
 try:
-  controller.signalComplete()
-  print( 'Complete Signal Sent.' )
+  contractor.postMessage( msg )
 except NoJobException:
   print( 'WARNING! No Job, aborting.' )
 

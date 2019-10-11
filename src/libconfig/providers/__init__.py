@@ -1,4 +1,4 @@
 from libconfig.providers.file import FileProvider
-from libconfig.providers.http import HTTPProvider
+from libconfig.providers.contractor import ContractorProvider
 
-__all__ = [ 'FileProvider', 'HTTPProvider' ]
+__all__ = [ 'FileProvider', 'ContractorProvider' ]

@@ -24,4 +24,4 @@ teamplate values
   :postinstall_commands: list of commands to run in the target install, ie: `[ 'echo "configured" > /etc/file', 'ls -l / > /stock_root' ]`
 
 
-/config.json: config vaules if local_config is specified, otherwise retrieved via the controller client
+/config.json: config vaules if local_config is specified, otherwise retrieved via the contractor client

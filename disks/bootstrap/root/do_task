@@ -4,23 +4,6 @@ set -e
 
 . /tmp/config_file
 
-# setup vars
-STRAP="net-$( cat /sys/class/net/eth0/address )"
-
-# parse options
-for x in $(cat /proc/cmdline); do
-  case $x in
-    strap=*)
-      STRAP=${x#strap=}
-      ;;
-  esac
-done
-
-if [ "x$STRAP" == "xauto" ];
-then
-  STRAP="auto-$( cat /sys/class/net/eth0/address )"
-fi
-
 # set things up
 
 echo "Starting lldpd..."
@@ -73,7 +56,7 @@ then
 fi
 
 echo "Starting bootstrap..."
-/bootstrap $STRAP && rc=0 || rc=$?
+/bootstrap && rc=0 || rc=$?
 
 if [ "$rc" -eq "20" ];
 then

@@ -14,10 +14,9 @@ NETMASK=
 DNS_SERVER=
 DNS_SEARCH_ZONE=
 HOSTNAME=
-CONTROLLER_IP=
-CONFIG_PROXY=
-CONFIG_URL="http://controller/config/pxe_config"
-CONTROLLER_HOST="controller"
+CONTRACTOR_IP=
+CONTRACTOR_HOST="http://contractor"
+CONTRACTOR_PROXY=
 MEDIA_UUID=
 MEDIA_LABEL=
 
@@ -79,15 +78,11 @@ do
     no_ip)
       NO_IP=1
       ;;
-    controller_ip=*)
-      CONTROLLER_IP=${x#controller_ip=}
+    contractor_ip=*)
+      CONTRACTOR_IP=${x#contractor_ip=}
       ;;
-    config_url=*)
-      CONFIG_URL=${x#config_url=}
-      CONTROLLER_HOST="$(echo \"$CONFIG_URL\" | awk -F/ '{print $3}')"
-      ;;
-    config_proxy=*)
-      CONFIG_PROXY=${x#config_proxy=}
+    contractor_proxy=*)
+      CONTRACTOR_PROXY=${x#contractor_proxy=}
       ;;
     debug)
       DEBUG=1
@@ -110,13 +105,11 @@ do
   esac
 done
 
-export controller_host=$CONTROLLER_HOST
-
-if [ "x$CONFIG_PROXY" != "x" ];
+if [ "x$CONTRACTOR_PROXY" != "x" ];
 then
-  PING_HOST="$(echo \"$CONFIG_PROXY\" | awk -F/ '{print $3}')"
+  PING_HOST="$(echo \"$CONTRACTOR_PROXY\" | awk -F/ '{print $3}')"
 else
-  PING_HOST="$CONTROLLER_HOST"
+  PING_HOST="$(echo \"$CONTRACTOR_HOST\" | awk -F/ '{print $3}')"
 fi
 
 if [ "$NET_DEBUG" == "1" ];
@@ -246,9 +239,9 @@ then
   echo "127.0.1.1 $HOSTNAME" >> /etc/hosts
   echo "$HOSTNAME" > /etc/hostname
 
-  if [ "x$CONTROLLER_IP" != "x" ];
+  if [ "x$CONTRACTOR_IP" != "x" ];
   then
-    echo "$CONTROLLER_IP $CONTROLLER_HOST" >> /etc/hosts
+    echo "$CONTRACTOR_IP $CONTRACTOR_HOST" >> /etc/hosts
   fi
 
   if [ "x$IP_ADDRESS" != "x" ];
@@ -401,14 +394,11 @@ if [ "$CONFIG_SRC" == "local" ];
 then
   if [ -r /media/config_file ];
   then
-    cp /media/config_file /tmp/config_file
+    export contractor_host="file://media/config_file"
   elif [ -r /config_file ];
   then
-    cp /config_file /tmp/config_file
-  fi
-
-  if [ ! -r /tmp/config_file ];
-  then
+    export contractor_host="file://config_file"
+  else
     echo "No Local Config!"
     error_happened
   fi
@@ -421,39 +411,7 @@ then
     error_happened
   fi
 
-  # for some reason http_proxy get's set before now, not sure where/how/why
-  export http_proxy=
-  export https_proxy=
-
-  echo "Getting PXE Config from $CONFIG_URL..."
-
-  if [ "x$CONFIG_PROXY" != "x" ];
-  then
-    /bin/logger "config proxy: $CONFIG_PROXY"
-    export http_proxy=$CONFIG_PROXY
-    export https_proxy=$CONFIG_PROXY
-  fi
-
-  /bin/logger "config url: $CONFIG_URL"
-
-  echo "Getting $CONFIG_URL"
-
-  wget -q -O /tmp/config_file.tmp $CONFIG_URL
-  rc=$?
-
-  export http_proxy=
-  export https_proxy=
-
-  if [ "$rc" -ne "0" ];
-  then
-    echo "Error getting the config file"
-    error_happened
-  fi
-
-  #thanks to the web standard \r\n which messes up bash/ash
-  cat /tmp/config_file.tmp | tr -d \\r > /tmp/config_file
-
-  rm /tmp/config_file.tmp
+  export contractor_host=$CONTRACTOR_HOST
 fi
 
 
@@ -465,11 +423,11 @@ then
   export https_proxy=$HTTP_PROXY
 fi
 
-if [ "x$CONFIG_PROXY" != "x" ];
+if [ "x$CONTRACTOR_PROXY" != "x" ];
 then
-  echo "Setting 'controller_proxy' to $CONFIG_PROXY..."
-  /bin/logger "controller_proxy: $CONFIG_PROXY"
-  export controller_proxy=$CONFIG_PROXY
+  echo "Setting 'contractor_proxy' to $CONTRACTOR_PROXY..."
+  /bin/logger "contractor_proxy: $CONTRACTOR_PROXY"
+  export contractor_proxy=$CONTRACTOR_PROXY
 fi
 
 if [ "x$DEBUG" != "x1" ];

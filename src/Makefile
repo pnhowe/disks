@@ -1,4 +1,4 @@
-SUBDIRS = ttytee nscd libconfig libdrive libhardware platoclient controller
+SUBDIRS = ttytee nscd libconfig libdrive libhardware platoclient contractor
 
 all:
 	for dir in $(SUBDIRS); do $(MAKE) -C $$dir all || exit $$?; done

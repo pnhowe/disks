@@ -5,7 +5,7 @@ import sys
 import optparse
 import shutil
 
-from controller.client import getClient
+from contractor.client import getClient
 from installer.procutils import open_output, set_chroot, execute, execute_lines, chroot_execute
 from installer.filesystem import partition, mkfs, mount, remount, unmount, writefstab, fsConfigValues, grubConfigValues, MissingDrives, installFilesystemUtils
 from installer.bootstrap import bootstrap
@@ -27,7 +27,7 @@ oparser.add_option( '-t', '--target', help='Install Target [drive/image/chroot] 
 
 ( options, args ) = oparser.parse_args()
 
-controller = getClient()
+contractor = getClient()
 
 open_output( STDOUT_OUTPUT )
 
@@ -37,14 +37,14 @@ if options.package and options.distro:
 
 if options.package:
   if options.source:
-    controller.postMessage( 'Downloading Install Package...' )
+    contractor.postMessage( 'Downloading Install Package...' )
     execute( '/bin/wget -O /tmp/package {0}{1}'.format(  options.source, options.package ) )
     options.package = '/tmp/package'
 
   if not os.access( options.package, os.R_OK ):
     raise Exception( 'Unable to find image package "{0}"'.format( options.package ) )
 
-  controller.postMessage( 'Extracting Install Package...' )
+  contractor.postMessage( 'Extracting Install Package...' )
   os.makedirs( '/package' )
   execute( '/bin/tar -C /package --exclude=image* -xzf {0}'.format( options.package ) )
 
@@ -78,7 +78,7 @@ if options.target == 'drive':
 
 set_chroot( install_root )
 
-controller.postMessage( 'Setting Up Configurator...' )
+contractor.postMessage( 'Setting Up Configurator...' )
 initConfig( install_root, template_path, profile_file )
 updateConfig( 'filesystem', fsConfigValues() )
 
@@ -86,36 +86,36 @@ value_map = getValues()
 
 profile = getProfile()
 
-controller.postMessage( 'Loading Kernel Modules...' )
+contractor.postMessage( 'Loading Kernel Modules...' )
 for item in profile.items( 'kernel' ):
   if item[0].startswith( 'load_module_' ):
     execute( '/sbin/modprobe {0}'.format( item[1] ) )
 
 if options.target == 'drive':
-  controller.postMessage( 'Partitioning....' )
+  contractor.postMessage( 'Partitioning....' )
   try:
     partition( profile, value_map )
   except MissingDrives as e:
     print( 'Timeout while waiting for drive "{0}"'.format( e ) )
     sys.exit( 1 )
 
-  controller.postMessage( 'Making Filesystems....' )
+  contractor.postMessage( 'Making Filesystems....' )
   mkfs()
 
 updateConfig( 'filesystem', fsConfigValues() )
 
 profile = getProfile()  # reload now with the file system values
 
-controller.postMessage( 'Mounting....' )
+contractor.postMessage( 'Mounting....' )
 mount( install_root, profile )
 
 if not options.package:
-  controller.postMessage( 'Bootstrapping....' )
+  contractor.postMessage( 'Bootstrapping....' )
   bootstrap( install_root, options.source, profile )
   remount()
 
 else:
-  controller.postMessage( 'Extracting OS Image....' )
+  contractor.postMessage( 'Extracting OS Image....' )
   name = execute_lines( '/bin/tar --wildcards image.* -ztf {0}'.format( options.package ) )
   try:
     name = name[0]
@@ -130,48 +130,48 @@ else:
   else:
     raise Exception( 'Unable to find image to extract' )
 
-controller.postMessage( 'Writing fstab....' )
+contractor.postMessage( 'Writing fstab....' )
 writefstab( install_root, profile )
 
 writeShellHelper()
 
 if not options.package:
-  controller.postMessage( 'Setting Up Package Manager...' )
+  contractor.postMessage( 'Setting Up Package Manager...' )
   configSources( install_root, profile, value_map )
 
-  controller.postMessage( 'Writing Base OS Config...' )
+  contractor.postMessage( 'Writing Base OS Config...' )
   baseConfig( profile )
 
-  controller.postMessage( 'Setting up Diverts....' )
+  contractor.postMessage( 'Setting up Diverts....' )
   divert( profile )
 
-  controller.postMessage( 'Before Base Setup....' )
+  contractor.postMessage( 'Before Base Setup....' )
   preBaseSetup( profile )
 
-  controller.postMessage( 'Installing Base...' )
+  contractor.postMessage( 'Installing Base...' )
   installBase( install_root, profile )
   remount()
 
-  controller.postMessage( 'Setting Up Users....' )
+  contractor.postMessage( 'Setting Up Users....' )
   setupUsers( install_root, profile, value_map )
 
   updateConfig( 'bootloader', grubConfigValues( install_root ) )
 
-  controller.postMessage( 'Installing Kernel/Boot Loader...' )
+  contractor.postMessage( 'Installing Kernel/Boot Loader...' )
   installBoot( install_root, profile )  # bootloader before other packages, incase other packages pulls in bootloader before we have it configured
 
-  controller.postMessage( 'Installing Packages...' )
+  contractor.postMessage( 'Installing Packages...' )
   installOtherPackages( profile, value_map )
 
-  controller.postMessage( 'Installing Filesystem Utils...' )
+  contractor.postMessage( 'Installing Filesystem Utils...' )
   installFilesystemUtils( profile )
 
-  controller.postMessage( 'Updating Packages...' )
+  contractor.postMessage( 'Updating Packages...' )
   updatePackages()
 
 updateConfig( 'bootloader', grubConfigValues( install_root ) )
 
-controller.postMessage( 'Writing Full Config...' )
+contractor.postMessage( 'Writing Full Config...' )
 fullConfig()
 
 if not options.package:
@@ -179,20 +179,20 @@ if not options.package:
     if item[0].startswith( 'after_cmd_' ):
       chroot_execute( item[1] )
 
-  controller.postMessage( 'Post Install Scripts...' )
+  contractor.postMessage( 'Post Install Scripts...' )
   postInstallScripts( install_root, value_map )
 
-  controller.postMessage( 'Removing Diverts...' )
+  contractor.postMessage( 'Removing Diverts...' )
   undivert( profile )
 
-  controller.postMessage( 'Cleaning up...' )
+  contractor.postMessage( 'Cleaning up...' )
   cleanPackaging( install_root )
 
 else:
-  controller.postMessage( 'Setting Up Users....' )
+  contractor.postMessage( 'Setting Up Users....' )
   setupUsers( install_root, profile, value_map )
 
-  controller.postMessage( 'Running Package Setup...' )
+  contractor.postMessage( 'Running Package Setup...' )
   if not os.access( '/package/setup.sh', os.R_OK ):
     raise Exception( 'Unable to find package setup file' )
 
@@ -205,13 +205,13 @@ else:
 os.unlink( '/target/config_data' )
 
 if os.access( os.path.join( install_root, 'usr/sbin/config-curator' ), os.X_OK ):
-  controller.postMessage( 'Running config-curator...' )
+  contractor.postMessage( 'Running config-curator...' )
   chroot_execute( '/usr/sbin/config-curator -c -a -f -b' )
 
 shutil.copyfile( '/tmp/output.log', os.path.join( install_root, 'root/install.log' ) )
 shutil.copyfile( '/tmp/detail.log', os.path.join( install_root, 'root/install.detail.log' ) )
 
-controller.postMessage( 'Unmounting...' )
+contractor.postMessage( 'Unmounting...' )
 unmount( install_root, profile )
 
-controller.postMessage( 'Done!' )
+contractor.postMessage( 'Done!' )

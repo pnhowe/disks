@@ -5,8 +5,8 @@ from configparser import NoOptionError
 from installer.procutils import chroot_execute
 from libconfig.libconfig import Config
 from libconfig.jinja2 import FileSystemLoader, Environment
-from libconfig.providers import FileProvider, HTTPProvider
-from controller.client import getClient
+from libconfig.providers import FileProvider, ContractorProvider
+from contractor.client import getClient
 
 config = None
 template = None
@@ -21,7 +21,7 @@ def initConfig( install_root, template_path, profile_path ):
     provider = FileProvider( '/config.json' )
 
   else:
-    provider = HTTPProvider( getClient() )
+    provider = ContractorProvider( getClient() )
 
   config = Config( provider, template_path, ':memory:', install_root, 'linux-installer' )
   config.updateCacheFromMaster()
