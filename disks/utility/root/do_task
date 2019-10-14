@@ -1,10 +1,10 @@
 #!/bin/sh
 
 echo "Starting SSH..."
-echo "  FYI: The root password is \"plato\""
+echo "  FYI: The root password is \"t3kton\""
 echo "sshd:x:1000:1000:sshd:::" >> /etc/passwd
 echo "sshd:x:1000:" >> /etc/group
-echo "root:\$6\$platoplato\$W1AkPNRKyKV1IPZro3T7Rt9vURyoaOemV932AhxJPuavv0G.xMcKAFJBe7MAM/YRsRhTSZ2wox2rRrECGHQ680:15539:0:99999:7:::" > /etc/shadow
+echo "root:\$6\$t3kton00\$J.c49kYYhDgePtdZoGYirLkdNb9UDqzFmmR2..O18vy8PUsosPhIiTGli2BmmpBYt49/o7EaJ6O9KrQEbmRQ7.:15539:0:99999:7:::" > /etc/shadow
 mkdir -p /var/run/sshd
 mkdir -m 700 /var/empty
 /sbin/ssh-keygen -A

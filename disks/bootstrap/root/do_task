@@ -2,8 +2,6 @@
 
 set -e
 
-. /tmp/config_file
-
 # set things up
 
 echo "Starting lldpd..."
@@ -15,7 +13,7 @@ echo "Bringing up all interfaces..."
 for iface in $iface_list;
 do
   echo "Bringing up $iface..."
-  ifconfig $iface up
+  /sbin/ip link set $iface up
 done
 
 sleep 10

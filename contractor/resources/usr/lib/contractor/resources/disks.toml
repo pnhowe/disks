@@ -86,11 +86,21 @@
   vcenter_guest_id = 'centos7_64Guest'
   azure_image = { 'publisher' = 'OpenLogic', 'offer' = 'CentOS', 'sku' = '7.6', 'version' = 'latest' }
 
-[ pxe.bootabledisk-linux-installer ]
-  description = 'Bootabledisks - Linux Installer'
+[ pxe.disks-bootstrap ]
+  description = 'T3kton Disks - Bootstrap'
+  boot_script = '''echo Bootstrap
+kernel {{ __pxe_location }}disks/bootstrap.vmlinuz {% if _provisioning_interface %}interface={{ _provisioning_interface }}{% endif %} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} {% if _hostname %}hostname={{ _hostname }}{% endif %}
+initrd {{ __pxe_location }}disks/bootstrap.initrd
+boot
+'''
+
+  template = '# bootstrap'
+
+[ pxe.disks-linux-installer ]
+  description = 'T3kton Disks - Linux Installer'
   boot_script = '''echo Linux Installer
-kernel {{ __pxe_location }}bootabledisks/linux-installer.vmlinuz interface_mac={{ _provisioning_interface_mac }} config_url={{ __pxe_template_location }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ _hostname }}
-initrd {{ __pxe_location }}bootabledisks/linux-installer.initrd
+kernel {{ __pxe_location }}disks/linux-installer.vmlinuz interface_mac={{ _provisioning_interface_mac }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ _hostname }}
+initrd {{ __pxe_location }}disks/linux-installer.initrd
 boot
 '''
   template = '''# Generated at: {{ __timestamp }}

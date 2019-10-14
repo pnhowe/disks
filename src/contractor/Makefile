@@ -3,8 +3,8 @@ all:
 clean:
 
 install:
-	mkdir -p $(DESTDIR)/controller
-	cp controller/* $(DESTDIR)/controller
+	mkdir -p $(DESTDIR)/contractor
+	cp contractor/* $(DESTDIR)/contractor
 
 test-requires:
 

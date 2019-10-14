@@ -18,13 +18,14 @@ mkdir -p $1/boot
 
 cp "${LINUX_DIR}arch/x86_64/boot/bzImage" $1/boot/vmlinuz
 
+cp -f $3/kmod/libkmod/.libs/libkmod.so.2.3.3 $1/lib
+
 if [ "x$4" = "xmod" ]
 then
   cd $LINUX_DIR && INSTALL_MOD_PATH=$1 make modules_install
   rm $1/lib/modules/*/build
   rm $1/lib/modules/*/source
   cp -f $3/kmod/tools/kmod $1/sbin
-  cp -f $3/kmod/libkmod/.libs/libkmod.so.2.3.3 $1/lib
   ln -sf kmod $1/sbin/lsmod
   ln -sf kmod $1/sbin/rmmod
   ln -sf kmod $1/sbin/insmod

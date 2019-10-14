@@ -73,12 +73,4 @@ CONSOLE_LIST="$CONSOLE_LIST /tmp/output.log"
 
 /sbin/ttytee -d /dev/mastertty $CONSOLE_LIST
 
-# until udev starts modprobing it's self
-modprobe e1000
-modprobe vmxnet3
-modprobe sd_mod
-modprobe dm_mod
-modprobe ahci
-modprobe mptspi
-
 sleep 2 # give udev a bit to get things created

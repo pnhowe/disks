@@ -1,4 +1,4 @@
-VERSION := 0.4
+VERSION := 0.5
 
 DEPS = $(shell ls deps)
 DISKS = $(shell ls disks)
@@ -193,17 +193,17 @@ respkg-requires:
 	echo respkg build-essential libelf-dev bc zlib1g-dev libssl-dev gperf libreadline-dev libsqlite3-dev libbz2-dev liblzma-dev uuid-dev libdevmapper-dev libgcrypt-dev libgpg-error-dev libassuan-dev libksba-dev libnpth0-dev python3-dev python3-setuptools pkg-config libblkid-dev gettext python3-pip
 
 respkg: all-pxe
-	mkdir -p contractor/resources/var/www/bootabledisks
-	cp images/pxe/*.initrd contractor/resources/var/www/bootabledisks
-	cp images/pxe/*.vmlinuz contractor/resources/var/www/bootabledisks
-	cd contractor && respkg -b ../bootabledisks-contractor_$(VERSION).respkg -n bootabledisks-contractor -e $(VERSION) -c "Bootable Disks for Contractor" -t load_data.sh -d resources -s contractor-os-base
+	mkdir -p contractor/resources/var/www/static/pxe/disks
+	cp images/pxe/*.initrd contractor/resources/var/www/static/pxe/disks
+	cp images/pxe/*.vmlinuz contractor/resources/var/www/static/pxe/disks
+	cd contractor && respkg -b ../disks-contractor_$(VERSION).respkg -n disks-contractor -e $(VERSION) -c "Disks for Contractor" -t load_data.sh -d resources -s contractor-os-base
 	touch respkg
 
 respkg-file:
 	echo $(shell ls *.respkg)
 
 respkg-clean:
-	$(RM) -fr resources/var/www/bootabledisks
+	$(RM) -fr resources/var/www/disks
 
 .PHONY:: respkg-distros respkg-requires respkg respkg-file respkg-clean
 

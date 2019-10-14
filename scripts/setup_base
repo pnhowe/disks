@@ -44,5 +44,5 @@ localedef --prefix=$1 -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_
 ./scripts/install_dep udev $1 $2 $3
 ./scripts/install_dep python $1 $2 $3
 
-# install controller libs  usine install_src function?
-DESTDIR=$1/lib/python3.6/ make -C $2/controller install
+# install contractor libs  usine install_src function?
+DESTDIR=$1/lib/python3.6/ make -C $2/contractor install
