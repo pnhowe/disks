@@ -1,14 +1,7 @@
-#these to get over loaded by dpkg-build pacage, these are for compiles for other things, like the pxe-profiles
+#these to get over loaded by dpkg-build package, these are for compiles for other things, like the pxe-profiles
 LDFLAGS =
 CFLAGS = -O3 -W -Wall -W
 
-#see libdrive's Makefile for explanation for what is going on here
-HAS_H2XML = 0
-ifeq ($(wildcard /usr/bin/h2xml),/usr/bin/h2xml)
-ifeq ($(shell gccxml | grep compatibility -c),0)
-HAS_H2XML = 1
-endif
-endif
 
 LIB_VERSION = $(shell grep "^__VERSION__" libhardware.py | cut -f2 | sed s/\[^0-9\.]//g)
 PROG_VERSION = $(shell echo "$(LIB_VERSION)" | sed s/"\.[0-9]$$"//)
@@ -20,7 +13,11 @@ SHARED_LIBS = libhardware.so.$(LIB_VERSION)
 BASE_OBJS = dmi.o dmi_decode.o pci.o
 
 override LDFLAGS +=
-override CFLAGS += -DPROG_VERSION=\"$(PROG_VERSION)\"
+override CFLAGS += -DPROG_VERSION=\"$(PROG_VERSION)\" -fno-builtin-memset
+
+#TODO: possibly touch a file to tell if the current build is normal or ESX, if not clean and build yours
+#make sure gcc-multilib libc6-dev-i386 is installed for 32 bit
+#update Makefile for libhardware as needed
 
 ifeq ($(shell uname -m),x86_64)
 override CFLAGS += -fPIC
@@ -44,52 +41,17 @@ esx-lib: override LDFLAGS += -m32
 esx-lib: $(SHARED_LIBS)
 
 libhardware_h.py: dmi.h pci.h
-ifeq ($(HAS_H2XML), 1)
-	h2xml -I . dmi.h pci.h -o libhardware.xml
-	xml2py libhardware.xml -s dmi_entry -s pci_entry > libhardware_h.py
-	$(RM) libhardware.xml
-else
 	cp libhardware_h.cache libhardware_h.py
-endif
 
-# make sure to update the dependancies in plato-disks/Makefile if more/less pxe-images are affected
-install-disks: all
-	mkdir -p ../plato-disks/bootstrap/initrd/lib
-	mkdir -p ../plato-disks/bootstrap/initrd/usr/lib/python2.7/platoclient
-	mkdir -p ../plato-disks/bootstrap/initrd/bin
-	cp libhardware.so.$(LIB_VERSION) ../plato-disks/bootstrap/initrd/lib
-	cp libhardware.py ../plato-disks/bootstrap/initrd/usr/lib/python2.7/platoclient
-	cp libhardware_h.py ../plato-disks/bootstrap/initrd/usr/lib/python2.7/platoclient
-	cp hardwareinfo ../plato-disks/bootstrap/initrd/bin
-
-	mkdir -p ../plato-disks/firmware-update/initrd/lib
-	mkdir -p ../plato-disks/firmware-update/initrd/usr/lib/python2.7/platoclient
-	mkdir -p ../plato-disks/firmware-update/initrd/bin
-	cp libhardware.so.$(LIB_VERSION) ../plato-disks/firmware-update/initrd/lib
-	cp libhardware.py ../plato-disks/firmware-update/initrd/usr/lib/python2.7/platoclient
-	cp libhardware_h.py ../plato-disks/firmware-update/initrd/usr/lib/python2.7/platoclient
-	cp hardwareinfo ../plato-disks/firmware-update/initrd/bin
-
-	mkdir -p ../plato-disks/utility/initrd/bin
-	cp hardwareinfo ../plato-disks/utility/initrd/bin
-	cp libhardware.so.$(LIB_VERSION) ../plato-disks/utility/initrd/lib
-	cp libhardware.py ../plato-disks/utility/initrd/usr/lib/python2.7/platoclient
-	cp libhardware_h.py ../plato-disks/utility/initrd/usr/lib/python2.7/platoclient
-	cp hardwareinfo ../plato-disks/utility/initrd/bin
-
-	mkdir -p ../plato-disks/bios-cfg/initrd/lib
-	mkdir -p ../plato-disks/bios-cfg/initrd/usr/lib/python2.7/platoclient
-	mkdir -p ../plato-disks/bios-cfg/initrd/bin
-	cp libhardware.so.$(LIB_VERSION) ../plato-disks/bios-cfg/initrd/lib
-	cp libhardware.py ../plato-disks/bios-cfg/initrd/usr/lib/python2.7/platoclient
-	cp libhardware_h.py ../plato-disks/bios-cfg/initrd/usr/lib/python2.7/platoclient
-	cp hardwareinfo ../plato-disks/bios-cfg/initrd/bin
-
-install-client-pkg: all
-	mkdir -p $(DESTDIR)usr/lib
-	mkdir -p $(DESTDIR)usr/sbin
-	install -m 644 libhardware.so.$(LIB_VERSION) $(DESTDIR)usr/lib
-	install -m 755 hardwareinfo $(DESTDIR)usr/sbin
+install: all
+	mkdir -p $(DESTDIR)/usr/lib
+	mkdir -p $(DESTDIR)/usr/sbin
+	install -m 644 libhardware.so.$(LIB_VERSION) $(DESTDIR)/usr/lib
+	install -m 755 hardwareinfo $(DESTDIR)/usr/sbin
+	mkdir -p $(DESTDIR)/lib/python3.6/libhardware
+	cp __init__.py $(DESTDIR)/lib/python3.6/libhardware
+	cp libhardware.py $(DESTDIR)/lib/python3.6/libhardware
+	cp libhardware_h.py $(DESTDIR)/lib/python3.6/libhardware
 
 # have to compile twice b/c the lib is 32-bit (esx's python is 32bit)
 install-esx:
@@ -114,18 +76,19 @@ install-esx:
 clean:
 	$(RM) libhardware_h.py
 	$(RM) *.o
+	$(RM) *.pyc
 	$(RM) $(SHARED_LIBS)
 	$(RM) $(PROGS)
 	$(RM) libhardware.xml
 
 full-clean: clean
 
+test:
+
 test-requires:
 	echo flake8
-
-test:
 
 lint:
 	flake8 --exclude *_h.py --ignore=E501,E201,E202,E111,E126,E114,E402,W605 --statistics .
 
-.PHONY: all clean esx-lib install-disks install-client-pkg install-esx test-requires test lint
+.PHONY: all clean esx-lib install-disks install-client-pkg install-esx test lint test-requires

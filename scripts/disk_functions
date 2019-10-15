@@ -36,6 +36,9 @@ install_src()
   elif [ "x$1" = "xlibdrive" ]
   then
     DESTDIR="$PWD/build.images/$ROOT_FS" make -C "$PWD/src/libdrive" install
+  elif [ "x$1" = "xlibhardware" ]
+  then
+    DESTDIR="$PWD/build.images/$ROOT_FS" make -C "$PWD/src/libhardware" install
   fi
 
 }

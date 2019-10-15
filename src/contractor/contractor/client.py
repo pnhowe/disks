@@ -5,7 +5,7 @@ import time
 import random
 import math
 from datetime import datetime
-from cinp.client import CInP, Timeout, ResponseError
+from contractor.cinp.client import CInP, Timeout, ResponseError
 
 
 __VERSION__ = '0.1'

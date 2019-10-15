@@ -42,7 +42,8 @@ install()
   /usr/lib/x86_64-linux-gnu/libpanel.so.5.9 \
   /usr/lib/x86_64-linux-gnu/libsqlite3.so.0.8.6 \
   /usr/lib/x86_64-linux-gnu/libssl.so.1.1 \
-  /lib/x86_64-linux-gnu/libtinfo.so.5.9
+  /lib/x86_64-linux-gnu/libtinfo.so.5.9 \
+  /usr/lib/x86_64-linux-gnu/libffi.so.6.0.4
   do
     cp -L $LIB $1/lib
   done

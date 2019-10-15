@@ -54,7 +54,7 @@ then
 fi
 
 echo "Starting bootstrap..."
-/bootstrap && rc=0 || rc=$?
+./bootstrap.py && rc=0 || rc=$?
 
 if [ "$rc" -eq "20" ];
 then

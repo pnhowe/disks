@@ -4,7 +4,7 @@ clean:
 
 install:
 	mkdir -p $(DESTDIR)/contractor
-	cp contractor/* $(DESTDIR)/contractor
+	cp -a contractor/* $(DESTDIR)/contractor
 
 test-requires:
 

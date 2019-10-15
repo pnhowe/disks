@@ -107,7 +107,7 @@ build.images/%.root: disks/%/build_root build.deps/build build-src
 	touch $@
 
 images/pxe/%.initrd: build.images/%.root images
-	cd build.images/$* && find ./ | grep -v ^./boot | cpio --owner=+0:+0 -H newc -o | gzip -9 > $(PWD)/$@
+	cd build.images/$* && find ./ | cpio --owner=+0:+0 -H newc -o | gzip -9 > $(PWD)/$@
 
 images/pxe/%.vmlinuz: build.images/%.root images
 	cp -f build.images/$*/boot/vmlinuz $@

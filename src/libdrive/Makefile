@@ -66,8 +66,6 @@ install: all
 	cp libdrive_h.py $(DESTDIR)/lib/python3.6/libdrive
 	cp libenclosure_h.py $(DESTDIR)/lib/python3.6/libdrive
 
-
-
 # have to compile twice b/c the lib is 32-bit (esx's python is 32bit)
 install-esx:
 	$(MAKE) clean
@@ -102,8 +100,6 @@ clean:
 full-clean: clean
 
 test:
-
-test-requires:
 
 test-requires:
 	echo flake8
