@@ -1,4 +1,0 @@
-echo Linux Installer
-kernel {{ pxe_location }}linux-installer.vmlinuz hostname={{ hostname }} interface_mac={{ "{" }}{ interfaces.{{ interface_provisioning }}.mac }{{ "}" }}{% if http_proxy %} http_proxy={{ http_proxy }}{% endif %}{% if console_list %} {% for console, baud in console_list %} console={{ console }},{{ baud }} console=tty1{% endfor %}{% endif %}{% endif %}
-initrd {{ pxe_location }}linux-installer.initrd
-boot

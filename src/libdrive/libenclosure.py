@@ -41,12 +41,10 @@ class Enclosure( object ):
     if get_enclosure_info( self.scsi_generic, pointer( tmp ), errstr ):
       raise Exception( 'Error getting enclosure info "{0}"'.format( errstr.value.strip() ) )
 
-    self._info = { 'vendor': tmp.vendor_id.strip(), 'version': tmp.version.strip() }
+    self._info = { 'vendor': str( tmp.vendor_id, 'utf-8' ).strip() }
 
-    for item in ( 'serial', 'model' ):
-      self._info[ item ] = getattr( tmp, item ).decode().strip()
-    for item in ( 'WWN', ):
-      self._info[ item ] = getattr( tmp, item )
+    for item in ( 'version', 'serial', 'model', 'WWN' ):
+      self._info[ item ] = str( getattr( tmp, item ), 'utf-8' ).strip()
 
   def _loadDescriptors( self ):
     errstr = create_string_buffer( 100 )
@@ -65,24 +63,28 @@ class Enclosure( object ):
   def serial( self ):
     if not self._info:
       self._loadInfo()
+
     return self._info['serial']
 
   @property
   def model( self ):
     if not self._info:
       self._loadInfo()
+
     return self._info['model']
 
   @property
   def vendor( self ):
     if not self._info:
       self._loadInfo()
+
     return self._info[ 'vendor' ]
 
   @property
   def version( self ):
     if not self._info:
       self._loadInfo()
+
     return self._info[ 'version' ]
 
   @property
@@ -104,7 +106,7 @@ class Enclosure( object ):
                                 'element_index': int( descriptor.element_index ),
                                 'element_type': int( descriptor.element_type ),
                                 'subelement_index': int( descriptor.subelement_index ),
-                                'help_text': descriptor.help_text.strip(),
+                                'help_text': str( descriptor.help_text, 'utf-8' ).strip(),
                                 'value_offset': int( descriptor.value_offset ),
                                 'value': bytearray( descriptor.value )
                                } )
@@ -124,7 +126,7 @@ class Enclosure( object ):
 
       index += 1
       if index >= 250:  # enclosure.h:#define DESCRIPTOR_MAX_COUNT 250
-        raise Exception( 'To many descriptors in descriptor_list' )
+        raise ValueError( 'To many descriptors in descriptor_list' )
 
     errstr = create_string_buffer( 100 )
 

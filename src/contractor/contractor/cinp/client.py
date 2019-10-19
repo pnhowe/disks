@@ -133,6 +133,9 @@ class CInP():
         raise InvalidRequest( 'data must be an readable stream' )
       verb = 'POST'  # not to be handled by CInP on the other end, but by a file upload handler
 
+    elif verb == 'RAWGET':  # not a CINP verb, just using it to bypass some checking here in _request
+      verb = 'GET'
+
     else:
       header_map[ 'Content-Type' ] = 'application/json;charset=utf-8'
       self._checkRequest( verb, uri, data )
@@ -167,6 +170,21 @@ class CInP():
 
     logging.debug( 'cinp: got http code "{0}"'.format( http_code ) )
 
+    if http_code == 401:
+      resp.close()
+      logging.warning( 'cinp: Invalid Session' )
+      raise InvalidSession()
+
+    if http_code == 403:
+      resp.close()
+      logging.warning( 'cinp: Not Authorized' )
+      raise NotAuthorized()
+
+    if http_code == 404:
+      resp.close()
+      logging.warning( 'cinp: Not Found' )
+      raise NotFound()
+
     buff = str( resp.read(), 'utf-8' ).strip()
     if not buff:
       data = None
@@ -196,18 +214,6 @@ class CInP():
 
       logging.warning( 'cinp: Invalid Request "{0}"'.format( message ) )
       raise InvalidRequest( message )
-
-    if http_code == 401:
-      logging.warning( 'cinp: Invalid Session' )
-      raise InvalidSession()
-
-    if http_code == 403:
-      logging.warning( 'cinp: Not Authorized' )
-      raise NotAuthorized()
-
-    if http_code == 404:
-      logging.warning( 'cinp: Not Found' )
-      raise NotFound()
 
     if http_code == 500:
       if isinstance( data, dict ):

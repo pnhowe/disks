@@ -104,7 +104,7 @@ def getRAMAmmount():
 
 
 def getIPMIMAC():
-  proc = subprocess.run( [ '/bin/ipmitool', 'lan', 'print', config[ 'ipmi_lan_channel' ] ], stdout=subprocess.PIPE )
+  proc = subprocess.run( [ '/bin/ipmitool', 'lan', 'print', str( config[ 'ipmi_lan_channel' ] ) ], stdout=subprocess.PIPE )
   lines = str( proc.stdout, 'utf-8' ).strip().splitlines()
   for line in lines:
     if line.startswith( 'MAC Address' ):

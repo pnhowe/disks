@@ -10,6 +10,7 @@ ROOT_FS="bootstrap"
 install_base
 
 install_dep "lldp"
+install_dep "ipmitool"
 
 install_src "libdrive"
 install_src "libhardware"

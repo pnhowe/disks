@@ -16,27 +16,29 @@ dm = DriveManager()
 
 lib.ipmicommand( 'chassis identify force', True )
 
-locator = None
+foundation_locator = None
 
 lldp = lib.getLLDP()
 primary_iface = open( '/tmp/dhcp-interface', 'r' ).read().strip()
 
-while not locator:
-  print( 'Locating....' )
-  matched_by, locator = contractor.locate( { 'lldp': lldp, 'ip_address': lib.getIpAddress( primary_iface ) } )
+while not foundation_locator:
+  print( 'Looking up....' )
+  lookup = contractor.lookup( { 'lldp': lldp, 'ip_address': lib.getIpAddress( primary_iface ) } )
 
-  if matched_by is None:
+  if lookup[ 'matched_by'] is None:
     print( 'Waiting 30 seconds....' )
     time.sleep( 30 )
 
-print( '** Hello World! I am Foundation "{0}", nice to meet you! **'.format( locator ) )
-print( 'Located by "{0}"'.format( matched_by ) )
+  else:
+    foundation_locator = lookup[ 'locator' ]
 
-config = contractor.getConfig( foundation_locator=locator )
+print( '** Hello World! I am Foundation "{0}", nice to meet you! **'.format( foundation_locator ) )
+print( 'Lookedup by "{0}"'.format( lookup[ 'matched_by'] ) )
+contractor.postMessage( 'Foundation Lokked up as "{0}"'.format( foundation_locator ) )
+
+config = contractor.getConfig( foundation_locator=foundation_locator )
 config[ 'ipmi_lan_channel' ] = config.get( 'ipmi_lan_channel', 1 )
 lib.config = config
-
-contractor.postMessage( 'Foundation Located' )
 
 print( 'Getting Hardware Profile Information...' )
 hardware = {}  # hardware needs to match what is sent be reportHardwareStatus, except things like raid controller status?
@@ -88,7 +90,7 @@ for drive in dm.drive_list:
 # nothing yet
 
 print( 'Reporting Hardware info to contractor...' )
-error = contractor.setIdMap( { 'hardware': hardware, 'network': network, 'disks': disks } )
+error = contractor.setIdMap( foundation_locator, { 'hardware': hardware, 'network': network, 'disks': disks } )
 if error != 'Good':
   contractor.postMessage( 'Hardware Error: "{0}"'.format( error ) )
   sys.exit( 20 )
@@ -97,10 +99,12 @@ contractor.postMessage( 'Hardware Profile Verified' )
 
 iface_list = []
 
-if os.path.exists( '/dev/ipmi0' ) and 'ipmi' in config[ 'interfaces' ]:
+if os.path.exists( '/dev/ipmi0' ) and 'ipmi_ip_address' in config:  # TODO: when the interface on the ipmi foundation get's figured out, this will change
   contractor.postMessage( 'Configuring IPMI' )
 
-  address = config[ 'interfaces' ][ 'ipmi' ][ 'address_list' ][0]
+  tmp = config[ 'ipmi_ip_address' ].split( '.' )  # TODO: when the interface on the ipmi foundation get's figured out, this will change
+  tmp[3] = '1'
+  address = { 'address': config[ 'ipmi_ip_address' ], 'gateway': '.'.join( tmp ), 'netmask': '255.255.255.0', 'vlan': 0, 'tagged': False }
 
   # remove the other users first
   lib.ipmicommand( 'user disable 5' )
@@ -118,15 +122,15 @@ if os.path.exists( '/dev/ipmi0' ) and 'ipmi' in config[ 'interfaces' ]:
 
   lib.ipmicommand( 'lan set {0} arp generate off'.format( config[ 'ipmi_lan_channel' ] ), True )  # disable gratious arp, dosen't work on some Intel boxes?
   lib.ipmicommand( 'lan set {0} ipsrc static'.format( config[ 'ipmi_lan_channel' ] ) )
-  lib.ipmicommand( 'lan set {0} ipaddr {1}'.format( config[ 'ipmi_lan_channel' ], address['address'] ) )
-  lib.ipmicommand( 'lan set {0} netmask {1}' .format( config[ 'ipmi_lan_channel' ], address['netmask'] ) )
+  lib.ipmicommand( 'lan set {0} ipaddr {1}'.format( config[ 'ipmi_lan_channel' ], address[ 'address' ] ) )
+  lib.ipmicommand( 'lan set {0} netmask {1}' .format( config[ 'ipmi_lan_channel' ], address[ 'netmask' ] ) )
   if not address.get( 'gateway', None ):
     address['gateway'] = '0.0.0.0'
-  lib.ipmicommand( 'lan set {0} defgw ipaddr {1}'.format( config[ 'ipmi_lan_channel' ], address['gateway'] ) )  # use the address 0.0.0.0 dosen't allways work for disabeling defgw
+  lib.ipmicommand( 'lan set {0} defgw ipaddr {1}'.format( config[ 'ipmi_lan_channel' ], address[ 'gateway' ] ) )  # use the address 0.0.0.0 dosen't allways work for disabeling defgw
 
   try:
     if address[ 'vlan' ] and address[ 'tagged' ]:
-      lib.ipmicommand( 'lan set {0} vlan id {1}'.format( config[ 'ipmi_lan_channel' ], address['vlan'] ) )
+      lib.ipmicommand( 'lan set {0} vlan id {1}'.format( config[ 'ipmi_lan_channel' ], address[ 'vlan' ] ) )
   except KeyError:
     pass
 
@@ -140,7 +144,7 @@ if os.path.exists( '/dev/ipmi0' ) and 'ipmi' in config[ 'interfaces' ]:
   time.sleep( 60 )  # let the bmc restart
 
   # bmc info can hang for ever use something like http://stackoverflow.com/questions/1191374/subprocess-with-timeout
-  # to kill it and restart and try again.... plato has to be able to send identified machines back to provisiond however
+  # to kill it and restart and try again.
   lib.ipmicommand( 'bmc info' )  # should hang untill it comes back, need a timeout for this
   lib.ipmicommand( 'bmc info' )
 
@@ -200,6 +204,8 @@ if config.get( 'bootstrap_wipe_mbr', False ):
 #   if not success:
 #     controller.postMessage( 'BIOS Config Failed' )
 #     sys.exit( 1 )
+
+contractor.setLocated( foundation_locator )
 
 contractor.postMessage( 'Cleaning up' )
 

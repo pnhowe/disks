@@ -29,6 +29,7 @@ oparser.add_option( '-t', '--target', help='Install Target [drive/image/chroot] 
 
 contractor = getClient()
 
+
 open_output( STDOUT_OUTPUT )
 
 if options.package and options.distro:

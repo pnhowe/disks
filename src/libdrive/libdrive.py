@@ -190,16 +190,16 @@ class Drive( object ):
       raise Exception( 'Error getting drive info "{0}"'.format( errstr.value.strip() ) )
 
     if tmp.protocol == PROTOCOL_TYPE_ATA:
-      self._info = { 'protocol': 'ATA', 'firmware': tmp.firmware_rev.strip() }
+      self._info = { 'protocol': 'ATA', 'firmware': str( tmp.firmware_rev, 'utf-8' ).strip() }
 
     elif tmp.protocol == PROTOCOL_TYPE_SCSI:
-      self._info = { 'protocol': 'SCSI', 'vendor': tmp.vendor_id.strip(), 'version': tmp.version.strip() }
+      self._info = { 'protocol': 'SCSI', 'vendor': str( tmp.vendor_id, 'utf-8' ).strip(), 'version': str( tmp.version, 'utf-8' ).strip() }
 
     else:
       raise Exception( 'Unkown Drive protocol "{0}"'.format( tmp.protocol ) )
 
     for item in ( 'serial', 'model' ):
-      self._info[ item ] = getattr( tmp, item ).decode().strip()
+      self._info[ item ] = str( getattr( tmp, item ), 'utf-8' ).strip()
 
     for item in ( 'SMARTSupport', 'SMARTEnabled', 'supportsSelfTest', 'supportsLBA', 'supportsWriteSame', 'supportsTrim', 'isSSD' ):
       self._info[ item ] = ( getattr( tmp, item ) == '\x01' )

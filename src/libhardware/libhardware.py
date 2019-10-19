@@ -2,7 +2,7 @@
 
 from ctypes import cdll, POINTER, pointer, Structure, c_int, c_char_p, create_string_buffer
 
-from libhardware_h import dmi_entry, pci_entry
+from libhardware.libhardware_h import dmi_entry, pci_entry
 
 __VERSION__ = "0.4.0"
 
@@ -43,23 +43,24 @@ def dmiInfo():
   counter.value = ENTRY_LIST_SIZE
 
   if _get_dmi_info_ident( pointer( entry_list ), pointer( counter ), errstr ):
-    raise Exception( 'Error getting DMI Info "%s"' % errstr.value.strip() )
+    raise Exception( 'Error getting DMI Info "{0}"'.format( errstr.value.strip() ) )
 
   tmp = {}
 
   for entry in entry_list.list:
     if not entry.type:
       continue
+
     if entry.group not in tmp:
-      tmp[entry.group] = { 'type': entry.type, 'names': [], 'values': [] }
-    tmp[entry.group]['names'].append( entry.name.strip() )
-    tmp[entry.group]['values'].append( entry.value.strip() )
+      tmp[ entry.group ] = { 'type': str( entry.type, 'utf-8' ).strip(), 'names': [], 'values': [] }
+    tmp[ entry.group ][ 'names' ].append( str( entry.name, 'utf-8' ).strip() )
+    tmp[ entry.group ][ 'values' ].append( str( entry.value, 'utf-8' ).strip() )
 
   results = {}
   for group in tmp:
-    if tmp[group]['type'] not in results:
-      results[ tmp[group]['type'] ] = []
-    results[ tmp[group]['type'] ].append( dict( zip( tmp[group]['names'], tmp[group]['values'] ) ) )
+    if tmp[ group ][ 'type' ] not in results:
+      results[ tmp[ group ][ 'type' ] ] = []
+    results[ tmp[ group ][ 'type' ] ].append( dict( zip( tmp[ group ][ 'names' ], tmp[ group ][ 'values' ] ) ) )
 
   return results
 
@@ -71,13 +72,14 @@ def pciInfo():
   counter.value = ENTRY_LIST_SIZE
 
   if _get_pci_info_ident( pointer( entry_list ), pointer( counter ), errstr ):
-    raise Exception( 'Error getting PCI Info "%s"' % errstr.value.strip() )
+    raise Exception( 'Error getting PCI Info "{0}"'.format( errstr.value.strip() ) )
 
   results = {}
 
   for entry in entry_list.list:
     if not entry.vendor_id:
       continue
-    results[ '%04x:%02x:%02x.%02x' % ( entry.domain, entry.bus, entry.device, entry.function ) ] = { 'vendor': entry.vendor_id, 'device': entry.device_id }
+
+    results[ '{0:04x}:{1:02x}:{2:02x}.{3:02x}'.format( entry.domain, entry.bus, entry.device, entry.function ) ] = { 'vendor': entry.vendor_id, 'device': entry.device_id }
 
   return results

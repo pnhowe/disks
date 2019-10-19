@@ -7,7 +7,7 @@
   parents = [ 'linux-base' ]
 
 [ structure.ubuntu-base.config_values ]
-  installer_pxe = 'bootabledisk-linux-installer'
+  installer_pxe = 'disks-linux-installer'
   mirror_server = 'us.archive.ubuntu.com'
   config_host = 'http://contractor'
   bootstrap_source = 'http://{{ mirror_server }}/ubuntu'
@@ -52,7 +52,7 @@
   parents = [ 'linux-base' ]
 
 [ structure.centos-base.config_values ]
-  installer_pxe = 'bootabledisk-linux-installer'
+  installer_pxe = 'disks-linux-installer'
   mirror_server = 'mirror.centos.org'
   config_host = 'http://contractor'
   bootstrap_source = 'http://{{ mirror_server }}/centos/'

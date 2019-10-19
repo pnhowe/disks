@@ -27,7 +27,6 @@ install()
   DESTDIR=$1 make -C $3/udev install
   $1/sbin/udevadm hwdb --update --root=$1
   sed s/#udev_log=\"info\"/udev_log=\"info\"/ -i $1/etc/udev/udev.conf
-  #sed s/#udev_log=\"info\"/udev_log=\"debug\"/ -i $1/etc/udev/udev.conf
   #rm -fr $1/etc/udev/hwdb.d
 
   # for now we are going to stick with the old network Interaface names

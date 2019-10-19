@@ -18,5 +18,6 @@ install_dep "e2fsprogs"
 install_dep "dosfstools"
 install_dep "gpgv"
 install_dep "squashfs"
+install_dep "ipmitool"
 
 install_src "libdrive"

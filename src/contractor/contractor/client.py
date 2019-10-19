@@ -120,16 +120,21 @@ class Client():
 class HTTPClient( Client ):
   def __init__( self, host, proxy ):
     super().__init__()
-    self.cinp = CInP( host=host, root_path='/api/v1', proxy=proxy )
-    self.cinp.openener.headers[ 'User-Agent' ] += ' - config agent'
+    self.cinp = CInP( host=host, root_path='/api/v1/', proxy=proxy )
+    # self.cinp.opener.addheaders[ 'User-Agent' ] += ' - config agent'
 
   def request( self, method, uri, data=None, timeout=30, retry_count=0 ):
     retry = 0
     while True:
       logging.debug( 'contractor: request: retry {0} of {1}, timeout: {2}'.format( retry, retry_count, timeout ) )
       try:
-        if method == 'get':
-          return self.cinp.get( uri, timeout=timeout )
+        if method == 'raw get':
+          ( http_code, values, _ ) = self.cinp._request( 'RAWGET', uri, header_map={}, timeout=timeout )
+          if http_code != 200:
+            logging.warning( 'cinp: unexpected HTTP Code "{0}" for GET'.format( http_code ) )
+            raise ResponseError( 'Unexpected HTTP Code "{0}" for GET'.format( http_code ) )
+          return values
+
         elif method == 'call':
           return self.cinp.call( uri, data, timeout=timeout )
 
@@ -143,17 +148,20 @@ class HTTPClient( Client ):
 
   def getConfig( self, config_uuid=None, foundation_locator=None ):
     if config_uuid is not None:
-      return self.request( 'get', '/config/config/c/{0}'.format( config_uuid ), timeout=10, retry_count=2 )
+      return self.request( 'raw get', '/config/config/c/{0}'.format( config_uuid ), timeout=10, retry_count=2 )
     elif foundation_locator is not None:
-      return self.request( 'get', '/config/config/f/{0}'.format( foundation_locator ), timeout=10, retry_count=2 )
+      return self.request( 'raw get', '/config/config/f/{0}'.format( foundation_locator ), timeout=10, retry_count=2 )
     else:
-      return self.request( 'get', '/config/config/', timeout=10, retry_count=2 )  # the defaults cause libconfig to hang to a long time when it can't talk to contractor
+      return self.request( 'raw get', '/config/config/', timeout=10, retry_count=2 )  # the defaults cause libconfig to hang to a long time when it can't talk to contractor
 
   def lookup( self, info_map ):
     return self.request( 'call', '/api/v1/Building/Foundation(lookup)', { 'info_map': info_map }, retry_count=100 )
 
-  def setLocated( self, structure_id, id_map ):
-    self.request( 'call', '/api/v1/Building/Structure:{0}:{setLocated}'.format( structure_id ), { 'id_map': id_map } )
+  def setIdMap( self, foundation_locator, id_map ):
+    return self.request( 'call', '/api/v1/Building/Foundation:{0}:(setIdMap)'.format( foundation_locator ), { 'id_map': id_map } )
+
+  def setLocated( self, foundation_locator ):
+    self.request( 'call', '/api/v1/Building/Foundation:{0}:(setLocated)'.format( foundation_locator ), {} )
 
 
 class LocalFileClient( Client ):
