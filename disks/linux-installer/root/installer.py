@@ -2,7 +2,6 @@
 import os
 import stat
 import sys
-import optparse
 import shutil
 
 from contractor.client import getClient
@@ -17,64 +16,63 @@ from installer.users import setupUsers
 
 STDOUT_OUTPUT = '/dev/instout'
 
-oparser = optparse.OptionParser( description='Linux Installer', usage='Use either --distro and --version or --package.' )
-
-oparser.add_option( '-d', '--distro', help='Distro [debian/centos/sles/opensles/rhel]', dest='distro' )
-oparser.add_option( '-v', '--version', help='Distro Version [precise/5/...]', dest='version' )
-oparser.add_option( '-p', '--package', help='Path to package, if --source is specified, this is a path on the source, other wise it is a local path.', dest='package' )
-oparser.add_option( '-s', '--source', help='HTTP Source (ie: http://mirrors/ubuntu/)', dest='source' )
-oparser.add_option( '-t', '--target', help='Install Target [drive/image/chroot] (default: drive)', dest='target', default='drive' )
-
-( options, args ) = oparser.parse_args()
-
 contractor = getClient()
 
+config = contractor.getConfig()
+image_package = config.get( 'image_package', None )
+image_package_location = config.get( 'image_package_location', None )
+
+distro = config.get( 'distro', None )
+distro_version = config.get( 'distro_version', None )
+bootstrap_source = config.get( 'bootstrap_source', None )
+
+target = config.get( 'install_target', 'drive' )
 
 open_output( STDOUT_OUTPUT )
 
-if options.package and options.distro:
-  print( '--package and --distro can not be used at the same time.' )
+if image_package and distro:
+  print( '"image_package" and "distro" can not be specified at the same time.' )
   sys.exit( 1 )
 
-if options.package:
-  if options.source:
+if image_package:
+  if image_package_location:
     contractor.postMessage( 'Downloading Install Package...' )
-    execute( '/bin/wget -O /tmp/package {0}{1}'.format(  options.source, options.package ) )
-    options.package = '/tmp/package'
+    execute( '/bin/wget -O /tmp/package {0}{1}'.format( image_package_location, image_package ) )
+    image_package = '/tmp/package'
 
-  if not os.access( options.package, os.R_OK ):
-    raise Exception( 'Unable to find image package "{0}"'.format( options.package ) )
+  if not os.access( image_package, os.R_OK ):
+    raise Exception( 'Unable to find image package "{0}"'.format( image_package ) )
 
   contractor.postMessage( 'Extracting Install Package...' )
   os.makedirs( '/package' )
-  execute( '/bin/tar -C /package --exclude=image* -xzf {0}'.format( options.package ) )
+  execute( '/bin/tar -C /package --exclude=image* -xzf {0}'.format( image_package ) )
 
   profile_file = '/package/profile'
   template_path = '/package/templates'
 
 else:
-  if options.distro not in os.listdir( '/profiles/' ):
-    print( 'Unknown Distro "{0}"'.format( options.distro ) )
+  if distro not in os.listdir( '/profiles/' ):
+    print( 'Unknown Distro "{0}"'.format( distro ) )
     sys.exit( 1 )
 
-  if options.version not in os.listdir( os.path.join( '/profiles', options.distro ) ):
-    print( 'Unknown Version "{0}" of Distro "{1}"'.format( options.version, options.distro ) )
+  if distro_version not in os.listdir( os.path.join( '/profiles', distro ) ):
+    print( 'Unknown Version "{0}" of Distro "{1}"'.format( distro_version, distro ) )
     sys.exit( 1 )
 
-  if options.target not in ( 'drive', ):
-    print( 'Unknown Target "{0}"'.format( options.target ) )
+  if target not in ( 'drive', ):
+    print( 'Unknown Target "{0}"'.format( target ) )
     sys.exit( 1 )
 
-  if not options.source:
-    print( 'Source required' )
+  if not bootstrap_source:
+    print( 'bootstrap_source is required when installing via distro' )
     sys.exit( 1 )
 
-  profile_file = os.path.join( '/profiles', options.distro, options.version )
-  template_path = os.path.join( '/templates', options.distro, options.version )
+  profile_file = os.path.join( '/profiles', distro, distro_version )
+  template_path = os.path.join( '/templates', distro, distro_version )
   print( 'Using profile "{0}"'.format( profile_file ) )
   print( 'Using template "{0}"'.format( template_path ) )
 
-if options.target == 'drive':
+if target == 'drive':
   install_root = '/target'
 
 set_chroot( install_root )
@@ -92,7 +90,7 @@ for item in profile.items( 'kernel' ):
   if item[0].startswith( 'load_module_' ):
     execute( '/sbin/modprobe {0}'.format( item[1] ) )
 
-if options.target == 'drive':
+if target == 'drive':
   contractor.postMessage( 'Partitioning....' )
   try:
     partition( profile, value_map )
@@ -110,23 +108,23 @@ profile = getProfile()  # reload now with the file system values
 contractor.postMessage( 'Mounting....' )
 mount( install_root, profile )
 
-if not options.package:
+if not image_package:
   contractor.postMessage( 'Bootstrapping....' )
-  bootstrap( install_root, options.source, profile )
+  bootstrap( install_root, bootstrap_source, profile )
   remount()
 
 else:
   contractor.postMessage( 'Extracting OS Image....' )
-  name = execute_lines( '/bin/tar --wildcards image.* -ztf {0}'.format( options.package ) )
+  name = execute_lines( '/bin/tar --wildcards image.* -ztf {0}'.format( image_package ) )
   try:
     name = name[0]
   except IndexError:
     raise Exception( 'Unable to find image in package' )
   if name == 'image.cpio.gz':
-    execute( '/bin/sh -c "cd {0}; /bin/tar --wildcards image.* -Ozxf {1} | /bin/gunzip | /bin/cpio -id"'.format( install_root, options.package ) )
+    execute( '/bin/sh -c "cd {0}; /bin/tar --wildcards image.* -Ozxf {1} | /bin/gunzip | /bin/cpio -id"'.format( install_root, image_package ) )
 
   elif name == 'image.tar.gz':
-    execute( '/bin/sh -c "cd {0}; /bin/tar --wildcards image.* -Ozxf {1} | /bin/gunzip | /bin/tar -xz"'.format( install_root, options.package ) )
+    execute( '/bin/sh -c "cd {0}; /bin/tar --wildcards image.* -Ozxf {1} | /bin/gunzip | /bin/tar -xz"'.format( install_root, image_package ) )
 
   else:
     raise Exception( 'Unable to find image to extract' )
@@ -136,7 +134,7 @@ writefstab( install_root, profile )
 
 writeShellHelper()
 
-if not options.package:
+if not image_package:
   contractor.postMessage( 'Setting Up Package Manager...' )
   configSources( install_root, profile, value_map )
 
@@ -175,7 +173,7 @@ updateConfig( 'bootloader', grubConfigValues( install_root ) )
 contractor.postMessage( 'Writing Full Config...' )
 fullConfig()
 
-if not options.package:
+if not image_package:
   for item in profile.items( 'general' ):
     if item[0].startswith( 'after_cmd_' ):
       chroot_execute( item[1] )

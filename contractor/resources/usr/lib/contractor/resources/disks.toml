@@ -86,6 +86,16 @@
   vcenter_guest_id = 'centos7_64Guest'
   azure_image = { 'publisher' = 'OpenLogic', 'offer' = 'CentOS', 'sku' = '7.6', 'version' = 'latest' }
 
+[ pxe.disks-utility ]
+  description = 'T3kton Disks - Utility'
+  boot_script = '''echo Bootstrap
+kernel {{ __pxe_location }}disks/utility.vmlinuz interface_mac={{ _provisioning_interface_mac }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ _hostname }}
+initrd {{ __pxe_location }}disks/utility.initrd
+boot
+'''
+
+  template = '# Utility'
+
 [ pxe.disks-bootstrap ]
   description = 'T3kton Disks - Bootstrap'
   boot_script = '''echo Bootstrap
@@ -94,7 +104,7 @@ initrd {{ __pxe_location }}disks/bootstrap.initrd
 boot
 '''
 
-  template = '# bootstrap'
+  template = '# Bootstrap'
 
 [ pxe.disks-linux-installer ]
   description = 'T3kton Disks - Linux Installer'
@@ -103,14 +113,4 @@ kernel {{ __pxe_location }}disks/linux-installer.vmlinuz interface_mac={{ _provi
 initrd {{ __pxe_location }}disks/linux-installer.initrd
 boot
 '''
-  template = '''# Generated at: {{ __timestamp }}
-# blueprint {{ blueprint }}
-{% if image_package %}
-PACKAGE="{{ image_package }}"
-SOURCE="{{ resource_location }}"
-{% else %}
-DISTRO="{{ distro }}"
-VERSION="{{ distro_version }}"
-SOURCE="{{ bootstrap_source }}"
-{% endif %}
-'''
+  template = '# Linux-Installer'
