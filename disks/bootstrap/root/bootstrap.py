@@ -14,7 +14,14 @@ lib.contractor = contractor
 
 dm = DriveManager()
 
-lib.ipmicommand( 'chassis identify force', True )
+foundation_type = 'Manual'
+if os.path.exists( '/dev/ipmi0' ):
+  foundation_type = 'IPMI'
+elif os.path.exists( '/dev/mei0' ):
+  foundation_type = 'AMT'  # NOTE: Intel has pulled the AMT SDK, and I can't find any other tools to get the AMT's MAC and set the ip locally, for new we skip this... keep an eye on https://software.intel.com/en-us/amt-sdk
+
+if foundation_type == 'IPMI':
+  lib.ipmicommand( 'chassis identify force', True )
 
 foundation_locator = None
 
@@ -55,7 +62,7 @@ network = {}
 for item in glob.glob( '/sys/class/net/eth*' ):
   network[ item.split( '/' )[ -1 ] ] = { 'mac': open( os.path.join( item, 'address' ), 'r' ).read().strip() }
 
-if os.path.exists( '/dev/ipmi0' ):
+if foundation_type == 'IPMI':
   network[ 'ipmi' ] = { 'mac': lib.getIPMIMAC() }
 
 for iface in lldp:
@@ -99,7 +106,7 @@ contractor.postMessage( 'Hardware Profile Verified' )
 
 iface_list = []
 
-if os.path.exists( '/dev/ipmi0' ) and 'ipmi_ip_address' in config:  # TODO: when the interface on the ipmi foundation get's figured out, this will change
+if foundation_type == 'IPMI' and 'ipmi_ip_address' in config:  # TODO: when the interface on the ipmi foundation get's figured out, this will change
   contractor.postMessage( 'Configuring IPMI' )
 
   tmp = config[ 'ipmi_ip_address' ].split( '.' )  # TODO: when the interface on the ipmi foundation get's figured out, this will change
@@ -209,7 +216,8 @@ contractor.setLocated( foundation_locator )
 
 contractor.postMessage( 'Cleaning up' )
 
-lib.ipmicommand( 'chassis identify 0', True )
+if foundation_type == 'IPMI':
+  lib.ipmicommand( 'chassis identify 0', True )
 
 print( 'All Done' )
 sys.exit( 0 )

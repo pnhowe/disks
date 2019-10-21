@@ -1400,19 +1400,19 @@ class DriveManager( object ):
   @property
   def port_list( self ):
     tmp = list( self._port_list )  # make a copy
-    tmp.sort()
+    tmp.sort( key=lambda drive: drive.name )
     return tmp
 
   @property
   def drive_list( self ):
     tmp = list( self._drive_list )  # make a copy
-    tmp.sort()
+    tmp.sort( key=lambda drive: drive.name )
     return tmp
 
   @property
   def unknown_list( self ):
     tmp = list( self._unknown_list )  # make a copy
-    tmp.sort()
+    tmp.sort( key=lambda drive: drive.name )
     return tmp
 
   @property
