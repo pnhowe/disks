@@ -26,13 +26,14 @@ mkdir -m 755 /dev/shm
 
 /sbin/ldconfig
 
-if [ -r /proc/acpi/event ] ; then
+if [ -r /proc/acpi/event ]
+then
   #hacked up power off when power button pressed
   ( /bin/grep -m1 PWR /proc/acpi/event ; /sbin/poweroff ) &
 fi
 
 CONSOLE_LIST=""
-for x in $(cat /proc/cmdline);
+for x in $(cat /proc/cmdline)
 do
   case $x in
     console=*)
@@ -42,7 +43,7 @@ do
   esac
 done
 
-if [ "x$CONSOLE_LIST" == "x" ];
+if [ "x$CONSOLE_LIST" == "x" ]
 then
   CONSOLE_LIST="/dev/tty1"
 fi

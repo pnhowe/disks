@@ -169,7 +169,7 @@ class LocalFileClient( Client ):
     self.config = json.loads( open( config_file, 'r' ).read() )
     self.config[ 'last_modified' ] = datetime.fromtimestamp( os.path.getctime( config_file ) ).strftime( '%Y-%m-%d %H:%M:%S' )
 
-  def getConfig( self, config_uuid ):
+  def getConfig( self, config_uuid=None ):
     return self.config.copy()
 
 
@@ -177,5 +177,5 @@ class StaticConfigClient( Client ):
   def __init__( self, config_values ):
     self.config = config_values
 
-  def getConfig( self, config_uuid ):
+  def getConfig( self, config_uuid=None ):
     return self.config.copy()

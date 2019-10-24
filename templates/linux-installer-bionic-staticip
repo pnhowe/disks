@@ -7,13 +7,14 @@ DESC_LIST=( "Ip Address" "Netmask" "Prefix" "Gateway" "DNS Server" "Mirror Serve
 TYPE_LIST=( "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "yesno" "inputbox" "yesno" "menu:single_Single Disk_mirror_Mirror Two Disks_raid10_All disks into RAID 10_raid6_All disks into RAID 6_single-lvm_Single Disk LVM_dual-lvm_Two Disk LVM" )
 DEFAULT_LIST=( "192.168.1.100" "255.255.255.0" "24" "192.168.1.1" "192.168.1.1" "us.archive.ubuntu.com" "bionic" "local" "2048" "yes" "http://proxy:3128/" "no" "single"  )
 
-CONFIG='DISTRO="ubuntu"
-VERSION="bionic"
-SOURCE="http://__MIRROR_SERVER__/ubuntu"
+INIT='#!/bin/sh
 
-cat > /config.json << CONFIG_EOF
-{
+sed s/--MAC--/$( cat /sys/class/net/eth0/address )/ -i /config.json'
+
+CONFIG='{
+  "distro": "ubuntu",
   "distro_version": "bionic",
+  "bootstrap_source": "http://__MIRROR_SERVER__/ubuntu",
   "hostname": "__HOSTNAME__",
   "package_list": [ "openssh-server", "openssh-client" __PACKAGES__ ],
   "swap_size": "__SWAP_SIZE__",
@@ -48,11 +49,7 @@ cat > /config.json << CONFIG_EOF
       "name": "eth0"
     }
   }
-}
-CONFIG_EOF
-
-sed s/--MAC--/$( cat /sys/class/net/eth0/address )/ -i /config.json
-'
+}'
 
 EXTLINUX='PROMPT 1
 TIMEOUT 10

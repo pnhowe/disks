@@ -23,17 +23,17 @@ MEDIA_LABEL=
 error_happened()
 {
   echo "And Error occured..."
-  while true;
+  while true
   do
     read -t 1 IGNORE  #clear out any garbage that might of been entered
     read -s -n 1 -p "(R)eboot  (P)ower Off  (S)hell" RESPONSE
-    if [ "$RESPONSE" == "R" ] || [ "$RESPONSE" == "r" ];
+    if [ "$RESPONSE" == "R" ] || [ "$RESPONSE" == "r" ]
     then
       /sbin/reboot
-    elif [ "$RESPONSE" == "P" ] || [ "$RESPONSE" == "p" ];
+    elif [ "$RESPONSE" == "P" ] || [ "$RESPONSE" == "p" ]
     then
       /sbin/poweroff
-    elif [ "$RESPONSE" == "S" ] || [ "$RESPONSE" == "s" ];
+    elif [ "$RESPONSE" == "S" ] || [ "$RESPONSE" == "s" ]
     then
       echo ""
       echo "Dropping to shell, type 'exit' to close shell..."
@@ -42,7 +42,7 @@ error_happened()
   done
 }
 
-for x in $(cat /proc/cmdline);
+for x in $(cat /proc/cmdline)
 do
   case $x in
     http_proxy=*)
@@ -105,20 +105,20 @@ do
   esac
 done
 
-if [ "x$CONTRACTOR_PROXY" != "x" ];
+if [ "x$CONTRACTOR_PROXY" != "x" ]
 then
   PING_HOST="$(echo $CONTRACTOR_PROXY | awk -F/ '{print $3}')"
 else
   PING_HOST="$(echo $CONTRACTOR_HOST | awk -F/ '{print $3}')"
 fi
 
-if [ "$NET_DEBUG" == "1" ];
+if [ "$NET_DEBUG" == "1" ]
 then
   /bin/cttyhack /bin/sh -l
   /sbin/poweroff
 fi
 
-if [ "x$INTERFACE_MAC" != "x" ];
+if [ "x$INTERFACE_MAC" != "x" ]
 then
   INTERFACE=
 
@@ -131,21 +131,21 @@ then
     fi
   done
 
-  if [ "x$INTERFACE" == "x" ];
+  if [ "x$INTERFACE" == "x" ]
   then
     echo "No network interface with MAC '$INTERFACE_MAC' found."
     error_happened
   fi
 fi
 
-if [ "$NO_IP" == "0" ];
+if [ "$NO_IP" == "0" ]
 then
   # dhcping is here and not in rcS so we can get a virtual console and to look at dhcp errors, if in rcS none of the virtual terminals start up till after we get an ip
   echo "Getting Ip..."
-  if [ "$IP_PROMPT" == "1" ];
+  if [ "$IP_PROMPT" == "1" ]
   then
     IS_OK=0
-    while [ "$IS_OK" == "0" ];
+    while [ "$IS_OK" == "0" ]
     do
       read -t 1 IGNORE  #clear out any garbage that might of been entered
       echo "Enter blank Ip Address to DHCP."
@@ -154,11 +154,11 @@ then
       read -p "Gateway: " tmp_GATEWAY
       read -p "DNS Server: " tmp_DNS_SERVER
       read -p "DNS Search Zone: " tmp_DNS_SEARCH_ZONE
-      if [ "x$INTERFACE" == "x" ];
+      if [ "x$INTERFACE" == "x" ]
       then
         read -p "Interface: " tmp_INTERFACE
       fi
-      if [ "x$HTTP_PROXY" == "x" ];
+      if [ "x$HTTP_PROXY" == "x" ]
       then
         read -p "HTTP Proxy: " tmp_HTTP_PROXY
       fi
@@ -169,24 +169,26 @@ then
       echo "         Gateway: $tmp_GATEWAY"
       echo "      DNS Server: $tmp_DNS_SERVER"
       echo " DNS Search Zone: $tmp_DNS_SEARCH_ZONE"
-      if [ "x$INTERFACE" == "x" ];
+      if [ "x$INTERFACE" == "x" ]
       then
         echo "       Interface: $tmp_INTERFACE"
       else
         echo "       Interface: $INTERFACE (configured at boot)"
       fi
-      if [ "x$HTTP_PROXY" == "x" ];
+      if [ "x$HTTP_PROXY" == "x" ]
       then
         echo "      HTTP Proxy: $tmp_HTTP_PROXY"
       else
         echo "      HTTP Proxy: $HTTP_PROXY (configured at boot)"
       fi
+
       RESPONSE="_"
-      while [ "$RESPONSE" != "Y" ] && [ "$RESPONSE" != "y" ] && [ "$RESPONSE" != "N" ] && [ "$RESPONSE" != "n" ];
+      while [ "$RESPONSE" != "Y" ] && [ "$RESPONSE" != "y" ] && [ "$RESPONSE" != "N" ] && [ "$RESPONSE" != "n" ]
       do
         read -s -n 1 -p "This Correct (Y/N)?" RESPONSE
       done
-      if [ "$RESPONSE" == "Y" ] || [ "$RESPONSE" == "y" ];
+
+      if [ "$RESPONSE" == "Y" ] || [ "$RESPONSE" == "y" ]
       then
         IS_OK=1
       fi
@@ -195,11 +197,11 @@ then
       GATEWAY=$tmp_GATEWAY
       DNS_SERVER=$tmp_DNS_SERVER
       DNS_SEARCH_ZONE=$tmp_DNS_SEARCH_ZONE
-      if [ "x$INTERFACE" == "x" ];
+      if [ "x$INTERFACE" == "x" ]
       then
         INTERFACE=$tmp_INTERFACE
       fi
-      if [ "x$HTTP_PROXY" == "x" ];
+      if [ "x$HTTP_PROXY" == "x" ]
       then
         HTTP_PROXY=$tmp_HTTP_PROXY
       fi
@@ -208,15 +210,15 @@ then
     done
   fi
 
-  if [ "x$INTERFACE" == "x" ];
+  if [ "x$INTERFACE" == "x" ]
   then
     echo "No Interface specified, guessing eth0."
     INTERFACE="eth0"
   fi
 
-  if [ "x$INTERFACE" != "xany" ];
+  if [ "x$INTERFACE" != "xany" ]
   then
-    if [ ! -e /sys/class/net/$INTERFACE ];
+    if [ ! -e /sys/class/net/$INTERFACE ]
     then
       echo "No network interface named '$INTERFACE' found."
       error_happened
@@ -225,9 +227,9 @@ then
 
   echo "Starting Interface $INTERFACE..."
 
-  if [ "x$HOSTNAME" == "x" ];
+  if [ "x$HOSTNAME" == "x" ]
   then
-    if [ "x$INTERFACE" == "xany" ];
+    if [ "x$INTERFACE" == "xany" ]
     then
       HOSTNAME="mac$(cat /sys/class/net/e*/address | head -n1 | sed s/://g)" # make sure bond0 nor lo isn't included, lo's mac is 0 and bond*'s mac is usless without any members
     else
@@ -239,14 +241,14 @@ then
   echo "127.0.1.1 $HOSTNAME" >> /etc/hosts
   echo "$HOSTNAME" > /etc/hostname
 
-  if [ "x$CONTRACTOR_IP" != "x" ];
+  if [ "x$CONTRACTOR_IP" != "x" ]
   then
     echo "$CONTRACTOR_IP $CONTRACTOR_HOST" >> /etc/hosts
   fi
 
-  if [ "x$IP_ADDRESS" != "x" ];
+  if [ "x$IP_ADDRESS" != "x" ]
   then
-    if [ "x$INTERFACE" == "xany" ];
+    if [ "x$INTERFACE" == "xany" ]
     then # mabey at some time just pick the first interface and put it on, or something else more deterministic
       echo "Can't use 'any' for interface for statically assigned ip"
       exit 1
@@ -260,28 +262,28 @@ then
     echo "nameserver $DNS_SERVER" >> /etc/resolv.conf
     rc=1
     counter=1
-    while [ "x$rc" != "x0" ];
+    while [ "x$rc" != "x0" ]
     do
       echo "Pinging Gateway $GATEWAY, ($counter/10)...."
       ping -q -c4 $GATEWAY > /dev/null 2> /dev/null
       rc=$?
       counter=$(( counter + 1 ))
-      if [ "x$rc" != "x0" ] && [ "$counter" -gt "10" ];
+      if [ "x$rc" != "x0" ] && [ "$counter" -gt "10" ]
       then
         echo "Error trying to ping Gateway."
         error_happened
       fi
-      if [ "x$rc" != "x0" ];
+      if [ "x$rc" != "x0" ]
       then
         sleep 10
       fi
     done
   else
     echo "Getting ip address..."
-    if [ "x$INTERFACE" == "xany" ];
+    if [ "x$INTERFACE" == "xany" ]
     then
       INTERFACE_LIST="$( ls /sys/class/net/ | grep -v bond | grep -v lo | grep -v sit )"
-    elif [ "x$INTERFACE" != "x" ];
+    elif [ "x$INTERFACE" != "x" ]
     then
       INTERFACE_LIST=$INTERFACE
     else
@@ -289,7 +291,7 @@ then
       error_happened
     fi
 
-    if [ "x$INTERFACE_LIST" == "x" ];
+    if [ "x$INTERFACE_LIST" == "x" ]
     then
       echo "No interface(s) found"
       error_happened
@@ -297,21 +299,21 @@ then
 
     #/tmp/dhcp-interface created by lib/udhcpc/script
     rm -f /tmp/dhcp-interface
-    while [ ! -f /tmp/dhcp-interface ];
+    while [ ! -f /tmp/dhcp-interface ]
     do
-      for iface in $INTERFACE_LIST;
+      for iface in $INTERFACE_LIST
       do
         echo "Bringing up $iface..."
         /sbin/ip link set $iface up
         counter=1
-        while [ "x$(cat /sys/class/net/$iface/operstate)" != "xup" ] && [ "$counter" -lt "30" ];
+        while [ "x$(cat /sys/class/net/$iface/operstate)" != "xup" ] && [ "$counter" -lt "30" ]
         do
           echo -n "."
           counter=$(( counter + 1 ))
           sleep 1
         done
         echo
-        if [ "x$(cat /sys/class/net/$iface/operstate)" != "xup" ];
+        if [ "x$(cat /sys/class/net/$iface/operstate)" != "xup" ]
         then
           echo "Interface '$iface' didn't come up, skipping..."
           echo "Random delay before trying next interface..."
@@ -323,17 +325,17 @@ then
         /sbin/udhcpc --interface=$iface -x:hostname $HOSTNAME --vendorclass=bootabledisk --timeout=10 --syslog --arping --release
         if [ -f /tmp/dhcp-interface ];
         then
-          if [ "x$CONFIG_SRC" == "xremote" ];
+          if [ "x$CONFIG_SRC" == "xremote" ]
           then
             echo "Resolving '$PING_HOST'..."
             nslookup $PING_HOST > /dev/null #TODO: find another way to do this, and remove nslookup from busybox.... it's the only thing with _res in busybox
             rc=$?
-            if [ "x$rc" == "x0" ];
+            if [ "x$rc" == "x0" ]
             then
               echo "Ping test to '$PING_HOST'..."
               ping -q -c2 $PING_HOST > /dev/null 2> /dev/null
               rc=$?
-              if [ "x$rc" == "x0" ];
+              if [ "x$rc" == "x0" ]
               then # we have a winner, let's get out of here
                 break
               else
@@ -364,7 +366,7 @@ else
   echo "127.0.0.1 localhost" > /etc/hosts
 fi
 
-if [ "x$MEDIA_UUID" != "x" ];
+if [ "x$MEDIA_UUID" != "x" ]
 then
   mkdir /media
   modprobe ext2 ext3 ext4 vfat
@@ -376,7 +378,7 @@ then
     echo "Error mounting media by UUID"
     error_happened
   fi
-elif [ "x$MEDIA_LABEL" != "x" ];
+elif [ "x$MEDIA_LABEL" != "x" ]
 then
   mkdir /media
   modprobe ext2 ext3 ext4 vfat
@@ -390,22 +392,34 @@ then
   fi
 fi
 
-if [ "$CONFIG_SRC" == "local" ];
+if [ -x /config-init ]
 then
-  if [ -r /media/config_file ];
+  echo "Executing /config-init..."
+  /config-init
+fi
+
+if [ -x /media/config-init ]
+then
+  echo "Executing /media/config-init..."
+  /media/config-init
+fi
+
+if [ "$CONFIG_SRC" == "local" ]
+then
+  if [ -r /media/config.json ]
   then
-    export contractor_host="file://media/config_file"
-  elif [ -r /config_file ];
+    export contractor_host="file://media/config.json"
+  elif [ -r /config.json ]
   then
-    export contractor_host="file://config_file"
+    export contractor_host="file://config.json"
   else
     echo "No Local Config!"
     error_happened
   fi
 
-elif [ "$CONFIG_SRC" == "remote" ];
+elif [ "$CONFIG_SRC" == "remote" ]
 then
-  if [ "$NO_IP" == "1" ];
+  if [ "$NO_IP" == "1" ]
   then
     echo "No IP to get config with!"
     error_happened
@@ -414,8 +428,8 @@ then
   export contractor_host=$CONTRACTOR_HOST
 fi
 
-
-if [ "x$HTTP_PROXY" != "x" ];
+echo "contractor_host = '$CONTRACTOR_HOST'"
+if [ "x$HTTP_PROXY" != "x" ]
 then
   echo "Setting 'http_proxy' to $HTTP_PROXY..."
   /bin/logger "http_proxy: $HTTP_PROXY"
@@ -423,18 +437,18 @@ then
   export https_proxy=$HTTP_PROXY
 fi
 
-if [ "x$CONTRACTOR_PROXY" != "x" ];
+if [ "x$CONTRACTOR_PROXY" != "x" ]
 then
   echo "Setting 'contractor_proxy' to $CONTRACTOR_PROXY..."
   /bin/logger "contractor_proxy: $CONTRACTOR_PROXY"
   export contractor_proxy=$CONTRACTOR_PROXY
 fi
 
-if [ "x$DEBUG" != "x1" ];
+if [ "x$DEBUG" != "x1" ]
 then
   read -t 1 IGNORE  #clear out any garbage that might of been entered
   read -t 10 -n 1 -p "Press \"D\" to enter Debug, any other key to continue (10 second timeout)..." tmp_DEBUG
-  if [ "x$tmp_DEBUG" == "xd" ] || [ "x$tmp_DEBUG" == "xD" ];
+  if [ "x$tmp_DEBUG" == "xd" ] || [ "x$tmp_DEBUG" == "xD" ]
   then
     DEBUG="1"
   else
@@ -442,7 +456,7 @@ then
   fi
 fi
 
-if [ "x$DEBUG" == "x1" ];
+if [ "x$DEBUG" == "x1" ]
 then
   echo -e "\nType \"exit\" to continue the PXE process...\n"
   /bin/cttyhack /bin/sh -l
@@ -456,15 +470,15 @@ rc=$?
 # 0 - All good
 # anything else - Had Error, no notification has happened yet
 
-if [ "$rc" -eq "20" ];
+if [ "$rc" -eq "20" ]
 then
   echo "Rebooting..."
   /sbin/reboot
   exit 0
-elif [ "$rc" -eq "10" ];
+elif [ "$rc" -eq "10" ]
 then
   error_happened
-elif [ "$rc" -ne "0" ];
+elif [ "$rc" -ne "0" ]
 then
   echo "do_task returned $rc"
   signalAlert "do_task error"

@@ -5,8 +5,9 @@ set -e
 # $2 - path to kernel
 # $3 - path to initrd
 # $4 - path to boot config
-# $5 - path config_file (optional)
-# $6 - path to boot menu (optional)
+# $5 - path config-init (optional)
+# $6 - path config.json (optional)
+# $7 - path to boot menu (optional)
 
 
 #size in 1k blocks, default is 60k ie 60meg disk
@@ -70,14 +71,23 @@ mount $partition_loop $MOUNT_POINT
 echo "Copying in kernel and image..."
 cp $2 $MOUNT_POINT/vmlinuz.img
 
-if [ "x$5" != "x" ];
+if [ "x$5" != "x" ] || [ "x$6" != "x" ]
 then
-  echo "Injecting custom config file..."
-  cp -f $5 ./config_file
+  echo "Injecting custom config..."
   cat $3 | gunzip > /tmp/initrd.img
-  echo "./config_file" | cpio -H newc -o -A -F /tmp/initrd.img
-  rm ./config_file
-  cat /tmp/initrd.img | gzip -9 > $MOUNT_POINT/initrd.img
+  if [ "x$5" != "x" ] && [ -x "$5" ]
+  then
+    cp -f $5 ./config-init
+    echo "./config-init" | cpio -H newc -o -A -F /tmp/initrd.img
+    rm ./config-init
+  fi
+  if [ "x$6" != "x" ] && [ -r "$6" ]
+  then
+    cp -f $6 ./config.json
+    echo "./config.json" | cpio -H newc -o -A -F /tmp/initrd.img
+    rm ./config.json
+  fi
+  cat /tmp/initrd.img | gzip -9 > $WORK_DIR/initrd.img
 else
   cp $3 $MOUNT_POINT/initrd.img
 fi
@@ -85,10 +95,10 @@ fi
 echo "Copying in boot config..."
 cp -f $4 $MOUNT_POINT/extlinux.conf
 
-if [ "x$6" != "x" ];
+if [ "x$7" != "x" ] && [ -r "$7" ]
 then
   echo "Injecting custom menu..."
-  cp -f $6 $MOUNT_POINT/extlinux.menu
+  cp -f $7 $MOUNT_POINT/extlinux.menu
 fi
 
 echo "Installing bootloader..."
