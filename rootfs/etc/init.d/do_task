@@ -231,7 +231,11 @@ then
   then
     if [ "x$INTERFACE" == "xany" ]
     then
-      HOSTNAME="mac$(cat /sys/class/net/e*/address | head -n1 | sed s/://g)" # make sure bond0 nor lo isn't included, lo's mac is 0 and bond*'s mac is usless without any members
+      HOSTNAME="mac$(cat /sys/class/net/e*/address | head -n1 | sed s/://g) 2> /dev/null" # make sure bond0 nor lo isn't included, lo's mac is 0 and bond*'s mac is usless without any members
+      if [ "x$HOSTNAME" == "x" ]
+      then
+        HOSTNAME="nonet"
+      fi
     else
       HOSTNAME="mac$(cat /sys/class/net/$INTERFACE/address | sed s/://g)"
     fi

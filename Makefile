@@ -17,11 +17,11 @@ IMAGE_ROOT = $(foreach disk,$(DISKS),build.images/$(disk).root)
 PXES = $(foreach disk,$(DISKS),$(patsubst images/pxe/%.pxe,images/pxe/$(disk)_%,$(patsubst images/pxe/_default.pxe,images/pxe/$(disk),$(patsubst disks/$(disk)/%,images/pxe/%,$(wildcard disks/$(disk)/*.pxe)))))
 PXE_FILES = $(foreach disk,$(DISKS),images/pxe/$(disk).vmlinuz images/pxe/$(disk).initrd)
 
-# see PXES
-IMGS = $(foreach disk,$(DISKS),$(patsubst images/img/%.img,images/img/$(disk)_%,$(patsubst images/img/_default.img,images/img/$(disk),$(patsubst disks/$(disk)/%,images/img/%,$(wildcard disks/$(disk)/*.img)))))
+# see PXES, but append .img
+IMGS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/img/%.img,images/img/$(disk)_%,$(patsubst images/img/_default.img,images/img/$(disk),$(patsubst disks/$(disk)/%,images/img/%,$(wildcard disks/$(disk)/*.img))))), $(item).img)
 
-# see IMGS
-ISOS = $(foreach disk,$(DISKS),$(patsubst images/iso/%.iso,images/iso/$(disk)_%,$(patsubst images/iso/_default.iso,images/iso/$(disk),$(patsubst disks/$(disk)/%,images/iso/%,$(wildcard disks/$(disk)/*.iso)))))
+# see PXES, but append .iso
+ISOS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/iso/%.iso,images/iso/$(disk)_%,$(patsubst images/iso/_default.iso,images/iso/$(disk),$(patsubst disks/$(disk)/%,images/iso/%,$(wildcard disks/$(disk)/*.iso))))), $(item).iso)
 
 
 PWD = $(shell pwd)
@@ -125,8 +125,8 @@ img-targets:
 	@echo "Aviable Disk Image Targets: $(IMGS)"
 
 # for the sed see images/pxe/%
-images/img/% : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2.img'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.img'/)
-images/img/%: $(PXE_FILES)
+images/img/%.img : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2.img'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.img'/)
+images/img/%.img: $(PXE_FILES)
 	if [ -f templates/$* ];                                                                                                             \
 	then                                                                                                                                \
 	  mkdir -p build.images/templates/$*/ ;                                                                                             \

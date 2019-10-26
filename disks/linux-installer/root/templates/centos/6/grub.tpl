@@ -8,7 +8,7 @@ serial --unit={{ sol_console|last }} --speed=115200
 default=0
 timeout=10
 
-title CentOS {{ distro_version|title }} - By Bootable-Disks
+title CentOS {{ distro_version|title }} - By T3kton-Disks
   root ({{ _installer.bootloader.grub_root }})
   kernel {{ _installer.bootloader.kernel_path }} ro root={{ _installer.filesystem.block_device }} {% if sol_console %}console={{ sol_console }},115200 console=tty1{% endif %}
   initrd {{ _installer.bootloader.initrd_path }}
