@@ -32,6 +32,8 @@ def setupUsers( mount_point, profile, value_map ):
     except KeyError:
       pass
 
+    args.append( '--shell /bin/bash' )
+
     try:
       args.append( '--password {0}'.format( user[ 'password_hash' ] ) )
       args.append( '--create-home' )  # don't need a home directory if they don't have a password

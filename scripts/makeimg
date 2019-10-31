@@ -10,10 +10,16 @@ set -e
 # $7 - path to boot menu (optional)
 
 
-#size in 1k blocks, default is 60k ie 60meg disk
-DISK_SIZE="60k"
+# size in 1k blocks, default is 60k ie 60meg disk
+DISK_SIZE="68k"
 
 MOUNT_POINT="build.images/mnt"
+
+if ! which sfdisk parted > /dev/null
+then
+  print "sfdisk and/or parted is missing, please install"
+  exit 1
+fi
 
 if [ ! -d $MOUNT_POINT ]
 then
@@ -58,7 +64,9 @@ sfdisk $drive_loop << EOF
 ,,L,*
 EOF
 
-partition_loop=$(losetup -f --show -o 512 $drive_loop)
+offset=$(parted -ms $drive_loop unit b print | grep ^1: | cut -d: -f2 | tr -d B)
+
+partition_loop=$(losetup -f --show -o $offset $drive_loop)
 echo "Using loop device '$partition_loop' for partition..."
 
 echo "Formatting partition..."
@@ -87,7 +95,7 @@ then
     echo "./config.json" | cpio -H newc -o -A -F /tmp/initrd.img
     rm ./config.json
   fi
-  cat /tmp/initrd.img | gzip -9 > $WORK_DIR/initrd.img
+  cat /tmp/initrd.img | gzip -9 > $MOUNT_POINT/initrd.img
 else
   cp $3 $MOUNT_POINT/initrd.img
 fi
