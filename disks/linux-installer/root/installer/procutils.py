@@ -14,14 +14,11 @@ global_env[ 'DEBIAN_FRONTEND' ] = 'noninteractive'
 # the resulting OS will not have that if it's not explicty set some place
 # need to force anything inside the resulting OS to get to the proxy correctly
 chroot_env = global_env.copy()
-try:
-  del chroot_env[ 'http_proxy' ]
-except KeyError:
-  pass
-try:
-  del chroot_env[ 'https_proxy' ]
-except KeyError:
-  pass
+for name in ( 'http_proxy', 'https_proxy' ):
+  try:
+    del chroot_env[ name ]
+  except KeyError:
+    pass
 
 
 def open_output( filename ):
@@ -60,6 +57,7 @@ def _execute( cmd, stdout, stderr, stdin, env ):
   debug_stdout.write( '\n-------------------------------------------------\n' )
   debug_stdout.write( 'rc: {0}\n'.format( proc.returncode ) )
   debug_stdout.write( '{0}\n'.format( datetime.utcnow() ) )
+  debug_stdout.flush()
 
   if proc.returncode != 0:
     raise Exception( 'Error Executing "{0}"'.format( cmd ) )

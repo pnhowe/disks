@@ -10,6 +10,6 @@ build()
 {
   tar --strip-components=1 -xJf $1
   cp ../../configs/linux-mod .config
-  make -j4
-  make modules -j4
+  make
+  make modules
 }

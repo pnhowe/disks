@@ -1,1 +1,0 @@
-../precise/tty.tpl.install

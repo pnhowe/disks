@@ -1,1 +1,0 @@
-../precise/apt.tpl

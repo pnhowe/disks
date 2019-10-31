@@ -1,18 +1,16 @@
 #!/bin/sh
-#SOURCE: https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-7.7p1.tar.gz
-#FILE: openssh-7.7p1.tar.gz
-#HASH: 446fe9ed171f289f0d62197dffdbfdaaf21c49f2
+#SOURCE: https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-7.9p1.tar.gz
+#FILE: openssh-7.9p1.tar.gz
+#HASH: 993aceedea8ecabb1d0dd7293508a361891c4eaa
 
 set -e
 set -x
 
-# this patch is only for openssh 7.7 to openssl 1.1.0, hopfully openssh get's fixed soon
 build()
 {
   tar --strip-components=1 -xzf $1
-  patch -Np1 -i ../../configs/ssh.patch
   ./configure --prefix= --sysconfdir=/etc/ssh --with-md5-passwords --with-privsep-path=/var/empty
-  make -j4
+  make
 }
 
 install()

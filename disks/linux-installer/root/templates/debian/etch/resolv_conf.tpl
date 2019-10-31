@@ -1,4 +1,4 @@
-{% target '/etc/resolv.conf' %}#HEADER
+{% target '/etc/resolv.conf' %}# Auto Generated During Install
 
 domain {{ domain }}
 search {{ dns_servers|join( ' ' ) }}

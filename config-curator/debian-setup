@@ -1,0 +1,16 @@
+#!/bin/sh
+set -e
+set -x
+
+DISTRO_NAME=$(lsb_release -sc)
+
+echo "Setting up for '$DISTRO_NAME'"
+
+mkdir debian
+cp -a debian-common/* debian
+if [ -d debian-$DISTRO_NAME ];
+then
+  cp -a debian-$DISTRO_NAME/* debian
+fi
+
+cat debian-common/changelog | sed s/DIST/$DISTRO_NAME/ | sed -r s/"\(([0-9.]*)-([0-9]*)\)"/"(\1-\2${DISTRO_NAME}1)"/ > debian/changelog

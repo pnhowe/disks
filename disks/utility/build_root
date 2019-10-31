@@ -7,7 +7,7 @@ ROOT_FS="utility"
 
 . scripts/disk_functions
 
-install_base
+install_base "mod"
 
 install_dep "ssh"
 install_dep "lldp"
@@ -17,5 +17,7 @@ install_dep "parted"
 install_dep "e2fsprogs"
 install_dep "dosfstools"
 install_dep "gpgv"
+install_dep "squashfs"
+install_dep "ipmitool"
 
 install_src "libdrive"

@@ -18,6 +18,11 @@ def installBoot( install_root, profile ):
   installPackages( profile.get( 'packages', 'bootloader_package' ) )
 
   try:
+    chroot_execute( profile.get( 'booting', 'bootloader_config' ) )
+  except NoOptionError:
+    pass
+
+  try:
     installPackages( profile.get( 'packages', 'kernel_package' ) )
   except NoOptionError:
     pass

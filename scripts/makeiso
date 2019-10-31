@@ -1,12 +1,14 @@
 #!/bin/bash
 set -e
+set -x
 
 # $1 - output filename
 # $2 - path to kernel
 # $3 - path to initrd
 # $4 - path to boot config
-# $5 - path config_file (optional)
-# $6 - path to boot menu (optional)
+# $5 - path config-init (optional)
+# $6 - path config.json (optional)
+# $7 - path to boot menu (optional)
 
 WORK_DIR="build.images/isotmp"
 
@@ -43,13 +45,22 @@ cp $LD32 $WORK_DIR/isolinux
 echo "Copying in kernel and image..."
 cp $2 $WORK_DIR/vmlinuz.img
 
-if [ "x$5" != "x" ];
+if [ "x$5" != "x" ] || [ "x$6" != "x" ]
 then
-  echo "Injecting custom config file..."
-  cp -f $5 ./config_file
+  echo "Injecting custom config..."
   cat $3 | gunzip > /tmp/initrd.img
-  echo "./config_file" | cpio -H newc -o -A -F /tmp/initrd.img
-  rm ./config_file
+  if [ "x$5" != "x" ] && [ -x "$5" ]
+  then
+    cp -f $5 ./config-init
+    echo "./config-init" | cpio -H newc -o -A -F /tmp/initrd.img
+    rm ./config-init
+  fi
+  if [ "x$6" != "x" ] && [ -r "$6" ]
+  then
+    cp -f $6 ./config.json
+    echo "./config.json" | cpio -H newc -o -A -F /tmp/initrd.img
+    rm ./config.json
+  fi
   cat /tmp/initrd.img | gzip -9 > $WORK_DIR/initrd.img
 else
   cp $3 $WORK_DIR/initrd.img
@@ -58,10 +69,10 @@ fi
 echo "Copying in boot config..."
 cp -f $4 $WORK_DIR/isolinux.cfg
 
-if [ "x$6" != "x" ];
+if [ "x$7" != "x" ] && [ -r "$7" ]
 then
   echo "Injecting custom menu..."
-  cp -f $6 $WORK_DIR/extlinux.mnu
+  cp -f $7 $WORK_DIR/extlinux.mnu
 fi
 
 genisoimage -o $1 -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -V $( basename $1 .iso ) -v $WORK_DIR

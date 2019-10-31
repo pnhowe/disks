@@ -3,3 +3,10 @@ downloads
 build.deps
 build.images
 images
+
+respkg
+*.respkg
+contractor/resources/var
+
+*.pyc
+__pycache__

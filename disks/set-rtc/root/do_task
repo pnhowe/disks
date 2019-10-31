@@ -2,8 +2,6 @@
 
 set -e
 
-. /tmp/config_file
-
 /bin/postMessage "Starting Time Sync..."
 
 /bin/ntpd -d -q -p $TIMESERVER && rc=0 || rc=$?

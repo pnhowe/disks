@@ -11,17 +11,23 @@ build()
 {
   tar --strip-components=1 -xzf $1
   sed s/have_kmod=no/have_kmod=yes/ -i configure
-  KMOD_CFLAGS="-I`pwd`/../kmod/libkmod/" KMOD_LIBS="-L`pwd`/../kmod/libkmod/.libs/ -llzma -lz -lkmod" ./configure --prefix= --bindir=/sbin --sbindir=/sbin --with-rootprefix= --with-rootlibdir=/lib --disable-shared --disable-kmod
-  make -j4
+
+  KMOD_CFLAGS=-I`pwd`/../kmod/libkmod KMOD_LIBS="-L`pwd`/../kmod/libkmod/.libs/ -lkmod" PKG_CONFIG_PATH=`pwd`/../kmod/libkmod ./configure --prefix= --bindir=/sbin --sbindir=/sbin --with-rootprefix= --with-rootlibdir=/lib --enable-kmod
+  make
 }
 
 install()
 {
+  for LIB in /lib/x86_64-linux-gnu/libblkid.so.1.1.0 /lib/x86_64-linux-gnu/libselinux.so.1 \
+  /lib/x86_64-linux-gnu/libuuid.so.1.3.0 /lib/x86_64-linux-gnu/libpcre.so.3.13.3
+  do
+    cp -L $LIB $1/lib
+  done
+
   DESTDIR=$1 make -C $3/udev install
   $1/sbin/udevadm hwdb --update --root=$1
-  #sed s/#udev_log=\"info\"/udev_log=\"info\"/ -i $1/etc/udev/udev.conf
-  sed s/#udev_log=\"info\"/udev_log=\"debug\"/ -i $1/etc/udev/udev.conf
-  rm -fr $1/etc/udev/hwdb.d
+  sed s/#udev_log=\"info\"/udev_log=\"info\"/ -i $1/etc/udev/udev.conf
+  #rm -fr $1/etc/udev/hwdb.d
 
   # for now we are going to stick with the old network Interaface names
   rm $1/lib/udev/rules.d/80-net-name-slot.rules

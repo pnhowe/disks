@@ -5,49 +5,46 @@
 QUESTION_LIST=( "MIRROR_SERVER" "HOSTNAME" "SWAP_SIZE" "USE_PROXY" "PROXY" "IS_VM" "RAID_TYPE"  )
 DESC_LIST=( "Mirror Server" "Hostname" "Swap Size" "Use HTTP Proxy" "HTTP Proxy (ignored if use proxy is n)" "Is VM" "RAID Type (ignored if VM)" )
 TYPE_LIST=( "inputbox" "inputbox" "inputbox" "yesno" "inputbox" "yesno" "menu:single_Single Disk_mirror_Mirror Two Disks_raid10_All disks into RAID 10_raid6_All disks into RAID 6_single-lvm_Single Disk LVM_dual-lvm_Two Disk LVM" )
-#DEFAULT_LIST=( "us.archive.ubuntu.com" "xenial" "2048" "yes" "http://proxy:3128/" "no" "single"  )
-DEFAULT_LIST=( "us.archive.ubuntu.com" "xenial" "2048" "yes" "http://192.168.200.50:3128/" "no" "single"  )
+DEFAULT_LIST=( "us.archive.ubuntu.com" "xenial" "2048" "yes" "http://proxy:3128/" "no" "single"  )
 
-CONFIG='DISTRO="ubuntu"
-VERSION="xenial"
-SOURCE="http://__MIRROR_SERVER__/ubuntu"
+INIT='#!/bin/sh
 
-cat > /config.json << CONFIG_EOF
-{
-  "packages": "openssh-server openssh-client __PACKAGES__",
-  "swap_size": "__SWAP_SIZE__",
-  "partition_scheme": "__PART_SCHEME__",
-  "repo_list": [ {"distribution": "xenial", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"}, {"distribution": "xenial-updates", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"}, {"distribution": "xenial-security", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"} ]
-}
-CONFIG_EOF
+sed s/--MAC--/$( cat /sys/class/net/eth0/address )/ -i /config.json'
 
-cat > /config_values.json << CONFIG_VALUES_EOF
-{
-  "repo_list": [ {"distribution": "xenial", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"}, {"distribution": "xenial-updates", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"}, {"distribution": "xenial-security", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__"} ],
-  "hostname": "__HOSTNAME__",
-  "http_proxy": "__PROXY__",
+CONFIG='{
+  "distro": "ubuntu",
   "distro_version": "xenial",
+  "bootstrap_source": "http://__MIRROR_SERVER__/ubuntu",
+  "hostname": "__HOSTNAME__",
+  "package_list": [ "openssh-server", "openssh-client" __PACKAGES__ ],
+  "swap_size": "__SWAP_SIZE__",
+  "http_proxy": "__PROXY__",
+  "partition_scheme": "__PART_SCHEME__",
+  "repo_list": [
+    { "distribution": "xenial", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__" },
+    { "distribution": "xenial-updates", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__" },
+    { "distribution": "xenial-security", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__" }
+  ],
   "id": 0,
   "uuid": "00000000-0000-0000-0000-000000000000",
-  "interfaces": {
-    "eth0": {
+  "_interface_map": { "eth0": {
+      "physical_location": "eth0",
       "address_list": [
         {
           "address": "dhcp",
-          "auto": true,
           "primary": true,
           "sub_interface": null,
           "tagged": false,
           "vlan": 0,
-          "mtu": 1500
+          "mtu": 1500,
+          "auto": true
         }
       ],
+      "mac": "--MAC--",
       "name": "eth0"
     }
   }
-}
-CONFIG_VALUES_EOF
-'
+}'
 
 EXTLINUX='PROMPT 1
 TIMEOUT 10
@@ -67,7 +64,6 @@ post_process()
     PROXY=""
     BOOT_PROXY=""
   fi
-
   if [ "x$IS_VM" == "xyes" ];
   then
     CONSOLE=""
@@ -76,7 +72,7 @@ post_process()
   else
     CONSOLE="ttyS1"
     CONSOLE_BAUD="115200"
-    PACKAGES=""
+    PACKAGES=", ""open-vm-tools"""
   fi
 
   if [[ "x$RAID_TYPE" == "xmirror" || "x$RAID_TYPE" == "xraid10" || "x$RAID_TYPE" == "xraid6" || "x$RAID_TYPE" == "xsingle-lvm" || "x$RAID_TYPE" == "xdual-lvm" ]] && [ "x$IS_VM" != "xyes" ];

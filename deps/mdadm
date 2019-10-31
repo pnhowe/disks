@@ -11,7 +11,7 @@ build()
 {
   tar --strip-components=1 -xJf $1
   sed 's@-Werror@@' -i Makefile
-  make -j4
+  make
 }
 
 install()

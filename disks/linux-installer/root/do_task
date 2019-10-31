@@ -2,28 +2,11 @@
 
 set -e
 
-. /tmp/config_file
-
 /bin/postMessage "Starting Linux Install..."
 
 ttytee -d /dev/instout /dev/tty4 /tmp/detail.log
 
-if [ -r /media/config.json ];
-then
-  cp /media/config.json /
-fi
-
-if [ "x$PACKAGE" != "x" ];
-then
-  if [ "x$SOURCE" != "x" ];
-  then
-    ./installer.py -p $PACKAGE -s $SOURCE && rc=0 || rc=$?
-  else
-    ./installer.py -p $PACKAGE && rc=0 || rc=$?
-  fi
-else
-  ./installer.py -d $DISTRO -v $VERSION -s $SOURCE && rc=0 || rc=$?
-fi
+./installer.py && rc=0 || rc=$?
 
 if [ "$rc" -ne "0" ];
 then

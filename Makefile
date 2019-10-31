@@ -1,6 +1,7 @@
+VERSION := 0.5
+
 DEPS = $(shell ls deps)
-#DISKS = $(shell ls disks)
-DISKS = linux-installer utility
+DISKS = $(shell ls disks)
 TEMPLATES = $(shell ls templates)
 DEP_DOWNLOADS = $(foreach dep,$(DEPS),build.deps/$(dep).download)
 DEP_BUILDS = $(foreach dep,$(DEPS),build.deps/$(dep).build)
@@ -26,6 +27,9 @@ ISOS = $(foreach disk,$(DISKS),$(patsubst images/iso/%.iso,images/iso/$(disk)_%,
 PWD = $(shell pwd)
 
 all: $(IMAGE_ROOT) all-pxe
+
+version:
+	echo $(VERSION)
 
 # included source
 build-src:
@@ -74,6 +78,7 @@ clean-downloads:
 clean-deps:
 	$(RM) -r build.deps
 
+
 # global image targets
 
 images:
@@ -102,7 +107,7 @@ build.images/%.root: disks/%/build_root build.deps/build build-src
 	touch $@
 
 images/pxe/%.initrd: build.images/%.root images
-	cd build.images/$* && find ./ | grep -v ^./boot | cpio -H newc -o | gzip -9 > $(PWD)/$@
+	cd build.images/$* && find ./ | cpio --owner=+0:+0 -H newc -o | gzip -9 > $(PWD)/$@
 
 images/pxe/%.vmlinuz: build.images/%.root images
 	cp -f build.images/$*/boot/vmlinuz $@
@@ -125,9 +130,9 @@ images/img/%: $(PXE_FILES)
 	if [ -f templates/$* ];                                                                                                             \
 	then                                                                                                                                \
 	  mkdir -p build.images/templates/$*/ ;                                                                                             \
-	  scripts/build_template $* build.images/templates/$*/config build.images/templates/$*/boot.config build.images/templates/$*/boot.menu;    \
 		DISK=$$( grep -m 1 '#DISK:' templates/$* | sed s/'#DISK: '// );                                                                   \
-	  sudo scripts/makeimg $@ images/pxe/$$DISK.vmlinuz images/pxe/$$DISK.initrd build.images/templates/$*/boot.config build.images/templates/$*/config build.images/templates/$*/boot.menu; \
+	  scripts/build_template $* build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/boot.config build.images/templates/$*/boot.menu && \
+	  sudo scripts/makeimg $@ images/pxe/$$DISK.vmlinuz images/pxe/$$DISK.initrd build.images/templates/$*/boot.config build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/boot.menu; \
 	elif [ -f $(FILE).config_file ] && [ -f $(FILE).boot_menu ];                                                                        \
 	then                                                                                                                                \
 	  sudo scripts/makeimg $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) $(FILE).config_file $(FILE).boot_menu;                 \
@@ -152,9 +157,9 @@ images/iso/%.iso: $(PXE_FILES)
 	if [ -f templates/$* ];                                                                                                             \
 	then                                                                                                                                \
 	  mkdir -p build.images/templates/$*/ ;                                                                                             \
-		scripts/build_template $* build.images/templates/$*/config build.images/templates/$*/boot.config build.images/templates/$*/boot.menu;    \
 		DISK=$$( grep -m 1 '#DISK:' templates/$* | sed s/'#DISK: '// );                                                                   \
-	  scripts/makeiso $@ images/pxe/$$DISK.vmlinuz images/pxe/$$DISK.initrd build.images/templates/$*/boot.config build.images/templates/$*/config build.images/templates/$*/boot.menu; \
+		scripts/build_template $* build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/boot.config build.images/templates/$*/boot.menu && \
+	  scripts/makeiso $@ images/pxe/$$DISK.vmlinuz images/pxe/$$DISK.initrd build.images/templates/$*/boot.config build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/boot.menu; \
 	elif [ -f $(FILE).config_file ] && [ -f $(FILE).boot_menu ];                                                                        \
 	then                                                                                                                                \
 	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) $(FILE).config_file $(FILE).boot_menu;                      \
@@ -175,8 +180,85 @@ templates:
 
 # clean up
 
-localclean: clean-deps clean-images clean-src
+clean: clean-deps clean-images clean-src respkg-clean pkg-clean
 
-distclean: clean-deps clean-images clean-src clean-downloads
+dist-clean: clean-deps clean-images clean-src clean-downloads pkg-distclean
 
-.PHONY: all all-pxe all-imgs clean-src clean-downloads clean-deps clean-images localclean distclean pxe-targets templates
+.PHONY:: all all-pxe all-imgs clean clean-src clean-downloads clean-deps clean-images distclean pxe-targets templates images/img/% images/iso/%
+
+respkg-distros:
+	echo ubuntu-bionic
+
+respkg-requires:
+	echo respkg build-essential libelf-dev bc zlib1g-dev libssl-dev gperf libreadline-dev libsqlite3-dev libbz2-dev liblzma-dev uuid-dev libdevmapper-dev libgcrypt-dev libgpg-error-dev libassuan-dev libksba-dev libnpth0-dev python3-dev python3-setuptools pkg-config libblkid-dev gettext python3-pip
+
+respkg: all-pxe
+	mkdir -p contractor/resources/var/www/static/pxe/disks
+	cp images/pxe/*.initrd contractor/resources/var/www/static/pxe/disks
+	cp images/pxe/*.vmlinuz contractor/resources/var/www/static/pxe/disks
+	cd contractor && respkg -b ../disks-contractor_$(VERSION).respkg -n disks-contractor -e $(VERSION) -c "Disks for Contractor" -t load_data.sh -d resources -s contractor-os-base
+	touch respkg
+
+respkg-file:
+	echo $(shell ls *.respkg)
+
+respkg-clean:
+	$(RM) -fr resources/var/www/disks
+
+.PHONY:: respkg-distros respkg-requires respkg respkg-file respkg-clean
+
+# MCP targets
+
+pkg-clean:
+	for dir in config-curator; do $(MAKE) -C $$dir clean || exit $$?; done
+
+pkg-distclean:
+	for dir in config-curator; do $(MAKE) -C $$dir distclean || exit $$?; done
+
+test-distros:
+	echo ubuntu-xenial
+
+test-requires:
+	for dir in src config-curator; do $(MAKE) -C $$dir test-requires || exit $$?; done
+
+test:
+	for dir in src config-curator; do $(MAKE) -C $$dir test || exit $$?; done
+
+lint:
+	for dir in src config-curator; do $(MAKE) -C $$dir lint || exit $$?; done
+
+.PHONY:: test-distros lint test-requires test
+
+dpkg-distros:
+	for dir in config-curator; do $(MAKE) -C $$dir dpkg-distros || exit $$?; done
+
+dpkg-requires:
+	for dir in config-curator; do $(MAKE) -C $$dir dpkg-requires || exit $$?; done
+
+dpkg-setup:
+	for dir in config-curator; do $(MAKE) -C $$dir dpkg-setup || exit $$?; done
+
+dpkg:
+	for dir in config-curator; do $(MAKE) -C $$dir dpkg || exit $$?; done
+
+dpkg-file:
+	echo $(shell ls config-curator*.deb)
+
+.PHONY:: dpkg-distros dpkg-requires dpkg-file dpkg
+
+rpm-distros:
+	for dir in config-curator; do $(MAKE) -C $$dir rpm-distros || exit $$?; done
+
+rpm-requires:
+	for dir in config-curator; do $(MAKE) -C $$dir rpm-requires || exit $$?; done
+
+rpm-setup:
+	for dir in config-curator; do $(MAKE) -C $$dir rpm-setup || exit $$?; done
+
+rpm:
+	for dir in config-curator; do $(MAKE) -C $$dir rpm || exit $$?; done
+
+rpm-file:
+	echo $(shell ls config-curator/rpmbuild/RPMS/*/config-curator-*.rpm)
+
+.PHONY:: rpm-distros rpm-requires rpm-file rpm

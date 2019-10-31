@@ -1,6 +1,7 @@
 [filesystem]
 partition_type=gpt
 fs_type=ext4
+boot_fs_type=ext4
 md_meta_version=1.0
 extra_mount_1=proc:proc:/proc
 extra_mount_2=sysfs:sysfs:/sys

@@ -1,0 +1,20 @@
+#!/bin/sh
+#SOURCE: https://downloads.sourceforge.net/project/squashfs/squashfs/squashfs4.3/squashfs4.3.tar.gz
+#FILE: squashfs4.3.tar.gz
+#HASH: a615979db9cee82e4a934a1455577f597d290b41
+
+set -e
+set -x
+
+build()
+{
+  tar --strip-components=1 -xzf $1
+  sed s/'#XZ_SUPPORT = 1'/'XZ_SUPPORT = 1'/ -i squashfs-tools/Makefile
+  make -C squashfs-tools
+}
+
+install()
+{
+  cp -f $3/squashfs-tools/unsquashfs $1/bin/
+  cp -f $3/squashfs-tools/mksquashfs $1/bin/
+}

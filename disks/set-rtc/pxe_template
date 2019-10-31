@@ -1,5 +1,0 @@
-echo {{ script_description }}
-kernel {{ pxe_location }}set-rtc.vmlinuz hostname={{ hostname }} interface_mac={{ "{" }}{interfaces.{{ interface_provisioning }}.mac}{{ "}" }}{% if http_proxy %} http_proxy={{ http_proxy }}{% endif %}{% if console_list %} {% for console, baud in console_list %} console={{ console }},{{ baud }} console=tty1{% endfor %}{% endif %}{% if plato_pod %} plato_pod={{ plato_pod }}{% endif %}
-initrd {{ pxe_location }}set-rtc.initrd
-boot
-

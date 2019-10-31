@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # $1 - template
-# $2 - output config filename
+# $2 - output config-init filename
+# $3 - output for config.json filename
 # $3 - output boot config filename
 # $4 - output boot menu filename
 
@@ -53,6 +54,17 @@ do
   fi
 done
 
+clear
+
+echo "Shortcut env exports:"
+echo "---------------------------------------------------------------------"
+for i in `seq 0 $(( ${#QUESTION_LIST[@]} - 1 ))`;
+do
+  NAME=${QUESTION_LIST[$i]}
+  echo "export BDT_${QUESTION_LIST[$i]}=\"${!NAME}\""
+done
+echo "---------------------------------------------------------------------"
+
 post_process
 
 STOP_AT=$(set | grep -n "^_=" | head -n1 | cut -d: -f1)
@@ -61,11 +73,26 @@ VAR_NAMES=($(set | head -n${STOP_AT} | cut -d= -f1))
 for i in `seq 0 $(( ${#VAR_NAMES[@]} - 1 ))`;
 do
   VAR=${VAR_NAMES[$i]}
+  INIT="${INIT//__${VAR}__/$(eval echo '$'${VAR})}"
   CONFIG="${CONFIG//__${VAR}__/$(eval echo '$'${VAR})}"
   EXTLINUX="${EXTLINUX//__${VAR}__/$(eval echo '$'${VAR})}"
   EXTMENU="${EXTMENU//__${VAR}__/$(eval echo '$'${VAR})}"
 done
 
-echo "$CONFIG" > "$2"
-echo "$EXTLINUX" > "$3"
-echo "$EXTMENU" > "$4"
+if [ ! -z "$INIT" ]
+then
+  echo "$INIT" > "$2"
+  chmod +x $2
+fi
+
+if [ ! -z "$CONFIG" ]
+then
+  echo "$CONFIG" > "$3"
+fi
+
+echo "$EXTLINUX" > "$4"
+
+if [ ! -z "$EXTMENU" ]
+then
+  echo "$EXTMENU" > "$5"
+fi

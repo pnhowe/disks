@@ -1,5 +1,4 @@
 import sqlite3
-import sys
 import pickle
 import base64
 import os
@@ -78,128 +77,103 @@ class Config():
     self.root_dir = root_dir
     self.configurator = configurator
     self.extra_values = {}
-    self._checkDB( config_db )  # check db before we connect to it
-    self.conn = sqlite3.connect( config_db )
+    self.conn = sqlite3.connect( config_db, detect_types=sqlite3.PARSE_DECLTYPES )
+    self._checkDB( self.conn )
+    self.config_uuid = None
 
   def __del__( self ):
     self.conn.close()
 
   # utility functions
-  def _checkDB( self, config_db ):
-    conn = sqlite3.connect( config_db )
+  def _checkDB( self, conn ):
     cur = conn.cursor()
     cur.execute( 'SELECT COUNT(*) FROM "sqlite_master" WHERE type="table" and name="control";' )
     ( count, ) = cur.fetchone()
     if count == 0:
-      conn.execute( 'CREATE TABLE "control" ( "key" text, "value" text );' )
+      conn.execute( """CREATE TABLE "control" (
+        "id" INTEGER PRIMARY KEY CHECK ( "id" = 0 ),
+        "version" int,
+        "created" timestamp DEFAULT CURRENT_TIMESTAMP,
+        "modified" timestamp DEFAULT CURRENT_TIMESTAMP
+      );""" )
       conn.commit()
-      conn.execute( 'INSERT INTO "control" VALUES ( "version", "1" );' )
-      conn.commit()
-
-    cur = conn.cursor()
-    cur.execute( 'SELECT "value" FROM "control" WHERE "key" = "version";' )
-    ( version, ) = cur.fetchone()
-    if version < '2':
-      conn.execute( 'DROP TABLE IF EXISTS "templates";' )
-      conn.commit()
-      conn.execute( """CREATE TABLE "templates" (
-      "package" char(50) NOT NULL,
-      "template" char(50) NOT NULL,
-      "templatehash" char(40),
-      "target" char(200),
-      "targethash" char(40),
-      "lastChecked" datetime,
-      "lastBuilt" datetime,
-      "created" datetime DEFAULT CURRENT_TIMESTAMP,
-      "modified" datetime DEFAULT CURRENT_TIMESTAMP
-  );""" )
-      conn.commit()
-      conn.execute( 'DROP TABLE IF EXISTS "packages";' )
-      conn.commit()
-      conn.execute( """CREATE TABLE "packages" (
-      "package" char(50) NOT NULL,
-      "version" char(40),
-      "lastChecked" datetime,
-      "lastUpdated" datetime,
-      "created" datetime DEFAULT CURRENT_TIMESTAMP,
-      "modified" datetime DEFAULT CURRENT_TIMESTAMP
-  );""" )
-      conn.commit()
-      conn.execute( 'DROP TABLE IF EXISTS "config_cache";' )
-      conn.commit()
-      conn.execute( """CREATE TABLE "config_cache" (
-      "name" char(40) NOT NULL,
-      "value" text,
-      "created" datetime DEFAULT CURRENT_TIMESTAMP,
-      "modified" datetime DEFAULT CURRENT_TIMESTAMP
-  );""" )
-      conn.commit()
-      conn.execute( 'UPDATE "control" SET "value" = "2" WHERE "key" = "version";' )
+      conn.execute( 'INSERT INTO "control" ( "id", "version" ) VALUES ( 0, 0 );' )
       conn.commit()
 
     cur = conn.cursor()
-    cur.execute( 'SELECT "value" FROM "control" WHERE "key" = "version";' )
+    cur.execute( 'SELECT "version" FROM "control";' )
     ( version, ) = cur.fetchone()
-    if version < '3':
+    if version < 1:
+      conn.execute( 'DROP TABLE IF EXISTS "global";' )
+      conn.commit()
+      conn.execute( """CREATE TABLE "global" (
+        "id" INTEGER PRIMARY KEY CHECK ( "id" = 0 ),
+        "valuesLastModified" timestamp,
+        "created" timestamp DEFAULT CURRENT_TIMESTAMP,
+        "modified" timestamp DEFAULT CURRENT_TIMESTAMP
+      );""" )
+      conn.commit()
+      conn.execute( 'INSERT INTO "global" ( "id", "valuesLastModified" ) VALUES ( 0, CURRENT_TIMESTAMP );' )
+      conn.commit()
+
+      conn.execute( 'DROP TABLE IF EXISTS "value_cache";' )
+      conn.commit()
+      conn.execute( """CREATE TABLE "value_cache" (
+        "name" char(40) NOT NULL,
+        "value" text,
+        "created" timestamp DEFAULT CURRENT_TIMESTAMP,
+        "modified" timestamp DEFAULT CURRENT_TIMESTAMP
+      );""" )
+
       conn.execute( 'DROP TABLE IF EXISTS "targets";' )
       conn.commit()
       conn.execute( """CREATE TABLE "targets" (
-      "package" char(50) NOT NULL,
-      "template" char(50) NOT NULL,
-      "target" char(200),
-      "targetHash" char(40),
-      "lastChecked" datetime,
-      "lastBuilt" datetime,
-      "created" datetime DEFAULT CURRENT_TIMESTAMP,
-      "modified" datetime DEFAULT CURRENT_TIMESTAMP
-  );""" )
+        "package" char(50) NOT NULL,
+        "template" char(50) NOT NULL,
+        "target" char(200),
+        "targetHash" char(40),
+        "lastChecked" timestamp,
+        "lastBuilt" timestamp,
+        "created" timestamp DEFAULT CURRENT_TIMESTAMP,
+        "modified" timestamp DEFAULT CURRENT_TIMESTAMP
+      );""" )
 
-      conn.execute( 'DROP TABLE IF EXISTS "templates_new";' )
+      conn.execute( 'DROP TABLE IF EXISTS "templates";' )
       conn.commit()
-      conn.execute( """CREATE TABLE "templates_new" (
-      "package" char(50) NOT NULL,
-      "template" char(50) NOT NULL,
-      "templateHash" char(40),
-      "lastChecked" datetime,
-      "lastBuilt" datetime,
-      "created" datetime DEFAULT CURRENT_TIMESTAMP,
-      "modified" datetime DEFAULT CURRENT_TIMESTAMP
-  );""" )
-
-      cur = conn.cursor()
-      cur.execute( 'SELECT "package", "template", "templatehash", "target", "targethash", "lastChecked", "lastBuilt", "created", "modified" FROM "templates";' )
-      for ( package, template, template_hash, target, target_hash, lastChecked, lastBuilt, created, modified ) in cur.fetchall():
-        conn.execute( 'INSERT INTO "templates_new" ( "package", "template", "templateHash", "created", "modified" ) VALUES ( ?, ?, ?, ?, ? );', ( package, template, template_hash, created, modified ) )
-        conn.execute( 'INSERT INTO "targets" ( "package", "template", "target", "targetHash", "created", "modified" ) VALUES ( ?, ?, ?, ?, ?, ? );', ( package, template, target, target_hash, created, modified ) )
+      conn.execute( """CREATE TABLE "templates" (
+        "package" char(50) NOT NULL,
+        "template" char(50) NOT NULL,
+        "templateHash" char(40),
+        "lastChecked" timestamp,
+        "lastBuilt" timestamp,
+        "created" timestamp DEFAULT CURRENT_TIMESTAMP,
+        "modified" timestamp DEFAULT CURRENT_TIMESTAMP
+      );""" )
 
       conn.commit()
-
-      conn.execute( 'DROP TABLE "templates";' )
+      conn.execute( 'UPDATE "control" SET "version" = 1, "modified" = CURRENT_TIMESTAMP;' )
       conn.commit()
 
-      conn.execute( 'ALTER TABLE "templates_new" RENAME TO "templates";' )
-      conn.commit()
+  def updateCacheFromMaster( self ):
+    new_values, last_modified = self._getMasterValues()
 
-      conn.execute( 'UPDATE "control" SET "value" = "3" WHERE "key" = "version";' )
-      conn.commit()
-
-  def _updateConfigCache( self, new_values ):
-    cache = self.getConfigCache()
+    values = self.getValues( no_extra=True )
     for name in new_values:
-      value = base64.b64encode( pickle.dumps( new_values[name], pickle.HIGHEST_PROTOCOL ) )
-      if name not in cache:
-        self.conn.execute( 'INSERT INTO "config_cache" ( "name", "value" ) VALUES ( ?, ? );', ( name, value ) )
-
-      elif cache[name] != value:
-        self.conn.execute( 'UPDATE "config_cache" SET "value"=?, "modified"=CURRENT_TIMESTAMP WHERE "name"=?;', ( value, name ) )
+      value = base64.b64encode( pickle.dumps( new_values[ name ], pickle.HIGHEST_PROTOCOL ) )
+      try:
+        if values[ name ] != value:
+          self.conn.execute( 'UPDATE "value_cache" SET "value" = ?, "modified" = CURRENT_TIMESTAMP WHERE "name" = ?;', ( value, name ) )
+      except KeyError:
+        self.conn.execute( 'INSERT INTO "value_cache" ( "name", "value" ) VALUES ( ?, ? );', ( name, value ) )
 
     cur = self.conn.cursor()
-    cur.execute( 'SELECT "name" FROM "config_cache";' )
-    for ( name, ) in cur.fetchall():
-      if name not in new_values:
-        self.conn.execute( 'DELETE FROM "config_cache" WHERE "name"=?;', ( name, ) )
+    cur.execute( 'SELECT "name" FROM "value_cache";' )
+    for name in set( [ i[0] for i in cur.fetchall() ] ) - set( new_values.keys() ):
+      self.conn.execute( 'DELETE FROM "value_cache" WHERE "name" = ?;', ( name, ) )
 
     cur.close()
+
+    self.conn.execute( 'UPDATE "global" SET "valuesLastModified" = ?, "modified" = CURRENT_TIMESTAMP;', ( last_modified, ) )
 
     self.conn.commit()
 
@@ -209,8 +183,10 @@ class Config():
       tmpfile = os.path.join( self.template_dir, package, line )
       if not os.path.isfile( tmpfile ) or not os.access( tmpfile, os.R_OK ):
         continue
+
       if line.endswith( '.tpl' ):
         result.append( line[:-4] )
+
     return result
 
   def _getTemplates( self, package ):
@@ -218,7 +194,7 @@ class Config():
     cur = self.conn.cursor()
     cur.execute( 'SELECT "template", "templateHash" FROM "templates" WHERE package = "{0}" ORDER BY template;'.format( package ) )
     for ( template, template_hash ) in cur.fetchall():
-      result[ str( template ) ] = { 'hash': str( template_hash ) }
+      result[ template ] = { 'hash': template_hash }
 
     cur.close()
 
@@ -229,41 +205,49 @@ class Config():
     cur = self.conn.cursor()
     cur.execute( 'SELECT "target", "targethash", "lastChecked", "lastBuilt" FROM "targets" WHERE package = "{0}" AND template = "{1}" ORDER BY target;'.format( package, template ) )
     for ( target, target_hash, checked, built ) in cur.fetchall():
-      result[ str( target ) ] = { 'hash': str( target_hash ), 'last_checked': str( checked ), 'last_built': str( built ) }
+      result[ target ] = { 'hash': target_hash, 'last_checked': checked, 'last_built': built }
 
     cur.close()
 
     return result
 
-  def _renderTemplate( self, package, config, template, root_dir ):
+  def _renderTemplate( self, package, value_map, template, root_dir ):
     eng = Environment( loader=FileSystemLoader( os.path.join( self.template_dir, package ) ), extensions=[ TargetWriter, do_ext ] )
     eng.filters[ 'unique_list' ] = unique_list
     eng.globals.update( _dry_run=False )
     eng.globals.update( _root_dir=os.path.join( self.root_dir, root_dir ) )
     tmpl = eng.get_template( '{0}.tpl'.format( template ) )
-    tmpl.render( config )
+    tmpl.render( value_map )
     return eng.globals[ '_target_list' ]
 
-  def _targetFiles( self, package, config, template ):
+  def _targetFiles( self, package, value_map, template ):
     eng = Environment( loader=FileSystemLoader( os.path.join( self.template_dir, package ) ), extensions=[ TargetWriter, do_ext ] )
     eng.filters[ 'unique_list' ] = unique_list
     eng.globals.update( _dry_run=True )
     tmpl = eng.get_template( '{0}.tpl'.format( template ) )
-    tmpl.render( config )
+    tmpl.render( value_map )
     return eng.globals[ '_target_list' ]
 
-  def getMasterConfig( self ):
-    values = self.provider.getConfig()
+  def setConfigUUID( self, uuid ):
+    if uuid is None:
+      raise Exception( 'Can Not set uuid to None' )
 
+    self.config_uuid = uuid
+
+  def _getMasterValues( self ):
+    values = self.provider.getValues( self.config_uuid )
     if not values:
-      print( 'Provider returned empty config - Device Not found.' )
-      sys.exit( 1 )
+      raise Exception( 'Provider returned empty config' )
 
-    if self.provider.uuid is None or self.provider.id is None:
-      print( 'Retrieved config is not valid' )
-      sys.exit( 1 )
+    if self.provider.uuid is None:
+      raise Exception( 'Retrieved config is not valid' )
 
-    return values
+    if self.config_uuid is None:
+      self.config_uuid = self.provider.uuid
+    elif self.config_uuid != self.provider.uuid:
+      raise Exception( 'config uuid mismatch' )
+
+    return values, self.provider.last_modified
 
   def setOverlayValues( self, values ):
     self.extra_values.update( values )
@@ -271,41 +255,49 @@ class Config():
   def getTemplateList( self, package ):
     return self._getPackageTemplates( package )
 
-  def getTargetFiles( self, package, template, config=None ):
-    if not config:
-      config = self.getConfigCache()
+  def getTargetFiles( self, package, template, value_map=None ):
+    if not value_map:
+      value_map = self.getCache()
 
-    return self._targetFiles( package, config, template )
+    return self._targetFiles( package, value_map, template )
 
-  def updateConfigCacheFromMaster( self ):
-    self._updateConfigCache( self.getMasterConfig() )
-
-  def getConfigCache( self ):
+  def getValues( self, no_extra=False ):
     result = {}
     cur = self.conn.cursor()
-    cur.execute( 'SELECT "name", "value" FROM "config_cache";' )
+    cur.execute( 'SELECT "name", "value" FROM "value_cache";' )
     for ( name, value ) in cur.fetchall():
-      result[ str( name ) ] = pickle.loads( base64.b64decode( value ) )
+      result[ name ] = pickle.loads( base64.b64decode( value ) )
 
+    cur.close()
+
+    if not no_extra:
+      result.update( self.extra_values )
+
+    result[ '__timestamp__' ] = datetime.now().isoformat()
+    result[ '__configurator__' ] = self.configurator
+    result[ '__uuid__' ] = self.config_uuid
+    result[ '__last_modified__' ] = self.getLastModified()
+
+    return result
+
+  def getLastModified( self ):
+    cur = self.conn.cursor()
+    cur.execute( 'SELECT "valuesLastModified" FROM "global";' )
+    result = cur.fetchone()[0]
     cur.close()
 
     return result
 
-  def getTargetStatus( self, package, config=None ):
-    if config is None:
-      config = self.getConfigCache()
-
+  def getTargetStatus( self, package ):
+    value_map = self.getValues()
+    last_modified = self.getLastModified()
     template_db_list = self._getTemplates( package )
     template_list = self._getPackageTemplates( package )
     package_dir = os.path.join( self.template_dir, package )
 
     results = []
-    last_modified = None
-    if 'last_modified' in config:
-      last_modified = config[ 'last_modified' ]
-
     for template in template_list:
-      target_list = self._targetFiles( package, config, template )
+      target_list = self._targetFiles( package, value_map, template )
       target_db_list = self._getTargets( package, template )
 
       template_file = os.path.join( package_dir, '{0}.tpl'.format( template ) )
@@ -360,7 +352,7 @@ class Config():
           results.append( tmp )
 
       else:
-        target_list = self._targetFiles( package, config, template )
+        target_list = self._targetFiles( package, value_map, template )
         for target in target_db_list:
           if target not in target_list:
             tmp = {}
@@ -383,18 +375,13 @@ class Config():
 
     return result
 
-  def configPackage( self, package, master_template_list, force, dry_run, no_backups, re_generate, dest_rootdir='', config=None ):
-    if config is None:
-      config = self.getConfigCache()
+  def configPackage( self, package, master_template_list, force, dry_run, no_backups, re_generate, dest_rootdir='', value_map=None ):
+    if value_map is None:
+      value_map = self.getValues()
+    else:
+      value_map = value_map.copy()  # just incase, we don't want to mess up what we were passed
 
-    config = config.copy()  # just incase, we don't want to mess up what we were passed
-    config.update( self.extra_values )
-    config[ '__configurator__' ] = self.configurator
-
-    last_modified = '0'  # TODO: treat last_modified as a actuall dateetime
-    if 'last_modified' in config:
-      last_modified = config[ 'last_modified' ]
-
+    last_modified = self.getLastModified()
     template_list = self._getPackageTemplates( package )
     template_db_list = self._getTemplates( package )
     package_dir = os.path.join( self.template_dir, package )
@@ -410,7 +397,7 @@ class Config():
 
       template_hash = hashlib.sha1( open( template_file, 'r' ).read().encode() ).hexdigest()
 
-      target_list = self._targetFiles( package, config, template )
+      target_list = self._targetFiles( package, value_map, template )
       target_db_list = self._getTargets( package, template )
 
       need_build = False
@@ -487,12 +474,12 @@ class Config():
             self.conn.execute( 'INSERT INTO "targets" ( "package", "template", "target", "lastChecked" ) VALUES ( ?, ?, ?, CURRENT_TIMESTAMP );', ( package, template, target ) )
 
         else:
-          self.conn.execute( 'UPDATE "templates" SET "lastChecked"=CURRENT_TIMESTAMP, "modified"=CURRENT_TIMESTAMP WHERE "package"=? AND "template"=?;', ( package, template ) )
+          self.conn.execute( 'UPDATE "templates" SET "lastChecked" = CURRENT_TIMESTAMP, "modified" = CURRENT_TIMESTAMP WHERE "package" = ? AND "template" = ?;', ( package, template ) )
           for target in target_list:
             if target not in target_db_list:
               self.conn.execute( 'INSERT INTO "targets" ( "package", "template", "target", "lastChecked" ) VALUES ( ?, ?, ?, CURRENT_TIMESTAMP );', ( package, template, target ) )
             else:
-              self.conn.execute( 'UPDATE "targets" SET "lastChecked"=CURRENT_TIMESTAMP, "modified"=CURRENT_TIMESTAMP WHERE "package"=? AND "template"=? AND "target"=?;', ( package, template, target ) )
+              self.conn.execute( 'UPDATE "targets" SET "lastChecked" = CURRENT_TIMESTAMP, "modified" = CURRENT_TIMESTAMP WHERE "package" = ? AND "template" = ? AND "target" = ?;', ( package, template, target ) )
 
         self.conn.commit()
         continue
@@ -500,13 +487,13 @@ class Config():
       if not dest_rootdir:
         print( '(Re)Building "{0}" in "{1}"...'.format( template, package ) )
 
-      self._renderTemplate( package, config, template, dest_rootdir )
+      self._renderTemplate( package, value_map, template, dest_rootdir )
 
       if dest_rootdir:
         continue
 
       if template in template_db_list:
-        self.conn.execute( 'UPDATE "templates" SET "lastChecked"=CURRENT_TIMESTAMP, "templatehash"=?, "lastBuilt"=CURRENT_TIMESTAMP, "modified"=CURRENT_TIMESTAMP WHERE "package"=? AND "template"=?;', ( template_hash, package, template ) )
+        self.conn.execute( 'UPDATE "templates" SET "lastChecked" = CURRENT_TIMESTAMP, "templatehash" = ?, "lastBuilt" = CURRENT_TIMESTAMP, "modified" = CURRENT_TIMESTAMP WHERE "package" = ? AND "template" = ?;', ( template_hash, package, template ) )
       else:
         self.conn.execute( 'INSERT INTO "templates" ( "templatehash", "package", "template", "lastChecked", "lastBuilt" ) VALUES ( ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP );', ( template_hash, package, template ) )
 
@@ -514,7 +501,7 @@ class Config():
         target_hash = hashlib.sha1( open( os.path.join( self.root_dir, *( target.split( '/' ) ) ), 'r' ).read().encode() ).hexdigest()
 
         if template in template_db_list:
-          self.conn.execute( 'UPDATE "targets" SET "lastChecked"=CURRENT_TIMESTAMP, "targethash"=?, "lastBuilt"=CURRENT_TIMESTAMP, "modified"=CURRENT_TIMESTAMP WHERE "package"=? AND "template"=? AND "target"=?;', ( target_hash, package, template, target ) )
+          self.conn.execute( 'UPDATE "targets" SET "lastChecked" = CURRENT_TIMESTAMP, "targethash" = ?, "lastBuilt" = CURRENT_TIMESTAMP, "modified" = CURRENT_TIMESTAMP WHERE "package" = ? AND "template" = ? AND "target" = ?;', ( target_hash, package, template, target ) )
         else:
           self.conn.execute( 'INSERT INTO "targets" ( "targethash", "package", "template", "target", "lastChecked", "lastBuilt" ) VALUES ( ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP );', ( target_hash, package, template, target ) )
 

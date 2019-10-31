@@ -1,0 +1,116 @@
+#TODO: rename these something with unique, with the standard aliases to override the contractor-resources ones.  this way some things can depend the enhanced installers here?
+#TODO: find a way for a blueprint to provide a config template?
+#TODO: find a way for a bluepriont to provide static config files?
+
+[ structure.ubuntu-base ]
+  description = 'Base Ubuntu'
+  parents = [ 'linux-base' ]
+
+[ structure.ubuntu-base.config_values ]
+  installer_pxe = 'disks-linux-installer'
+  mirror_server = 'us.archive.ubuntu.com'
+  config_host = 'http://contractor'
+  bootstrap_source = 'http://{{ mirror_server }}/ubuntu'
+  distro = 'ubuntu'
+  repo_components = [ 'main' ]
+  >repo_list = [
+    { distribution = '{{ distro_version }}', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
+    { distribution = '{{ distro_version }}-updates', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
+    { distribution = '{{ distro_version }}-security', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
+    { type = 'apt', uri = 'http://d16r8ew072anqo.cloudfront.net/', proxy = '{{ mirror_proxy|default( "local" ) }}' },  # getting a proxy setting for other servers that get refrenced
+  ]
+  '>package_list' = [ 'openssh-server', 'openssh-client' ]
+  '>package_list:VCenter' = [ 'open-vm-tools' ]
+  vcenter_guest_id = 'ubuntu64Guest'
+  virtualbox_guest_type = 'Ubuntu_64'
+  timezone = 'Etc/UTC'
+
+[ structure.ubuntu-trusty-base ]
+  description = 'Base Ubuntu Trusty Tahr (14.04 LTS)'
+  parents = [ 'ubuntu-base' ]
+[ structure.ubuntu-trusty-base.config_values ]
+  distro_version = 'trusty'
+  azure_image = { 'publisher' = 'Canonical', 'offer' = 'UbuntuServer', 'sku' = '14.04-LTS', 'version' = 'latest' }
+
+[ structure.ubuntu-xenial-base ]
+  description = 'Base Ubuntu Xenial Xerus (16.04 LTS)'
+  parents = [ 'ubuntu-base' ]
+[ structure.ubuntu-xenial-base.config_values ]
+  distro_version = 'xenial'
+  awsec2_image_id = 'ami-efd0428f'
+  azure_image = { 'publisher' = 'Canonical', 'offer' = 'UbuntuServer', 'sku' = '16.04-LTS', 'version' = 'latest' }
+
+[ structure.ubuntu-bionic-base ]
+  description = 'Base Ubuntu Bionic Beaver (18.04 LTS)'
+  parents = [ 'ubuntu-base' ]
+[ structure.ubuntu-bionic-base.config_values ]
+  distro_version = 'bionic'
+  azure_image = { 'publisher' = 'Canonical', 'offer' = 'UbuntuServer', 'sku' = '18.04-LTS', 'version' = 'latest' }
+
+[ structure.centos-base ]
+  description = 'Base CentOS'
+  parents = [ 'linux-base' ]
+
+[ structure.centos-base.config_values ]
+  installer_pxe = 'disks-linux-installer'
+  mirror_server = 'mirror.centos.org'
+  config_host = 'http://contractor'
+  bootstrap_source = 'http://{{ mirror_server }}/centos/'
+  distro = 'centos'
+  >repo_list = [
+    { type = 'yum', name = 'base', uri = 'http://{{ mirror_server }}/centos-{{ distro_version }}/{{ distro_version }}/os/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-{{ distro_version }}', proxy = '{{ mirror_proxy|default( "local" ) }}' },
+    { type = 'yum', name = 'updates', uri = 'http://{{ mirror_server }}/centos-{{ distro_version }}/{{ distro_version }}/updates/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-{{ distro_version }}', proxy = '{{ mirror_proxy|default( "local" ) }}' },
+    { type = 'yum', name = 'extras', uri = 'http://{{ mirror_server }}/centos-{{ distro_version }}/{{ distro_version }}/extras/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-{{ distro_version }}', proxy = '{{ mirror_proxy|default( "local" ) }}' },
+    { type = 'yum', name = 'epel', uri = 'http://download.fedoraproject.org/pub/epel/{{ distro_version }}/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-{{ distro_version }}', key_uri = 'http://download.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ distro_version }}', proxy = '{{ mirror_proxy|default( "local" ) }}' },
+  ]
+  '>package_list' = [ 'openssh-server' ]
+  '>package_list:VCenter' = [ 'open-vm-tools' ]
+  virtualbox_guest_type = 'RedHat_64'
+
+[ structure.centos-6-base]
+  description = 'Base CentOS 6'
+  parents = [ 'centos-base' ]
+[ structure.centos-6-base.config_values ]
+  distro_version = '6'
+  # vcenter_guest_id = 'rhel6_64Guest' # if vcneter is older than 6.5
+  vcenter_guest_id = 'centos6_64Guest'
+  azure_image = { 'publisher' = 'OpenLogic', 'offer' = 'CentOS', 'sku' = '6.10', 'version' = 'latest' }
+
+[ structure.centos-7-base]
+  description = 'Base CentOS 7'
+  parents = [ 'centos-base' ]
+[ structure.centos-7-base.config_values ]
+  memory_size = 2048  # centos 7 requires more minimum memory to install
+  distro_version = '7'
+  # vcenter_guest_id = 'rhel7_64Guest' # if vcneter is older than 6.5
+  vcenter_guest_id = 'centos7_64Guest'
+  azure_image = { 'publisher' = 'OpenLogic', 'offer' = 'CentOS', 'sku' = '7.6', 'version' = 'latest' }
+
+[ pxe.disks-utility ]
+  description = 'T3kton Disks - Utility'
+  boot_script = '''echo Bootstrap
+kernel {{ __pxe_location }}disks/utility.vmlinuz interface_mac={{ _provisioning_interface_mac }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ _hostname }}
+initrd {{ __pxe_location }}disks/utility.initrd
+boot
+'''
+
+  template = '# Utility'
+
+[ pxe.disks-bootstrap ]
+  description = 'T3kton Disks - Bootstrap'
+  boot_script = '''echo Bootstrap
+kernel {{ __pxe_location }}disks/bootstrap.vmlinuz {% if _provisioning_interface %}interface={{ _provisioning_interface }}{% endif %} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} {% if _hostname %}hostname={{ _hostname }}{% endif %}
+initrd {{ __pxe_location }}disks/bootstrap.initrd
+boot
+'''
+
+  template = '# Bootstrap'
+
+[ pxe.disks-linux-installer ]
+  description = 'T3kton Disks - Linux Installer'
+  boot_script = '''echo Linux Installer
+kernel {{ __pxe_location }}disks/linux-installer.vmlinuz interface_mac={{ _provisioning_interface_mac }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ _hostname }}
+initrd {{ __pxe_location }}disks/linux-installer.initrd
+boot
+'''
+  template = '# Linux-Installer'

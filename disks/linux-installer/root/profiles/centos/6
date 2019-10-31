@@ -2,8 +2,10 @@
 
 [filesystem]
 partition_type=gpt
-fs_type=ext4
+fs_type=ext3
+boot_fs_type=ext3
 md_meta_version=1.0
+mtab=file
 extra_mount_1=proc:proc:/proc
 extra_mount_2=sysfs:sysfs:/sys
 extra_mount_3=:/dev:/dev:bind
@@ -23,20 +25,23 @@ prebase_templates=
 base=Base
 packages=dhclient
 source_templates=repos
+install_env_var_1=CONFIG_CURATOR_HOST:{{ config_host }}
+install_env_var_2=CONFIG_CURATOR_PROXY:{{ config_proxy }}
 
 [config]
 base_templates=hosts network ifcfg i18n yum
 
 [booting]
 bootloader_templates=grub
-grub_conf=/boot/grub/grub.conf
 bootloader_install=/sbin/grub-install {0}
 
 [users]
 skel_dir=etc/skel/
 
 [general]
-after_cmd_1=restorecon -R /
+after_cmd_1=touch /.autorelabel
+after_cmd_2=rm /etc/localtime
+after_cmd_3=ln -s ../usr/share/zoneinfo/UTC /etc/localtime
 
 [packages]
 bootloader_package=grub

@@ -1,5 +1,5 @@
 import os
-from installer.procutils import chroot_execute, execute
+from installer.procutils import chroot_execute, execute, chroot_env
 from installer.httputils import http_getfile
 from installer.config import renderTemplates
 
@@ -7,7 +7,7 @@ manager_type = None
 divert_list = []
 
 
-def configSources( install_root, profile, config ):
+def configSources( install_root, profile, value_map ):
   global manager_type
   manager_type = profile.get( 'packaging', 'manager_type' )
 
@@ -18,7 +18,7 @@ def configSources( install_root, profile, config ):
     execute( 'ash -c "rm {0}/etc/yum.repos.d/*"'.format( install_root ) )
 
   key_uris = []
-  for repo in config[ 'repo_list' ]:
+  for repo in value_map[ 'repo_list' ]:
     if 'key_uri' in repo:
       if repo[ 'type' ] != manager_type:
         continue
@@ -29,13 +29,17 @@ def configSources( install_root, profile, config ):
           proxy = repo[ 'proxy' ]
         except Exception:
           proxy = None
+
         tmp = http_getfile( uri, proxy=proxy )
 
         if manager_type == 'apt':
-          chroot_execute( '/usr/bin/apt-key add -', tmp )
+          chroot_execute( '/usr/bin/apt-key add -', tmp.decode() )
 
         if 'key_file' in repo:
-          open( os.path.join( install_root, repo[ 'key_file' ] ), 'w' ).write( tmp )
+          key_file_path = '{0}/{1}'.format( install_root, repo[ 'key_file' ] )
+          if not os.path.isdir( os.path.dirname( key_file_path ) ):
+            os.makedirs( os.path.dirname( key_file_path ) )
+          open( key_file_path, 'wb' ).write( tmp )
 
         key_uris.append( uri )
 
@@ -62,17 +66,15 @@ def installBase( install_root, profile ):
     chroot_execute( '/usr/bin/zypper --non-interactive install {0}'.format( profile.get( 'packaging', 'base' ) ) )
 
 
-def installOtherPackages( profile, config ):
-  package_list = profile.get( 'packaging', 'packages' )
+def installOtherPackages( profile, value_map ):
+  package_list = profile.get( 'packaging', 'packages' ).split( ' ' )
   try:
-    package_list += ' {0}'.format( config[ 'packages' ] )
+    package_list += value_map[ 'package_list' ]
   except KeyError:
     pass
 
-  package_list = package_list.strip()
-
   tmp = []
-  for package in package_list.split( ' ' ):
+  for package in package_list:
     parts = package.split( ':' )
 
     if len( parts ) == 1:
@@ -89,6 +91,7 @@ def installPackages( packages ):
     chroot_execute( '/usr/bin/apt-get install -q -y {0}'.format( packages ) )
   elif manager_type == 'yum':
     chroot_execute( '/usr/bin/yum -y install {0}'.format( packages ) )
+    chroot_execute( '/usr/bin/rpm --query {0}'.format( packages ) )  # yum does not return error if something does not exist, so check to see if what we saied we wanted installed is installed
   elif manager_type == 'zypper':
     chroot_execute( '/usr/bin/zypper --non-interactive install {0}'.format( packages ) )
 
@@ -127,6 +130,11 @@ def undivert( profile ):
 def preBaseSetup( profile ):
   renderTemplates( profile.get( 'packaging', 'prebase_templates' ).split( ',' ) )
 
+  for item in profile.items( 'packaging' ):
+    if item[0].startswith( 'install_env_var_' ):
+      ( name, value ) = item[1].split( ':', 1 )
+      chroot_env[ name ] = value  # tehinically we are affecting all the chroot commands, for now this is ok.
+
   if manager_type == 'apt':
     for item in profile.items( 'packaging' ):
       if item[0].startswith( 'selection_' ):
@@ -137,14 +145,16 @@ def preBaseSetup( profile ):
       chroot_execute( item[1] )
 
 
-def cleanPackaging():
+def cleanPackaging( install_root ):
   if manager_type == 'apt':
     chroot_execute( '/usr/bin/apt-get clean' )
+
   elif manager_type == 'yum':
     chroot_execute( '/usr/bin/yum clean all' )
-    execute( '/bin/find -name *.rpmnew -exec rm {} \;' )
-    execute( '/bin/find -name *.rpmsave -exec rm {} \;' )
+    execute( '/bin/find {0} \( -path {0}/proc -o -path {0}/sys \) -prune -o -name *.rpmnew -exec rm {{}} \;'.format( install_root ) )
+    execute( '/bin/find {0} \( -path {0}/proc -o -path {0}/sys \) -prune -o -name *.rpmsave -exec rm {{}} \;'.format( install_root ) )
+
   elif manager_type == 'zypper':
     chroot_execute( '/usr/bin/zypper --non-interactive clean' )
-    execute( '/bin/find -name *.rpmnew -exec rm {} \;' )
-    execute( '/bin/find -name *.rpmsave -exec rm {} \;' )
+    execute( '/bin/find {0} \( -path {0}/proc -o -path {0}/sys \) -prune -o -name *.rpmnew -exec rm {{}} \;'.format( install_root ) )
+    execute( '/bin/find {0} \( -path {0}/proc -o -path {0}/sys \) -prune -o -name *.rpmsave -exec rm {{}} \;'.format( install_root ) )

@@ -2,211 +2,196 @@
 import os
 import stat
 import sys
-import json
-import optparse
 import shutil
 
-from platoclient.libplatopxe import PlatoPXE
+from contractor.client import getClient
 from installer.procutils import open_output, set_chroot, execute, execute_lines, chroot_execute
 from installer.filesystem import partition, mkfs, mount, remount, unmount, writefstab, fsConfigValues, grubConfigValues, MissingDrives, installFilesystemUtils
 from installer.bootstrap import bootstrap
 from installer.packaging import configSources, installBase, installOtherPackages, updatePackages, divert, undivert, preBaseSetup, cleanPackaging
 from installer.booting import installBoot
-from installer.config import getProfile, initConfig, writeShellHelper, baseConfig, fullConfig, updateConfig
+from installer.misc import postInstallScripts
+from installer.config import getProfile, initConfig, writeShellHelper, baseConfig, fullConfig, updateConfig, getValues
 from installer.users import setupUsers
 
 STDOUT_OUTPUT = '/dev/instout'
 
-oparser = optparse.OptionParser( description='Linux Installer', usage='Use either --distro and --version or --package.' )
+contractor = getClient()
 
-oparser.add_option( '-d', '--distro', help='Distro [debian/centos/sles/opensles/rhel]', dest='distro' )
-oparser.add_option( '-v', '--version', help='Distro Version [precise/5/...]', dest='version' )
-oparser.add_option( '-p', '--package', help='Path to package, if --source is specified, this is a path on the source, other wise it is a local path.', dest='package' )
-oparser.add_option( '-s', '--source', help='HTTP Source (ie: http://mirrors/ubuntu/)', dest='source' )
-oparser.add_option( '-t', '--target', help='Install Target [drive/image/chroot] (default: drive)', dest='target', default='drive' )
+config = contractor.getConfig()
+image_package = config.get( 'image_package', None )
+image_package_location = config.get( 'image_package_location', None )
 
-( options, args ) = oparser.parse_args()
+distro = config.get( 'distro', None )
+distro_version = config.get( 'distro_version', None )
+bootstrap_source = config.get( 'bootstrap_source', None )
 
-platopxe = PlatoPXE( host=os.environ.get( 'plato_host', 'plato' ), proxy=os.environ.get( 'plato_proxy', None ) )
+target = config.get( 'install_target', 'drive' )
 
 open_output( STDOUT_OUTPUT )
 
-if options.package and options.distro:
-  print( '--package and --distro can not be used at the same time.' )
+if image_package and distro:
+  print( '"image_package" and "distro" can not be specified at the same time.' )
   sys.exit( 1 )
 
-if options.package:
-  if options.source:
-    platopxe.postMessage( 'Downloading Install Package...' )
-    execute( '/bin/wget -O /tmp/package {0}{1}'.format(  options.source, options.package ) )
-    options.package = '/tmp/package'
+if image_package:
+  if image_package_location:
+    contractor.postMessage( 'Downloading Install Package...' )
+    execute( '/bin/wget -O /tmp/package {0}{1}'.format( image_package_location, image_package ) )
+    image_package = '/tmp/package'
 
-  if not os.access( options.package, os.R_OK ):
-    raise Exception( 'Unable to find image package "{0}"'.format( options.package ) )
+  if not os.access( image_package, os.R_OK ):
+    raise Exception( 'Unable to find image package "{0}"'.format( image_package ) )
 
-  platopxe.postMessage( 'Extracting Install Package...' )
+  contractor.postMessage( 'Extracting Install Package...' )
   os.makedirs( '/package' )
-  execute( '/bin/tar -C /package --exclude=image* -xzf {0}'.format( options.package ) )
+  execute( '/bin/tar -C /package --exclude=image* -xzf {0}'.format( image_package ) )
 
   profile_file = '/package/profile'
   template_path = '/package/templates'
 
 else:
-  if options.distro not in os.listdir( '/profiles/' ):
-    print( 'Unknown Distro "{0}"'.format( options.distro ) )
+  if distro not in os.listdir( '/profiles/' ):
+    print( 'Unknown Distro "{0}"'.format( distro ) )
     sys.exit( 1 )
 
-  if options.version not in os.listdir( os.path.join( '/profiles', options.distro ) ):
-    print( 'Unknown Version "{0}" of Distro "{1}"'.format( options.version, options.distro ) )
+  if distro_version not in os.listdir( os.path.join( '/profiles', distro ) ):
+    print( 'Unknown Version "{0}" of Distro "{1}"'.format( distro_version, distro ) )
     sys.exit( 1 )
 
-  if options.target not in ( 'drive', ):
-    print( 'Unknown Target "{0}"'.format( options.target ) )
+  if target not in ( 'drive', ):
+    print( 'Unknown Target "{0}"'.format( target ) )
     sys.exit( 1 )
 
-  if not options.source:
-    print( 'Source required' )
+  if not bootstrap_source:
+    print( 'bootstrap_source is required when installing via distro' )
     sys.exit( 1 )
 
-  profile_file = os.path.join( '/profiles', options.distro, options.version )
-  template_path = os.path.join( '/templates', options.distro, options.version )
+  profile_file = os.path.join( '/profiles', distro, distro_version )
+  template_path = os.path.join( '/templates', distro, distro_version )
+  print( 'Using profile "{0}"'.format( profile_file ) )
+  print( 'Using template "{0}"'.format( template_path ) )
 
-if os.access( '/genconfig.sh', os.X_OK ):
-  platopxe.postMessage( 'Running genconfig...' )
-  execute( '/genconfig.sh' )
-
-config = {}
-if not os.access( '/config.json', os.R_OK ):
-  print( 'Config file /config.json not found' )
-config = json.loads( open( '/config.json', 'r' ).read() )
-
-if options.target == 'drive':
+if target == 'drive':
   install_root = '/target'
 
 set_chroot( install_root )
 
-platopxe.postMessage( 'Setting Up Configurator...' )
+contractor.postMessage( 'Setting Up Configurator...' )
 initConfig( install_root, template_path, profile_file )
 updateConfig( 'filesystem', fsConfigValues() )
 
+value_map = getValues()
+
 profile = getProfile()
 
-platopxe.postMessage( 'Loading Kernel Modules...' )
+contractor.postMessage( 'Loading Kernel Modules...' )
 for item in profile.items( 'kernel' ):
   if item[0].startswith( 'load_module_' ):
     execute( '/sbin/modprobe {0}'.format( item[1] ) )
 
-if options.target == 'drive':
-  platopxe.postMessage( 'Partitioning....' )
+if target == 'drive':
+  contractor.postMessage( 'Partitioning....' )
   try:
-    partition( profile, config )
+    partition( profile, value_map )
   except MissingDrives as e:
     print( 'Timeout while waiting for drive "{0}"'.format( e ) )
     sys.exit( 1 )
 
-  platopxe.postMessage( 'Making Filesystems....' )
+  contractor.postMessage( 'Making Filesystems....' )
   mkfs()
 
 updateConfig( 'filesystem', fsConfigValues() )
 
 profile = getProfile()  # reload now with the file system values
 
-platopxe.postMessage( 'Mounting....' )
+contractor.postMessage( 'Mounting....' )
 mount( install_root, profile )
 
-if not options.package:
-  platopxe.postMessage( 'Bootstrapping....' )
-  bootstrap( install_root, options.source, profile, config )
+if not image_package:
+  contractor.postMessage( 'Bootstrapping....' )
+  bootstrap( install_root, bootstrap_source, profile )
   remount()
 
 else:
-  platopxe.postMessage( 'Extracting OS Image....' )
-  name = execute_lines( '/bin/tar --wildcards image.* -ztf {0}'.format( options.package ) )
+  contractor.postMessage( 'Extracting OS Image....' )
+  name = execute_lines( '/bin/tar --wildcards image.* -ztf {0}'.format( image_package ) )
   try:
     name = name[0]
   except IndexError:
     raise Exception( 'Unable to find image in package' )
   if name == 'image.cpio.gz':
-    execute( '/bin/sh -c "cd {0}; /bin/tar --wildcards image.* -Ozxf {1} | /bin/gunzip | /bin/cpio -id"'.format( install_root, options.package ) )
+    execute( '/bin/sh -c "cd {0}; /bin/tar --wildcards image.* -Ozxf {1} | /bin/gunzip | /bin/cpio -id"'.format( install_root, image_package ) )
 
   elif name == 'image.tar.gz':
-    execute( '/bin/sh -c "cd {0}; /bin/tar --wildcards image.* -Ozxf {1} | /bin/gunzip | /bin/tar -xz"'.format( install_root, options.package ) )
+    execute( '/bin/sh -c "cd {0}; /bin/tar --wildcards image.* -Ozxf {1} | /bin/gunzip | /bin/tar -xz"'.format( install_root, image_package ) )
 
   else:
     raise Exception( 'Unable to find image to extract' )
 
-platopxe.postMessage( 'Writing fstab....' )
+contractor.postMessage( 'Writing fstab....' )
 writefstab( install_root, profile )
 
 writeShellHelper()
 
-if not options.package:
-  platopxe.postMessage( 'Setting Up Package Manager...' )
-  configSources( install_root, profile, config )
+if not image_package:
+  contractor.postMessage( 'Setting Up Package Manager...' )
+  configSources( install_root, profile, value_map )
 
-  platopxe.postMessage( 'Writing Base OS Config...' )
+  contractor.postMessage( 'Writing Base OS Config...' )
   baseConfig( profile )
 
-  if os.access( '/before.sh', os.X_OK ):
-    platopxe.postMessage( 'Running Before Packages Task...' )
-    execute( '/before.sh' )
-
-  platopxe.postMessage( 'Setting up Diverts....' )
+  contractor.postMessage( 'Setting up Diverts....' )
   divert( profile )
 
-  platopxe.postMessage( 'Before Base Setup....' )
+  contractor.postMessage( 'Before Base Setup....' )
   preBaseSetup( profile )
 
-  platopxe.postMessage( 'Installing Base...' )
+  contractor.postMessage( 'Installing Base...' )
   installBase( install_root, profile )
   remount()
 
-  platopxe.postMessage( 'Setting Up Users....' )
-  setupUsers( install_root, profile, config )
+  contractor.postMessage( 'Setting Up Users....' )
+  setupUsers( install_root, profile, value_map )
 
   updateConfig( 'bootloader', grubConfigValues( install_root ) )
 
-  platopxe.postMessage( 'Installing Kernel/Boot Loader...' )
+  contractor.postMessage( 'Installing Kernel/Boot Loader...' )
   installBoot( install_root, profile )  # bootloader before other packages, incase other packages pulls in bootloader before we have it configured
 
-  platopxe.postMessage( 'Installing Packages...' )
-  installOtherPackages( profile, config )
+  contractor.postMessage( 'Installing Packages...' )
+  installOtherPackages( profile, value_map )
 
-  platopxe.postMessage( 'Installing Filesystem Utils...' )
+  contractor.postMessage( 'Installing Filesystem Utils...' )
   installFilesystemUtils( profile )
 
-  platopxe.postMessage( 'Updating Packages...' )
+  contractor.postMessage( 'Updating Packages...' )
   updatePackages()
 
 updateConfig( 'bootloader', grubConfigValues( install_root ) )
 
-platopxe.postMessage( 'Writing Full Config...' )
+contractor.postMessage( 'Writing Full Config...' )
 fullConfig()
 
-if not options.package:
+if not image_package:
   for item in profile.items( 'general' ):
     if item[0].startswith( 'after_cmd_' ):
       chroot_execute( item[1] )
 
-  if os.access( '/after.sh', os.X_OK ):
-    platopxe.postMessage( 'Running After Packages Task...' )
-    after_path = os.path.join( install_root, 'after.sh' )
-    shutil.copyfile( '/after.sh', after_path )
-    os.chmod( after_path, os.stat( after_path ).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH )
-    chroot_execute( '/after.sh "{0}"'.format( ' '.join( fsConfigValues()[ 'boot_drives' ] ) ) )
-    os.unlink( after_path )
+  contractor.postMessage( 'Post Install Scripts...' )
+  postInstallScripts( install_root, value_map )
 
-  platopxe.postMessage( 'Removing Diverts...' )
+  contractor.postMessage( 'Removing Diverts...' )
   undivert( profile )
 
-  platopxe.postMessage( 'Cleaning up...' )
-  cleanPackaging()
+  contractor.postMessage( 'Cleaning up...' )
+  cleanPackaging( install_root )
 
 else:
-  platopxe.postMessage( 'Setting Up Users....' )
-  setupUsers( install_root, profile, config )
+  contractor.postMessage( 'Setting Up Users....' )
+  setupUsers( install_root, profile, value_map )
 
-  platopxe.postMessage( 'Running Package Setup...' )
+  contractor.postMessage( 'Running Package Setup...' )
   if not os.access( '/package/setup.sh', os.R_OK ):
     raise Exception( 'Unable to find package setup file' )
 
@@ -218,14 +203,14 @@ else:
 
 os.unlink( '/target/config_data' )
 
-if os.access( os.path.join( install_root, 'usr/sbin/configManager' ), os.X_OK ):
-  platopxe.postMessage( 'Running configManager...' )
-  chroot_execute( '/usr/sbin/configManager -c -a -f -b' )
+if os.access( os.path.join( install_root, 'usr/sbin/config-curator' ), os.X_OK ):
+  contractor.postMessage( 'Running config-curator...' )
+  chroot_execute( '/usr/sbin/config-curator -c -a -f -b' )
 
 shutil.copyfile( '/tmp/output.log', os.path.join( install_root, 'root/install.log' ) )
 shutil.copyfile( '/tmp/detail.log', os.path.join( install_root, 'root/install.detail.log' ) )
 
-platopxe.postMessage( 'Unmounting...' )
-unmount( install_root )
+contractor.postMessage( 'Unmounting...' )
+unmount( install_root, profile )
 
-platopxe.postMessage( 'Done!' )
+contractor.postMessage( 'Done!' )
