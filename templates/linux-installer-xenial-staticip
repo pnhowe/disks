@@ -2,10 +2,10 @@
 
 #DISK: linux-installer
 
-QUESTION_LIST=( "IP_ADDRESS" "NETMASK" "GATEWAY" "DNS_SERVER" "MIRROR_SERVER" "HOSTNAME" "DOMAIN" "SWAP_SIZE" "USE_PROXY" "PROXY" "IS_VM" "RAID_TYPE"  )
-DESC_LIST=( "Ip Address" "Netmask" "Gateway" "DNS Server" "Mirror Server" "Hostname" "Domain Name" "Swap Size" "Use HTTP Proxy" "HTTP Proxy (ignored if use proxy is n)" "Is VM" "RAID Type (ignored if VM)" )
+QUESTION_LIST=( "IP_ADDRESS" "PREFIX" "GATEWAY" "DNS_SERVER" "MIRROR_SERVER" "HOSTNAME" "DOMAIN" "SWAP_SIZE" "USE_PROXY" "PROXY" "IS_VM" "RAID_TYPE"  )
+DESC_LIST=( "Ip Address" "Prefix" "Gateway" "DNS Server" "Mirror Server" "Hostname" "Domain Name" "Swap Size" "Use HTTP Proxy" "HTTP Proxy (ignored if use proxy is n)" "Is VM" "RAID Type (ignored if VM)" )
 TYPE_LIST=( "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "yesno" "inputbox" "yesno" "menu:single_Single Disk_mirror_Mirror Two Disks_raid10_All disks into RAID 10_raid6_All disks into RAID 6_single-lvm_Single Disk LVM_dual-lvm_Two Disk LVM" )
-DEFAULT_LIST=( "192.168.1.100" "255.255.255.0" "192.168.1.1" "192.168.1.1" "us.archive.ubuntu.com" "xenial" "local" "2048" "yes" "http://proxy:3128/" "no" "single"  )
+DEFAULT_LIST=( "192.168.1.100" "24" "192.168.1.1" "192.168.1.1" "us.archive.ubuntu.com" "xenial" "local" "2048" "yes" "http://proxy:3128/" "no" "single"  )
 
 INIT='#!/bin/sh
 
@@ -37,6 +37,7 @@ CONFIG='{
           "address": "__IP_ADDRESS__",
           "gateway": "__GATEWAY__",
           "netmask": "__NETMASK__",
+          "prefix": "__PREFIX__",
           "primary": true,
           "sub_interface": null,
           "tagged": false,
@@ -87,4 +88,15 @@ post_process()
   else
     PART_SCHEME="single"
   fi
+
+  NETMASK=$(cdr2mask $PREFIX)
+}
+
+# https://serverfault.com/questions/54981/linux-command-line-tool-to-work-with-netmasks-cidr-notation
+cdr2mask()
+{
+   # Number of args to shift, 255..255, first non-255 byte, zeroes
+   set -- $(( 5 - ($1 / 8) )) 255 255 255 255 $(( (255 << (8 - ($1 % 8))) & 255 )) 0 0 0
+   [ $1 -gt 1 ] && shift $1 || shift
+   echo ${1-0}.${2-0}.${3-0}.${4-0}
 }

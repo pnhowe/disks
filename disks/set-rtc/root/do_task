@@ -2,9 +2,21 @@
 
 set -e
 
+/bin/setEnv timezone ntp_servers
+
+if [ "x$NTP_SERVERS" == "x" ]
+then
+  NTP_SERVERS="0.pool.ntp.org 1.pool.ntp.org"
+fi
+
+if [ "x$TIMEZONE" == "x" ]
+then
+  TIMEZONE="utc"
+fi
+
 /bin/postMessage "Starting Time Sync..."
 
-/bin/ntpd -d -q -p $TIMESERVER && rc=0 || rc=$?
+/bin/ntpd -d -q -p $NTP_SERVERS && rc=0 || rc=$?
 
 if [ "$rc" -ne "0" ];
 then

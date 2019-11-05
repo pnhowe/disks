@@ -1,0 +1,33 @@
+PROMPT 1
+TIMEOUT 100
+DISPLAY extlinux.menu
+
+DEFAULT dhcp-any
+
+LABEL dhcp-any
+KERNEL /vmlinuz.img
+APPEND initrd=/initrd.img interface=any no_config
+
+LABEL dhcp-eth0
+KERNEL /vmlinuz.img
+APPEND initrd=/initrd.img interface=eth0 no_config
+
+LABEL dhcp-eth1
+KERNEL /vmlinuz.img
+APPEND initrd=/initrd.img interface=eth1 no_config
+
+LABEL dhcp-eth2
+KERNEL /vmlinuz.img
+APPEND initrd=/initrd.img interface=eth2 no_config
+
+LABEL dhcp-eth3
+KERNEL /vmlinuz.img
+APPEND initrd=/initrd.img interface=eth3 no_config
+
+LABEL manual
+KERNEL /vmlinuz.img
+APPEND initrd=/initrd.img ip_prompt no_config
+
+LABEL no-net
+KERNEL /vmlinuz.img
+APPEND initrd=/initrd.img no_ip no_config

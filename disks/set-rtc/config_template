@@ -1,7 +1,0 @@
-# {{ config_description }}
-# Generated at: {{ timestamp }}
-# Config Profile: {{ profile }}
-
-TIMEZONE="{{ timezone }}"
-
-TIMESERVER="{{ ntp_servers|join:" " }}"
