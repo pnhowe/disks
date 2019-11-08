@@ -18,3 +18,8 @@ install()
   cp -f $3/squashfs-tools/unsquashfs $1/bin/
   cp -f $3/squashfs-tools/mksquashfs $1/bin/
 }
+
+binaries()
+{
+  ls $1/bin/*squashfs
+}

@@ -1,24 +1,12 @@
 #!/bin/sh
 
 set -e
-set -x
-
-ROOT_FS="linux-installer"
 
 . scripts/disk_functions
 
-install_base "mod"
+ROOT_FS="linux-installer"
+MOD_MODE="y"
+DEP_LIST="mdadm lvm2 parted e2fsprogs xfsprogs dosfstools gpgv debootstrap pkgdetails squashfs"
+SRC_LIST="libconfig libdrive"
 
-install_dep "mdadm"
-install_dep "lvm2"
-install_dep "parted"
-install_dep "e2fsprogs"
-install_dep "xfsprogs"
-install_dep "dosfstools"
-install_dep "gpgv"
-install_dep "debootstrap"
-install_dep "pkgdetails"
-install_dep "squashfs"
-
-install_src "libconfig"
-install_src "libdrive"
+install

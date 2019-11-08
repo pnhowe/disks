@@ -1,12 +1,12 @@
 #!/bin/sh
 
 set -e
-set -x
-
-ROOT_FS="disk-test"
 
 . scripts/disk_functions
 
-install_base
+ROOT_FS="disk-test"
+MOD_MODE=""
+DEP_LIST="e2fsprogs"
+SRC_LIST=""
 
-install_dep "e2fsprogs" 
+install

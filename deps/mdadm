@@ -18,3 +18,8 @@ install()
 {
   cp -f $3/mdadm $1/sbin
 }
+
+binaries()
+{
+  ls $1/sbin/mdadm*
+}

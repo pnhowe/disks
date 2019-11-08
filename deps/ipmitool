@@ -145,10 +145,10 @@ PATCH_END
 
 install()
 {
-  for LIB in /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1
-  do
-    cp -L $LIB $1/lib
-  done
-
   cp -f $3/src/ipmitool $1/bin
+}
+
+binaries()
+{
+  ls $1/bin/ipmitool
 }

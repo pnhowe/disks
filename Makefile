@@ -182,9 +182,9 @@ templates:
 
 clean: clean-deps clean-images clean-src respkg-clean pkg-clean
 
-dist-clean: clean-deps clean-images clean-src clean-downloads pkg-distclean
+dist-clean: clean-deps clean-images clean-src clean-downloads pkg-dist-clean
 
-.PHONY:: all all-pxe all-imgs clean clean-src clean-downloads clean-deps clean-images distclean pxe-targets templates images/img/% images/iso/%
+.PHONY:: all all-pxe all-imgs clean clean-src clean-downloads clean-deps clean-images dist-clean pxe-targets templates images/img/% images/iso/%
 
 respkg-distros:
 	echo ubuntu-bionic
@@ -212,8 +212,8 @@ respkg-clean:
 pkg-clean:
 	for dir in config-curator; do $(MAKE) -C $$dir clean || exit $$?; done
 
-pkg-distclean:
-	for dir in config-curator; do $(MAKE) -C $$dir distclean || exit $$?; done
+pkg-dist-clean:
+	for dir in config-curator; do $(MAKE) -C $$dir dist-clean || exit $$?; done
 
 test-distros:
 	echo ubuntu-xenial

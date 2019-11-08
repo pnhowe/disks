@@ -1,10 +1,12 @@
 #!/bin/sh
 
 set -e
-set -x
-
-ROOT_FS="disk-wipe"
 
 . scripts/disk_functions
 
-install_base
+ROOT_FS="disk-wipe"
+MOD_MODE=""
+DEP_LIST=""
+SRC_LIST=""
+
+install
