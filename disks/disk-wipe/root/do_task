@@ -4,8 +4,12 @@ set -e
 
 /bin/postMessage "Starting Disk Wipe..."
 
-# setup vars
-MODE="mbr"
+/bin/setEnv diskwipe_mode
+
+if [ "x$DISKWIPE_MODE" == "x" ]
+then
+  DISKWIPE_MODE="mbr"
+fi
 
 . /tmp/config_file
 
@@ -29,11 +33,11 @@ do
   fi
 done
 
-echo "Doing mode '$MODE'"
+echo "Doing mode '$DISKWIPE_MODE'"
 echo "Doing Drives:"
 echo $drive_list
 
-case $MODE in
+case $DISKWIPE_MODE in
   partition_tables)
     /partition_tables $drive_list && rc=0 || rc=$?
   ;;
@@ -53,7 +57,7 @@ case $MODE in
     /multi_pass $drive_list && rc=0 || rc=$?
   ;;
   *)
-    echo "Unknown wipe mode '$MODE'"
+    echo "Unknown wipe mode '$DISKWIPE_MODE'"
     rc=1
   ;;
 esac

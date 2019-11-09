@@ -7,6 +7,6 @@ set -e
 ROOT_FS="disk-wipe"
 MOD_MODE=""
 DEP_LIST=""
-SRC_LIST=""
+SRC_LIST="libdrive"
 
 install
