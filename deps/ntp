@@ -1,0 +1,26 @@
+#!/bin/sh
+#SOURCE: http://www.eecis.udel.edu/~ntp/ntp_spool/ntp4/ntp-4.2/ntp-4.2.8p13.tar.gz
+#FILE: ntp-4.2.8p13.tar.gz
+#HASH: cff200a987d64e891fb349a22313ecb0feaea090
+
+set -e
+set -x
+
+build()
+{
+  tar --strip-components=1 -xzf $1
+  ./configure --prefix= --disable-nls --disable-linuxcaps --without-net-snmp-config --disable-all-clocks --without-sntp --without-ntpsnmpd --without-threads --disable-thread-support --disable-debugging
+  # we really don't need nor want the dns_sd aka the zeroconfig/bonjour auto config stuff
+  sed 's%#define HAVE_DNSREGISTRATION 1%//#define HAVE_DNSREGISTRATION 1%' -i config.h
+  make
+}
+
+install()
+{
+  cp -f $3/ntpd/ntpd $1/bin
+}
+
+binaries()
+{
+  ls $1/bin/ntpd
+}

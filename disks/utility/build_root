@@ -6,7 +6,7 @@ set -e
 
 ROOT_FS="utility"
 MOD_MODE="y"
-DEP_LIST="ssh lldp mdadm lvm2 parted e2fsprogs xfsprogs dosfstools gpgv squashfs ipmitool"
+DEP_LIST="ssh lldp mdadm lvm2 parted e2fsprogs xfsprogs dosfstools gpgv squashfs ipmitool ntp"
 SRC_LIST="libdrive"
 
 install

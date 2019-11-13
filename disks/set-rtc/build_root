@@ -6,7 +6,7 @@ set -e
 
 ROOT_FS="set-rtc"
 MOD_MODE=""
-DEP_LIST=""
+DEP_LIST="ntp"
 SRC_LIST=""
 
 install

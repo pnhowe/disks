@@ -18,8 +18,14 @@ fi
 
 echo "Timezone '$timezone'"
 echo "NTP Server(s) '$ntp_servers'"
+echo "Curent Time..."
+date
 
-/bin/ntpd -d -q -p $ntp_servers && rc=0 || rc=$?
+echo "Updating time..."
+/bin/ntpd -d -gqc /dev/null $ntp_servers && rc=0 || rc=$?
+
+echo "Now it is..."
+date
 
 if [ "$rc" -ne "0" ];
 then
