@@ -123,4 +123,13 @@ kernel {{ __pxe_location }}disks/linux-installer.vmlinuz interface_mac={{ _provi
 initrd {{ __pxe_location }}disks/linux-installer.initrd
 boot
 '''
-  template = '# Linux-Installer'
+  template = '# Linux Installer'
+
+[ pxe.disk-wipe ]
+  description = 'T3kton Disks - Disk Wipe'
+  boot_script = '''echo Linux Installer
+kernel {{ __pxe_location }}disks/disk-wipe.vmlinuz interface_mac={{ _provisioning_interface_mac }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ _hostname }}
+initrd {{ __pxe_location }}disks/disk-wipe.initrd
+boot
+'''
+  template = '# Disk Wipe'
