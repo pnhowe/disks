@@ -15,7 +15,7 @@ CONFIG='{
   "distro": "centos",
   "distro_version": "6",
   "bootstrap_source": "http://__MIRROR_SERVER__/centos-6/",
-  "hostname": "__HOSTNAME__",
+  "_hostname": "__HOSTNAME__",
   "package_list": [ "openssh-server" __PACKAGES__ ],
   "swap_size": "__SWAP_SIZE__",
   "http_proxy": "__PROXY__",

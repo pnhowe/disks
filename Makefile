@@ -26,7 +26,7 @@ ISOS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/iso/%.iso,images
 
 PWD = $(shell pwd)
 
-all: $(IMAGE_ROOT) all-pxe
+all: all-pxe
 
 version:
 	echo $(VERSION)
@@ -106,10 +106,19 @@ build.images/%.root: disks/%/build_root build.deps/build build-src
 	./disks/$*/build_root
 	touch $@
 
-images/pxe/%.initrd: build.images/%.root images
+build.images/build: $(IMAGE_ROOT)
+	touch $@
+
+# we can't build more than one root at a time, the python installer (mabey others) do work in the build.deps dir during install
+# this will make a target for each root, depending on one before it
+ROOTS_1 = $(filter-out $(firstword $(IMAGE_ROOT)), $(IMAGE_ROOT))
+ROOTS_2 = $(filter-out $(lastword $(IMAGE_ROOT)), $(IMAGE_ROOT))
+$(foreach pair, $(join $(ROOTS_2),$(addprefix :,$(ROOTS_1))),$(eval $(pair)))
+
+images/pxe/%.initrd: images build.images/build
 	cd build.images/$* && find ./ | cpio --owner=+0:+0 -H newc -o | gzip -9 > $(PWD)/$@
 
-images/pxe/%.vmlinuz: build.images/%.root images
+images/pxe/%.vmlinuz: images build.images/build
 	cp -f build.images/$*/boot/vmlinuz $@
 
 # the ugly sed mess...

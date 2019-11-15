@@ -15,7 +15,7 @@ CONFIG='{
   "distro": "ubuntu",
   "distro_version": "bionic",
   "bootstrap_source": "http://__MIRROR_SERVER__/ubuntu",
-  "hostname": "__HOSTNAME__",
+  "_hostname": "__HOSTNAME__",
   "package_list": [ "openssh-server", "openssh-client" __PACKAGES__ ],
   "swap_size": "__SWAP_SIZE__",
   "http_proxy": "__PROXY__",
@@ -27,7 +27,7 @@ CONFIG='{
   ],
   "dns_servers": [ "__DNS_SERVER__" ],
   "dns_search": [ "__DOMAIN__" ],
-  "domain": "__DOMAIN__",
+  "_domain_name": "__DOMAIN__",
   "id": 0,
   "uuid": "00000000-0000-0000-0000-000000000000",
   "_interface_map": { "eth0": {

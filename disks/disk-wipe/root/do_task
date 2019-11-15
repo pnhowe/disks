@@ -11,8 +11,6 @@ then
   diskwipe_mode="mbr"
 fi
 
-. /tmp/config_file
-
 wrk_list=`for i in /sys/block/[hs]d* ; do echo $i | awk '{ split( $0, a, "/" ); print a[4] }'; done`
 drive_list=""
 
