@@ -326,7 +326,7 @@ then
           continue
         fi
         echo "DHCPing on '$iface'..."
-        /sbin/udhcpc --interface=$iface -x:hostname $HOSTNAME --vendorclass=bootabledisk --timeout=10 --syslog --arping --release
+        /sbin/udhcpc --interface=$iface -x:hostname $HOSTNAME --vendorclass=t3ktondisk --timeout=10 --syslog --arping --release
         if [ -f /tmp/dhcp-interface ];
         then
           if [ "x$CONFIG_SRC" == "xremote" ]
@@ -451,7 +451,7 @@ fi
 if [ "x$DEBUG" != "x1" ]
 then
   read -t 1 IGNORE  #clear out any garbage that might of been entered
-  read -t 10 -n 1 -p "Press \"D\" to enter Debug, any other key to continue (10 second timeout)..." tmp_DEBUG
+  read -t 5 -n 1 -p "Press \"D\" to enter Debug, any other key to continue (5 second timeout)..." tmp_DEBUG
   if [ "x$tmp_DEBUG" == "xd" ] || [ "x$tmp_DEBUG" == "xD" ]
   then
     DEBUG="1"
