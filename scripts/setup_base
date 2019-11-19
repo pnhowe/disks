@@ -34,15 +34,7 @@ done
 
 sudo chroot $1 /sbin/ldconfig -l /lib/libc-2.27.so -l /lib/libm-2.27.so
 
-
 # setup locale
 cp `which locale` $1/sbin/locale
 mkdir -p $1/usr/lib/locale
 localedef --prefix=$1 -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
-
-# have these two use the function in disk_functions?
-./scripts/install_dep udev $1 $2 $3
-./scripts/install_dep python $1 $2 $3
-
-# install contractor libs  usine install_src function?
-DESTDIR=$1/lib/python3.6/ make -C $2/contractor install

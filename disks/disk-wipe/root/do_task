@@ -4,10 +4,12 @@ set -e
 
 /bin/postMessage "Starting Disk Wipe..."
 
-# setup vars
-MODE="mbr"
+eval $( /bin/setEnv diskwipe_mode )
 
-. /tmp/config_file
+if [ "x$diskwipe_mode" == "x" ]
+then
+  diskwipe_mode="mbr"
+fi
 
 wrk_list=`for i in /sys/block/[hs]d* ; do echo $i | awk '{ split( $0, a, "/" ); print a[4] }'; done`
 drive_list=""
@@ -29,11 +31,11 @@ do
   fi
 done
 
-echo "Doing mode '$MODE'"
+echo "Doing mode '$diskwipe_mode'"
 echo "Doing Drives:"
 echo $drive_list
 
-case $MODE in
+case $diskwipe_mode in
   partition_tables)
     /partition_tables $drive_list && rc=0 || rc=$?
   ;;
@@ -53,7 +55,7 @@ case $MODE in
     /multi_pass $drive_list && rc=0 || rc=$?
   ;;
   *)
-    echo "Unknown wipe mode '$MODE'"
+    echo "Unknown wipe mode '$diskwipe_mode'"
     rc=1
   ;;
 esac

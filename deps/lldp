@@ -18,15 +18,11 @@ install()
   cp -f $3/src/client/.libs/lldpcli $1/sbin
   cp -f $3/src/daemon/lldpd $1/sbin
   cp -f $3/src/lib/.libs/liblldpctl.so.4.8.0 $1/lib
+}
 
-  for LIB in /lib/x86_64-linux-gnu/libbsd.so.0.8.7 \
-  /lib/x86_64-linux-gnu/libreadline.so.7.0 \
-  /usr/lib/x86_64-linux-gnu/libxml2.so.2.9.4 \
-  /usr/lib/x86_64-linux-gnu/libicuuc.so.60.2 \
-  /usr/lib/x86_64-linux-gnu/libicudata.so.60.2 \
-  /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.25 \
-  /lib/x86_64-linux-gnu/libgcc_s.so.1
-  do
-    cp -L $LIB $1/lib
-  done
+
+binaries()
+{
+  ls $1/sbin/lldp*
+  ls $1/lib/liblldpctl.so*
 }

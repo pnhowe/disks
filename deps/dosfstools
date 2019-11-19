@@ -22,3 +22,10 @@ install()
   ln -sf mkfs.fat $1/sbin/mkfs.vfat
   ln -sf mkfs.fat $1/sbin/mkfs.msdos
 }
+
+
+binaries()
+{
+  ls $1/sbin/fsck.fat
+  ls $1/sbin/mkfs.fat
+}

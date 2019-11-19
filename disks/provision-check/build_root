@@ -1,10 +1,12 @@
 #!/bin/sh
 
 set -e
-set -x
-
-ROOT_FS="provision-check"
 
 . scripts/disk_functions
 
-install_base
+ROOT_FS="provision-check"
+MOD_MODE=""
+DEP_LIST=""
+SRC_LIST=""
+
+install

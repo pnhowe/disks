@@ -1,23 +1,12 @@
 #!/bin/sh
 
 set -e
-set -x
-
-ROOT_FS="utility"
 
 . scripts/disk_functions
 
-install_base "mod"
+ROOT_FS="utility"
+MOD_MODE="y"
+DEP_LIST="ssh lldp mdadm lvm2 parted e2fsprogs xfsprogs dosfstools gpgv squashfs ipmitool ntp"
+SRC_LIST="libdrive"
 
-install_dep "ssh"
-install_dep "lldp"
-install_dep "mdadm"
-install_dep "lvm2"
-install_dep "parted"
-install_dep "e2fsprogs"
-install_dep "dosfstools"
-install_dep "gpgv"
-install_dep "squashfs"
-install_dep "ipmitool"
-
-install_src "libdrive"
+install

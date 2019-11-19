@@ -20,7 +20,7 @@ DIALOG_TITLE="Questions for template $2"
 
 for i in `seq 0 $(( ${#QUESTION_LIST[@]} - 1 ))`;
 do
-  eval ENV_CHECK="\$BDT_${QUESTION_LIST[$i]}" # prepending BDT_ to not actidently catch things like HOSTNAME from existing env
+  eval ENV_CHECK="\$TD_${QUESTION_LIST[$i]}" # prepending TD_ to not actidently catch things like HOSTNAME from existing env
   if [ "x$ENV_CHECK" != "x" ];
   then
     eval "${QUESTION_LIST[$i]}=\"$ENV_CHECK\""
@@ -61,7 +61,7 @@ echo "---------------------------------------------------------------------"
 for i in `seq 0 $(( ${#QUESTION_LIST[@]} - 1 ))`;
 do
   NAME=${QUESTION_LIST[$i]}
-  echo "export BDT_${QUESTION_LIST[$i]}=\"${!NAME}\""
+  echo "export TD_${QUESTION_LIST[$i]}=\"${!NAME}\""
 done
 echo "---------------------------------------------------------------------"
 

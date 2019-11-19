@@ -2,9 +2,30 @@
 
 set -e
 
+eval $( /bin/setEnv timezone ntp_servers )
+
+if [ "x$ntp_servers" == "x" ]
+then
+  ntp_servers="0.pool.ntp.org 1.pool.ntp.org"
+fi
+
+if [ "x$timezone" == "x" ]
+then
+  timezone="utc"
+fi
+
 /bin/postMessage "Starting Time Sync..."
 
-/bin/ntpd -d -q -p $TIMESERVER && rc=0 || rc=$?
+echo "Timezone '$timezone'"
+echo "NTP Server(s) '$ntp_servers'"
+echo "Curent Time..."
+date
+
+echo "Updating time..."
+/bin/ntpd -d -gqc /dev/null $ntp_servers && rc=0 || rc=$?
+
+echo "Now it is..."
+date
 
 if [ "$rc" -ne "0" ];
 then

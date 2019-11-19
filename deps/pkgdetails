@@ -17,3 +17,8 @@ install()
   mkdir -p $1/usr/lib/debootstrap
   cp -f $3/pkgdetails $1/usr/lib/debootstrap
 }
+
+binaries()
+{
+  :
+}

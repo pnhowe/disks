@@ -15,12 +15,12 @@ build()
 
 install()
 {
-  for LIB in /lib/x86_64-linux-gnu/libreadline.so.7.0 \
-  /lib/x86_64-linux-gnu/libtinfo.so.5.9
-  do
-    cp -L $LIB $1/lib
-  done
-
   cp -f $3/tools/lvm $1/sbin
   cp -f $3/libdm/libdevmapper.so.1.02 $1/lib
+}
+
+binaries()
+{
+  ls $1/sbin/lvm
+  ls $1/lib/libdevmapper.so*
 }

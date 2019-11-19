@@ -26,7 +26,7 @@ ISOS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/iso/%.iso,images
 
 PWD = $(shell pwd)
 
-all: $(IMAGE_ROOT) all-pxe
+all: all-pxe
 
 version:
 	echo $(VERSION)
@@ -106,10 +106,19 @@ build.images/%.root: disks/%/build_root build.deps/build build-src
 	./disks/$*/build_root
 	touch $@
 
-images/pxe/%.initrd: build.images/%.root images
+build.images/build: $(IMAGE_ROOT)
+	touch $@
+
+# we can't build more than one root at a time, the python installer (mabey others) do work in the build.deps dir during install
+# this will make a target for each root, depending on one before it
+ROOTS_1 = $(filter-out $(firstword $(IMAGE_ROOT)), $(IMAGE_ROOT))
+ROOTS_2 = $(filter-out $(lastword $(IMAGE_ROOT)), $(IMAGE_ROOT))
+$(foreach pair, $(join $(ROOTS_2),$(addprefix :,$(ROOTS_1))),$(eval $(pair)))
+
+images/pxe/%.initrd: images build.images/build
 	cd build.images/$* && find ./ | cpio --owner=+0:+0 -H newc -o | gzip -9 > $(PWD)/$@
 
-images/pxe/%.vmlinuz: build.images/%.root images
+images/pxe/%.vmlinuz: images build.images/build
 	cp -f build.images/$*/boot/vmlinuz $@
 
 # the ugly sed mess...
@@ -182,9 +191,9 @@ templates:
 
 clean: clean-deps clean-images clean-src respkg-clean pkg-clean
 
-dist-clean: clean-deps clean-images clean-src clean-downloads pkg-distclean
+dist-clean: clean-deps clean-images clean-src clean-downloads pkg-dist-clean
 
-.PHONY:: all all-pxe all-imgs clean clean-src clean-downloads clean-deps clean-images distclean pxe-targets templates images/img/% images/iso/%
+.PHONY:: all all-pxe all-imgs clean clean-src clean-downloads clean-deps clean-images dist-clean pxe-targets templates images/img/% images/iso/%
 
 respkg-distros:
 	echo ubuntu-bionic
@@ -212,8 +221,8 @@ respkg-clean:
 pkg-clean:
 	for dir in config-curator; do $(MAKE) -C $$dir clean || exit $$?; done
 
-pkg-distclean:
-	for dir in config-curator; do $(MAKE) -C $$dir distclean || exit $$?; done
+pkg-dist-clean:
+	for dir in config-curator; do $(MAKE) -C $$dir dist-clean || exit $$?; done
 
 test-distros:
 	echo ubuntu-xenial

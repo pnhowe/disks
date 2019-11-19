@@ -25,12 +25,22 @@ if foundation_type == 'IPMI':
 
 foundation_locator = None
 
+print( 'Getting LLDP Information...' )
 lldp = lib.getLLDP()
 primary_iface = open( '/tmp/dhcp-interface', 'r' ).read().strip()
 
+print( 'Getting Hardware Information...' )
+hardware = {}
+hardware[ 'dmi' ] = dmiInfo()
+hardware[ 'pci' ] = pciInfo()
+
+hardware[ 'total_ram' ] = lib.getRAMAmmount()
+hardware[ 'total_cpu_count' ] = lib.cpuLogicalCount()
+hardware[ 'total_cpu_sockets' ] = lib.cpuPhysicalCount()
+
 while not foundation_locator:
   print( 'Looking up....' )
-  lookup = contractor.lookup( { 'lldp': lldp, 'ip_address': lib.getIpAddress( primary_iface ) } )
+  lookup = contractor.lookup( { 'hardware': hardware, 'lldp': lldp, 'ip_address': lib.getIpAddress( primary_iface ) } )
 
   if lookup[ 'matched_by'] is None:
     print( 'Waiting 30 seconds....' )
@@ -46,15 +56,6 @@ contractor.postMessage( 'Foundation Lokked up as "{0}"'.format( foundation_locat
 config = contractor.getConfig( foundation_locator=foundation_locator )
 config[ 'ipmi_lan_channel' ] = config.get( 'ipmi_lan_channel', 1 )
 lib.config = config
-
-print( 'Getting Hardware Profile Information...' )
-hardware = {}  # hardware needs to match what is sent be reportHardwareStatus, except things like raid controller status?
-hardware[ 'dmi' ] = dmiInfo()
-hardware[ 'pci' ] = pciInfo()
-
-hardware[ 'total_ram' ] = lib.getRAMAmmount()
-hardware[ 'total_cpu_count' ] = lib.cpuLogicalCount()
-hardware[ 'total_cpu_sockets' ] = lib.cpuPhysicalCount()
 
 print( 'Getting Network Information...' )
 network = {}

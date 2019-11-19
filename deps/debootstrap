@@ -23,3 +23,8 @@ install()
 {
   DESTDIR=$1 make -C $3 install
 }
+
+binaries()
+{
+  :
+}

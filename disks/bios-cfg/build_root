@@ -1,10 +1,12 @@
 #!/bin/sh
 
 set -e
-set -x
-
-ROOT_FS="bios-cfg"
 
 . scripts/disk_functions
 
-install_base
+ROOT_FS="bios-cfg"
+MOD_MODE=""
+DEP_LIST=""
+SRC_LIST=""
+
+install

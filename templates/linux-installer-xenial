@@ -15,7 +15,7 @@ CONFIG='{
   "distro": "ubuntu",
   "distro_version": "xenial",
   "bootstrap_source": "http://__MIRROR_SERVER__/ubuntu",
-  "hostname": "__HOSTNAME__",
+  "_hostname": "__HOSTNAME__",
   "package_list": [ "openssh-server", "openssh-client" __PACKAGES__ ],
   "swap_size": "__SWAP_SIZE__",
   "http_proxy": "__PROXY__",
