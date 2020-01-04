@@ -13,5 +13,5 @@ def postInstallScripts( install_root, value_map ):
     chroot_execute( '/postinstall' )
     os.unlink( target_path )
 
-  for command in value_map.get( 'postinstall_commands', [] ):
+  for command in value_map.get( 'postinstall_command_list', [] ):
     chroot_execute( "sh -c '" + command + "'" )

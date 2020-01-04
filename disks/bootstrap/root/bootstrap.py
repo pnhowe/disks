@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
+
 import sys
 import time
 import glob
 import os
 import lib
 from contractor.client import getClient
+from cinp.client import InvalidRequest
 from libdrive.libdrive import DriveManager
 from libhardware.libhardware import dmiInfo, pciInfo
 
 
 contractor = getClient()
-lib.contractor = contractor
 
 dm = DriveManager()
 
@@ -38,11 +39,27 @@ hardware[ 'total_ram' ] = lib.getRAMAmmount()
 hardware[ 'total_cpu_count' ] = lib.cpuLogicalCount()
 hardware[ 'total_cpu_sockets' ] = lib.cpuPhysicalCount()
 
+identifier = 'adf'  # hashlib
+
+print( 'My Identifier is "{0}"'.format( identifier ) )
+
+while True:
+  try:
+    bootstrap = lib.Bootstrap( identifier, contractor )
+    break
+  except InvalidRequest:
+    pass
+  print( 'Identifier is allready in use, Waiting 60 seconds...' )
+  time.sleep( 60 )
+
+lib._setMessage = bootstrap.setMessage
+
 while not foundation_locator:
   print( 'Looking up....' )
-  lookup = contractor.lookup( { 'hardware': hardware, 'lldp': lldp, 'ip_address': lib.getIpAddress( primary_iface ) } )
+  lookup = bootstrap.lookup( { 'hardware': hardware, 'lldp': lldp, 'ip_address': lib.getIpAddress( primary_iface ) } )
 
-  if lookup[ 'matched_by'] is None:
+  if lookup[ 'matched_by' ] is None:
+    bootstrap.setMessage( 'no match' )
     print( 'Waiting 30 seconds....' )
     time.sleep( 30 )
 
@@ -51,11 +68,10 @@ while not foundation_locator:
 
 print( '** Hello World! I am Foundation "{0}", nice to meet you! **'.format( foundation_locator ) )
 print( 'Lookedup by "{0}"'.format( lookup[ 'matched_by'] ) )
-contractor.postMessage( 'Foundation Lokked up as "{0}"'.format( foundation_locator ) )
+bootstrap.setMessage( 'Lokked up as "{0}"'.format( foundation_locator ) )
 
 config = contractor.getConfig( foundation_locator=foundation_locator )
 config[ 'ipmi_lan_channel' ] = config.get( 'ipmi_lan_channel', 1 )
-lib.config = config
 
 print( 'Getting Network Information...' )
 network = {}
@@ -64,7 +80,7 @@ for item in glob.glob( '/sys/class/net/eth*' ):
   network[ item.split( '/' )[ -1 ] ] = { 'mac': open( os.path.join( item, 'address' ), 'r' ).read().strip() }
 
 if foundation_type == 'IPMI':
-  network[ 'ipmi' ] = { 'mac': lib.getIPMIMAC() }
+  network[ 'ipmi' ] = { 'mac': lib.getIPMIMAC( config[ 'ipmi_lan_channel' ] ) }
 
 for iface in lldp:
   if iface not in network:
@@ -98,17 +114,17 @@ for drive in dm.drive_list:
 # nothing yet
 
 print( 'Reporting Hardware info to contractor...' )
-error = contractor.setIdMap( foundation_locator, { 'hardware': hardware, 'network': network, 'disks': disks } )
+error = bootstrap.setIdMap( foundation_locator, { 'hardware': hardware, 'network': network, 'disks': disks } )
 if error != 'Good':
-  contractor.postMessage( 'Hardware Error: "{0}"'.format( error ) )
+  bootstrap.setMessage( 'Hardware Error: "{0}"'.format( error ) )
   sys.exit( 20 )
 
-contractor.postMessage( 'Hardware Profile Verified' )
+bootstrap.setMessage( 'Hardware Profile Verified' )
 
 iface_list = []
 
 if foundation_type == 'IPMI' and 'ipmi_ip_address' in config:  # TODO: when the interface on the ipmi foundation get's figured out, this will change
-  contractor.postMessage( 'Configuring IPMI' )
+  bootstrap.setMessage( 'Configuring IPMI' )
 
   tmp = config[ 'ipmi_ip_address' ].split( '.' )  # TODO: when the interface on the ipmi foundation get's figured out, this will change
   tmp[3] = '1'
@@ -142,7 +158,7 @@ if foundation_type == 'IPMI' and 'ipmi_ip_address' in config:  # TODO: when the 
   except KeyError:
     pass
 
-  contractor.postMessage( 'Letting IPMI settle' )
+  bootstrap.setMessage( 'Letting IPMI settle' )
   print( 'Letting IPMI config settle...' )
   time.sleep( 30 )  # make sure the bmc has saved everything
 
@@ -159,7 +175,7 @@ if foundation_type == 'IPMI' and 'ipmi_ip_address' in config:  # TODO: when the 
   lib.ipmicommand( 'sel clear', True )  # clear the eventlog, clean slate, everyone deserves it
 
 if config.get( 'bootstrap_wipe_mbr', False ):
-  contractor.postMessage( 'Clearing MBRs...' )
+  bootstrap.setMessage( 'Clearing MBRs...' )
   for drive in dm.drive_list:
     if drive.block_path is not None:
       tmp = open( drive.block_path, 'r+b' )
@@ -167,7 +183,7 @@ if config.get( 'bootstrap_wipe_mbr', False ):
       tmp.close()
 
 # if config.get( 'bios_config', False ) and config.get( 'bios_config_location', False ):
-#   controller.postMessage( 'Loading Initial BIOS Config' )
+#   bootstrap.setMessage( 'Loading Initial BIOS Config' )
 #   if isinstance( config[ 'bios_config' ], basestring ):
 #     config_file_list = [ config[ 'bios_config' ] ]
 #   else:
@@ -182,7 +198,7 @@ if config.get( 'bootstrap_wipe_mbr', False ):
 #     print 'Retreiving BIOS config "%s" ...' % url  # disabeling proxy for now, need a http_server proxy
 #     proc = Popen( [ '/bin/wget', '-Yoff', '-q', '-O', local_config_file, url ] )
 #     if proc.wait() != 0:
-#       controller.postMessage( 'Error getting bios config' )
+#       bootstrap.setMessage( 'Error getting bios config' )
 #       sys.exit( 1 )
 #
 #     cmd = None
@@ -210,15 +226,14 @@ if config.get( 'bootstrap_wipe_mbr', False ):
 #     print 'trying next file...'
 #
 #   if not success:
-#     controller.postMessage( 'BIOS Config Failed' )
+#     bootstrap.setMessage( 'BIOS Config Failed' )
 #     sys.exit( 1 )
 
-contractor.setLocated( foundation_locator )
-
-contractor.postMessage( 'Cleaning up' )
+bootstrap.setMessage( 'Cleaning up' )
 
 if foundation_type == 'IPMI':
   lib.ipmicommand( 'chassis identify 0', True )
 
+bootstrap.done()
 print( 'All Done' )
 sys.exit( 0 )
