@@ -66,7 +66,7 @@ class HTTPClient( Client ):
     self.cinp = CInP( host=host, root_path='/api/v1/', proxy=proxy )
     # self.cinp.opener.addheaders[ 'User-Agent' ] += ' - config agent'
 
-  def request( self, method, uri, data=None, timeout=30, retry_count=0 ):
+  def request( self, method, uri, data=None, filter=None, timeout=30, retry_count=0 ):
     retry = 0
     while True:
       logging.debug( 'contractor: request: retry {0} of {1}, timeout: {2}'.format( retry, retry_count, timeout ) )
@@ -81,6 +81,15 @@ class HTTPClient( Client ):
 
         elif method == 'call':
           return self.cinp.call( uri, data, timeout=timeout )
+
+        elif method == 'list':
+          return self.cinp.list( uri, filter, data )
+
+        elif method == 'update':
+          return self.cinp.update( uri, data )
+
+        else:
+          raise ValueError( 'Unknown method "{0}"'.format( method ) )
 
       except ( ResponseError, Timeout ) as e:
         if not retry_count == -1 and retry >= retry_count:

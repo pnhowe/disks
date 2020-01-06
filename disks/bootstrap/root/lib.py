@@ -20,11 +20,19 @@ class Bootstrap:
   def setMessage( self, message ):
     self.request( 'call', '/api/v1/Survey/Cartographer:{0}:(setMessage)'.format( self.identifier ), { 'message': message } )
 
-  def done( self, info_map ):
+  def done( self ):
     return self.request( 'call', '/api/v1/Survey/Cartographer:{0}:(done)'.format( self.identifier ), {} )
 
   def setIdMap( self, foundation_locator, id_map ):
     return self.request( 'call', '/api/v1/Building/Foundation:{0}:(setIdMap)'.format( foundation_locator ), { 'id_map': id_map } )
+
+  def setPXEBoot( self, foundation_locator, pxe ):
+    iface_list, info = self.request( 'list', '/api/v1/Utilities/RealNetworkInterface', { 'foundation': '/api/v1/Building/Foundation:{0}:'.format( foundation_locator ) }, filter='foundation' )
+    if info[ 'total' ] != info[ 'count' ]:
+      raise Exception( 'There are more interface than we got' )  # wow, what kind of machine do you have there?
+
+    for iface in iface_list:
+      self.request( 'update', iface, { 'pxe': '/api/v1/BluePrint/PXE:{0}:'.format( pxe ) } )
 
 
 def ipmicommand( cmd, ignore_failure=False ):

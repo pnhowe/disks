@@ -4,12 +4,11 @@ import sys
 import time
 import glob
 import os
+import hashlib
 import lib
 from contractor.client import getClient
-from cinp.client import InvalidRequest
 from libdrive.libdrive import DriveManager
 from libhardware.libhardware import dmiInfo, pciInfo
-
 
 contractor = getClient()
 
@@ -20,15 +19,15 @@ if os.path.exists( '/dev/ipmi0' ):
   foundation_type = 'IPMI'
 elif os.path.exists( '/dev/mei0' ):
   foundation_type = 'AMT'  # NOTE: Intel has pulled the AMT SDK, and I can't find any other tools to get the AMT's MAC and set the ip locally, for new we skip this... keep an eye on https://software.intel.com/en-us/amt-sdk
+else:
+  foundation_type == 'Unknown'
 
 if foundation_type == 'IPMI':
   lib.ipmicommand( 'chassis identify force', True )
 
-foundation_locator = None
-
-print( 'Getting LLDP Information...' )
-lldp = lib.getLLDP()
 primary_iface = open( '/tmp/dhcp-interface', 'r' ).read().strip()
+
+foundation_locator = None
 
 print( 'Getting Hardware Information...' )
 hardware = {}
@@ -39,20 +38,34 @@ hardware[ 'total_ram' ] = lib.getRAMAmmount()
 hardware[ 'total_cpu_count' ] = lib.cpuLogicalCount()
 hardware[ 'total_cpu_sockets' ] = lib.cpuPhysicalCount()
 
-identifier = 'adf'  # hashlib
+print( 'Generating unique Id...' )
+hasher = hashlib.sha256()
+
+for item in glob.glob( '/sys/class/net/eth*' ):
+  hasher.update( open( os.path.join( item, 'address' ), 'rb' ).read() )
+
+for item in hardware[ 'dmi' ][ 'System Info' ]:
+  hasher.update( item[ 'Serial Number' ].encode() )
+  hasher.update( item[ 'UUID' ].encode() )
+
+for item in hardware[ 'dmi' ][ 'Base Board Information' ]:
+  hasher.update( item[ 'Serial Number' ].encode() )
+  hasher.update( item[ 'Asset Tag' ].encode() )
+
+for item in hardware[ 'dmi' ][ 'Chassis Information' ]:
+  hasher.update( item[ 'Serial Number' ].encode() )
+  hasher.update( item[ 'Asset Tag' ].encode() )
+
+identifier = hasher.hexdigest()
 
 print( 'My Identifier is "{0}"'.format( identifier ) )
-
-while True:
-  try:
-    bootstrap = lib.Bootstrap( identifier, contractor )
-    break
-  except InvalidRequest:
-    pass
-  print( 'Identifier is allready in use, Waiting 60 seconds...' )
-  time.sleep( 60 )
+bootstrap = lib.Bootstrap( identifier, contractor )
 
 lib._setMessage = bootstrap.setMessage
+
+bootstrap.setMessage( 'Getting LLDP Information...' )
+print( 'Getting LLDP Information...' )
+lldp = lib.getLLDP()
 
 while not foundation_locator:
   print( 'Looking up....' )
@@ -68,11 +81,12 @@ while not foundation_locator:
 
 print( '** Hello World! I am Foundation "{0}", nice to meet you! **'.format( foundation_locator ) )
 print( 'Lookedup by "{0}"'.format( lookup[ 'matched_by'] ) )
-bootstrap.setMessage( 'Lokked up as "{0}"'.format( foundation_locator ) )
+bootstrap.setMessage( 'Looked up as "{0}"'.format( foundation_locator ) )
 
 config = contractor.getConfig( foundation_locator=foundation_locator )
 config[ 'ipmi_lan_channel' ] = config.get( 'ipmi_lan_channel', 1 )
 
+bootstrap.setMessage( 'Geting Hardware Information...' )
 print( 'Getting Network Information...' )
 network = {}
 
@@ -113,9 +127,13 @@ for drive in dm.drive_list:
 # print 'Getting SCSI/Disk Enclosure Information...'
 # nothing yet
 
+bootstrap.setMessage( 'Reporting Hardware info...' )
+print( 'Setting new foundation to boot to bootstrap...' )
+bootstrap.setPXEBoot( foundation_locator, 'bootstrap' )  # should happen before the foundation get's it MAC addresses so if it get's rebooted it picks back up
+
 print( 'Reporting Hardware info to contractor...' )
 error = bootstrap.setIdMap( foundation_locator, { 'hardware': hardware, 'network': network, 'disks': disks } )
-if error != 'Good':
+if error is not None:
   bootstrap.setMessage( 'Hardware Error: "{0}"'.format( error ) )
   sys.exit( 20 )
 
@@ -124,7 +142,7 @@ bootstrap.setMessage( 'Hardware Profile Verified' )
 iface_list = []
 
 if foundation_type == 'IPMI' and 'ipmi_ip_address' in config:  # TODO: when the interface on the ipmi foundation get's figured out, this will change
-  bootstrap.setMessage( 'Configuring IPMI' )
+  bootstrap.setMessage( 'Configuring IPMI...' )
 
   tmp = config[ 'ipmi_ip_address' ].split( '.' )  # TODO: when the interface on the ipmi foundation get's figured out, this will change
   tmp[3] = '1'
@@ -158,7 +176,7 @@ if foundation_type == 'IPMI' and 'ipmi_ip_address' in config:  # TODO: when the 
   except KeyError:
     pass
 
-  bootstrap.setMessage( 'Letting IPMI settle' )
+  bootstrap.setMessage( 'Letting IPMI settle...' )
   print( 'Letting IPMI config settle...' )
   time.sleep( 30 )  # make sure the bmc has saved everything
 
@@ -229,7 +247,7 @@ if config.get( 'bootstrap_wipe_mbr', False ):
 #     bootstrap.setMessage( 'BIOS Config Failed' )
 #     sys.exit( 1 )
 
-bootstrap.setMessage( 'Cleaning up' )
+bootstrap.setMessage( 'Cleaning up...' )
 
 if foundation_type == 'IPMI':
   lib.ipmicommand( 'chassis identify 0', True )
