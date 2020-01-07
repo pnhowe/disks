@@ -4,8 +4,35 @@ import subprocess
 import re
 
 
-contractor = None
-config = None
+_setMessage = None
+
+
+class Bootstrap:
+  def __init__( self, identifier, contractor ):
+    self.identifier = identifier
+    self.request = contractor.request
+
+    self.request( 'call', '/api/v1/Survey/Cartographer(register)', { 'identifier': identifier } )
+
+  def lookup( self, info_map ):
+    return self.request( 'call', '/api/v1/Survey/Cartographer:{0}:(lookup)'.format( self.identifier ), { 'info_map': info_map } )
+
+  def setMessage( self, message ):
+    self.request( 'call', '/api/v1/Survey/Cartographer:{0}:(setMessage)'.format( self.identifier ), { 'message': message } )
+
+  def done( self ):
+    return self.request( 'call', '/api/v1/Survey/Cartographer:{0}:(done)'.format( self.identifier ), {} )
+
+  def setIdMap( self, foundation_locator, id_map ):
+    return self.request( 'call', '/api/v1/Building/Foundation:{0}:(setIdMap)'.format( foundation_locator ), { 'id_map': id_map } )
+
+  def setPXEBoot( self, foundation_locator, pxe ):
+    iface_list, info = self.request( 'list', '/api/v1/Utilities/RealNetworkInterface', { 'foundation': '/api/v1/Building/Foundation:{0}:'.format( foundation_locator ) }, filter='foundation' )
+    if info[ 'total' ] != info[ 'count' ]:
+      raise Exception( 'There are more interface than we got' )  # wow, what kind of machine do you have there?
+
+    for iface in iface_list:
+      self.request( 'update', iface, { 'pxe': '/api/v1/BluePrint/PXE:{0}:'.format( pxe ) } )
 
 
 def ipmicommand( cmd, ignore_failure=False ):
@@ -14,7 +41,7 @@ def ipmicommand( cmd, ignore_failure=False ):
     if ignore_failure:
       print( 'WARNING: ipmi cmd "{0}" failed, ignored...'.format( cmd ) )
     else:
-      contractor.postMessage( 'Ipmi Error with: "%s"' % cmd )
+      _setMessage( 'Ipmi Error with: "{0}"'.format( cmd ) )
       sys.exit( 1 )
 
 
@@ -35,8 +62,9 @@ def getLLDP():
 
     else:
       if counter >= 10:
-        contractor.postMessage( 'lldp timeout waiting for data, skipping...' )
+        _setMessage( 'lldp timeout waiting for data, skipping...' )
         return results
+
       counter += 1
       time.sleep( 10 )
 
@@ -70,7 +98,7 @@ def getLLDP():
         results[ interface ][ 'subport' ] = int( parts[2] )
 
       else:
-        contractor.postMessage( 'I don\'t know how to handle this lldp local port "%s"' % lldp_values[item] )
+        _setMessage( 'I don\'t know how to handle this lldp local port "{0}"'.format( lldp_values[ item ] ) )
         sys.exit( 1 )
 
   return results
@@ -103,8 +131,8 @@ def getRAMAmmount():
       return int( line.split( ':' )[1].strip().split( ' ' )[0] ) / 1024
 
 
-def getIPMIMAC():
-  proc = subprocess.run( [ '/bin/ipmitool', 'lan', 'print', str( config[ 'ipmi_lan_channel' ] ) ], stdout=subprocess.PIPE )
+def getIPMIMAC( lan_channel ):
+  proc = subprocess.run( [ '/bin/ipmitool', 'lan', 'print', str( lan_channel ) ], stdout=subprocess.PIPE )
   lines = str( proc.stdout, 'utf-8' ).strip().splitlines()
   for line in lines:
     if line.startswith( 'MAC Address' ):

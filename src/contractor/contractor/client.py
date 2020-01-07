@@ -51,70 +51,13 @@ class Client():
     return {}
 
   def signalComplete( self ):
-    return
-    try:
-      result = self.request( 'get', '/provisioner/signal-complete/', {}, retry_count=5 )
-    except ResponseError as e:
-      raise Exception( 'contractor: Exception during signal-complete: "{0}"'.format( e ) )
-
-    if result is None:
-      return
-
-    if result == 'No Job':
-      raise NoJob()
-
-    if result != 'Carry On':
-      raise ValueError( 'Expected "Carry On" got "{0}"'.format( result ) )
+    pass
 
   def signalAlert( self, msg ):
     print( '! {0} !'.format( msg ) )
-    return
-
-    while True:
-      try:
-        result = self.request( 'get', '/provisioner/signal-alert/', { 'msg': msg } )
-      except ResponseError as e:
-        raise Exception( 'contractor: Exception during signal-alert: "{0}"'.format( e ) )
-
-      if result is None:
-        return
-
-      if result == 'Is Dispatched':
-        time.sleep( 5 )
-        continue
-
-      break
-
-    if result == 'No Job':
-      raise NoJob()
-
-    if result != 'Alert Raised':
-      raise ValueError( 'Expected "Alert Raised" got "{0}"'.format( result ) )
 
   def postMessage( self, msg ):
     print( '* {0} *'.format( msg ) )
-    return
-
-    try:
-      result = self.request( 'get', '/provisioner/post-message/', { 'msg': msg } )
-    except ResponseError as e:
-      raise Exception( 'contractor: Exception during post-message: "{0}"'.format( e ) )
-
-    if result is None:
-      return
-
-    if result == 'No Job':
-      return
-      # Don't raise PlatoPXENoJobException, it's non critical and it would be a burden to catch it everytime postMessage is called
-
-    if result != 'Saved':
-      raise ValueError( 'Expected "Saved" got "{0}"'.format( result ) )
-
-  def lookup( self, info_map ):
-    return None
-
-  def setLocated( self, structure_id, id_map ):
-    pass
 
 
 class HTTPClient( Client ):
@@ -123,7 +66,7 @@ class HTTPClient( Client ):
     self.cinp = CInP( host=host, root_path='/api/v1/', proxy=proxy )
     # self.cinp.opener.addheaders[ 'User-Agent' ] += ' - config agent'
 
-  def request( self, method, uri, data=None, timeout=30, retry_count=0 ):
+  def request( self, method, uri, data=None, filter=None, timeout=30, retry_count=0 ):
     retry = 0
     while True:
       logging.debug( 'contractor: request: retry {0} of {1}, timeout: {2}'.format( retry, retry_count, timeout ) )
@@ -131,16 +74,27 @@ class HTTPClient( Client ):
         if method == 'raw get':
           ( http_code, values, _ ) = self.cinp._request( 'RAWGET', uri, header_map={}, timeout=timeout )
           if http_code != 200:
-            logging.warning( 'cinp: unexpected HTTP Code "{0}" for GET'.format( http_code ) )
+            logging.warning( 'cinp: Unexpected HTTP Code "{0}" for GET'.format( http_code ) )
             raise ResponseError( 'Unexpected HTTP Code "{0}" for GET'.format( http_code ) )
+
           return values
 
         elif method == 'call':
           return self.cinp.call( uri, data, timeout=timeout )
 
+        elif method == 'list':
+          return self.cinp.list( uri, filter, data )
+
+        elif method == 'update':
+          return self.cinp.update( uri, data )
+
+        else:
+          raise ValueError( 'Unknown method "{0}"'.format( method ) )
+
       except ( ResponseError, Timeout ) as e:
         if not retry_count == -1 and retry >= retry_count:
           raise e
+
         logging.debug( 'contractor: request: Got Excpetion "{0}", request {1} of {2} retrying...'.format( e, retry, retry_count ) )
 
       retry += 1
@@ -153,15 +107,6 @@ class HTTPClient( Client ):
       return self.request( 'raw get', '/config/config/f/{0}'.format( foundation_locator ), timeout=10, retry_count=2 )
     else:
       return self.request( 'raw get', '/config/config/', timeout=10, retry_count=2 )  # the defaults cause libconfig to hang to a long time when it can't talk to contractor
-
-  def lookup( self, info_map ):
-    return self.request( 'call', '/api/v1/Building/Foundation(lookup)', { 'info_map': info_map }, retry_count=100 )
-
-  def setIdMap( self, foundation_locator, id_map ):
-    return self.request( 'call', '/api/v1/Building/Foundation:{0}:(setIdMap)'.format( foundation_locator ), { 'id_map': id_map } )
-
-  def setLocated( self, foundation_locator ):
-    self.request( 'call', '/api/v1/Building/Foundation:{0}:(setLocated)'.format( foundation_locator ), {} )
 
 
 class LocalFileClient( Client ):
