@@ -1,7 +1,7 @@
 #!/bin/sh
-#SOURCE: http://www.eecis.udel.edu/~ntp/ntp_spool/ntp4/ntp-4.2/ntp-4.2.8p13.tar.gz
-#FILE: ntp-4.2.8p13.tar.gz
-#HASH: cff200a987d64e891fb349a22313ecb0feaea090
+#SOURCE: http://www.eecis.udel.edu/~ntp/ntp_spool/ntp4/ntp-4.2/ntp-4.2.8p14.tar.gz
+#FILE: ntp-4.2.8p14.tar.gz
+#HASH: c6f353278cd5b7c8aa11e1189d3ac80985370b8f
 
 set -e
 set -x
