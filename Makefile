@@ -56,7 +56,7 @@ build.deps/build: build.deps/download $(DEP_BUILDS)
 
 build.deps/%.download : FILE = $(shell grep -m 1 '#FILE:' $< | sed s/'#FILE: '// )
 build.deps/%.download: deps/%
-	if test "$$( sha1sum downloads/$(FILE) | cut -d ' ' -f 1 )" != "$(shell grep -m 1 '#HASH:' $< | sed s/'#HASH: '// )";              \
+	if test "$$( sha1sum downloads/$(FILE) 2> /dev/null | cut -d ' ' -f 1 )" != "$(shell grep -m 1 '#HASH:' $< | sed s/'#HASH: '// )";              \
 	then                                                                                                                               \
 	  wget $(shell grep -m 1 '#SOURCE:' $< | sed s/'#SOURCE: '// ) -O downloads/$(FILE) --progress=bar:force:noscroll --show-progress; \
 	fi
