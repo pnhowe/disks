@@ -79,7 +79,7 @@ post_process()
   else
     CONSOLE="ttyS1"
     CONSOLE_BAUD="115200"
-    PACKAGES=", ""open-vm-tools"""
+    PACKAGES=""
   fi
 
   if [[ "x$RAID_TYPE" == "xmirror" || "x$RAID_TYPE" == "xraid10" || "x$RAID_TYPE" == "xraid6" || "x$RAID_TYPE" == "xsingle-lvm" || "x$RAID_TYPE" == "xdual-lvm" ]] && [ "x$IS_VM" != "xyes" ];
