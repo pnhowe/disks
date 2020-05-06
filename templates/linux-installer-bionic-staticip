@@ -58,7 +58,7 @@ DEFAULT normal
 
 LABEL normal
 KERNEL /vmlinuz.img
-APPEND initrd=/initrd.img local_config __BOOT_PROXY__ ip_address=__IP_ADDRESS__ netmask=__NETMASK__ gateway=__GATEWAY__ dns_server=__DNS_SERVER__ hostname=__HOSTNAME__ dns_search_zone=__DOMAIN__ interface=eth0
+APPEND initrd=/initrd.img local_config __BOOT_PROXY__ ip_address=__IP_ADDRESS__ netmask=__NETMASK__ gateway=__GATEWAY__ dns_server=__DNS_SERVER__ hostname=__HOSTNAME__ dns_search_zone=__DOMAIN__ interface=eth0 __KERNEL_CONSOLE__
 '
 
 post_process()
@@ -73,12 +73,12 @@ post_process()
 
   if [ "x$IS_VM" == "xyes" ];
   then
-    CONSOLE=""
-    CONSOLE_BAUD=""
+    BOOT_CONSOLE=""
+    CFG_CONSOLE=""
     PACKAGES=""
   else
-    CONSOLE="ttyS1"
-    CONSOLE_BAUD="115200"
+    BOOT_CONSOLE=""
+    KERNEL_CONSOLE="console=tty0 console=ttyS1,115200n8"
     PACKAGES=""
   fi
 

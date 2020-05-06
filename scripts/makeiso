@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -x
 
 # $1 - output filename
 # $2 - path to kernel
@@ -15,15 +16,26 @@ if [ ! -d $WORK_DIR ]
 then
   mkdir -p $WORK_DIR
 else
-  rm -ifr ./${WORK_DIR}/\*
+  rm -ifr ./${WORK_DIR}
+  mkdir -p $WORK_DIR
 fi
 
 ISO_BIN="/usr/lib/ISOLINUX/isolinux.bin"
 LD32="/usr/lib/syslinux/modules/bios/ldlinux.c32"
+EFI_LD32="/usr/lib/syslinux/modules/efi32/ldlinux.e32"
+EFI_LD64="/usr/lib/syslinux/modules/efi64/ldlinux.e64"
+EFI_BIN32="/usr/lib/SYSLINUX.EFI/efi32/syslinux.efi"
+EFI_BIN64="/usr/lib/SYSLINUX.EFI/efi64/syslinux.efi"
 
 if [ ! -f "$ISO_BIN"  ];
 then
   echo "isolinux.bin not found install isolinux"
+  exit 1
+fi
+
+if [ ! -f "$EFI_BIN64"  ];
+then
+  echo "syslinux.efi not found install syslinux-efi"
   exit 1
 fi
 
@@ -39,7 +51,12 @@ mkdir -p $WORK_DIR/isolinux
 
 echo "Copying in boot files..."
 cp $ISO_BIN $WORK_DIR/isolinux
-cp $LD32 $WORK_DIR/isolinux
+cp $EFI_BIN $WORK_DIR/isolinux/efiboot.img
+mkdir -p $WORK_DIR/efi/boot/
+cp $EFI_BIN32 $WORK_DIR/efi/boot/bootia32.efi
+cp $EFI_BIN64 $WORK_DIR/efi/boot/bootx64.efi
+cp $EFI_LD32 $WORK_DIR/efi/boot/
+cp $EFI_LD64 $WORK_DIR/efi/boot/
 
 echo "Copying in kernel and image..."
 cp $2 $WORK_DIR/vmlinuz.img
@@ -67,6 +84,7 @@ fi
 
 echo "Copying in boot config..."
 cp -f $4 $WORK_DIR/isolinux.cfg
+cp -f $4 $WORK_DIR/efi/boot/boot.cfg
 
 if [ "x$7" != "x" ] && [ -r "$7" ]
 then
@@ -74,6 +92,7 @@ then
   cp -f $7 $WORK_DIR/extlinux.mnu
 fi
 
+#genisoimage -o $1 -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -eltorito-alt-boot -eltorito-boot isolinux/efiboot.img -no-emul-boot -V $( basename $1 .iso ) -v $WORK_DIR
 genisoimage -o $1 -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -V $( basename $1 .iso ) -v $WORK_DIR
 
 echo "Done!"
