@@ -38,7 +38,10 @@ do
   case $x in
     console=*)
       tmp=${x#console=}
-      CONSOLE_LIST="$CONSOLE_LIST /dev/${tmp%,*}"
+      if [ "x$tmp" != "x" ]
+      then
+        CONSOLE_LIST="$CONSOLE_LIST /dev/${tmp%,*}"
+      fi
       ;;
   esac
 done

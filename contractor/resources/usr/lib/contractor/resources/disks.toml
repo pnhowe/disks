@@ -89,7 +89,7 @@
 [ pxe.utility ]
   description = 'T3kton Disks - Utility'
   boot_script = '''echo Utility
-kernel {{ __pxe_location }}disks/utility.vmlinuz interface_mac={{ _provisioning_interface_mac }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ _hostname }}
+kernel {{ __pxe_location }}disks/utility.vmlinuz interface_mac={{ _provisioning_interface_mac }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ _hostname }}{% if _console.startswith("ttyS") %} console={{ _console }},115200 console=tty1{% endif %}
 initrd {{ __pxe_location }}disks/utility.initrd
 boot
 '''
@@ -99,7 +99,7 @@ boot
 [ pxe.bootstrap ]
   description = 'T3kton Disks - Bootstrap'
   boot_script = '''echo Bootstrap
-kernel {{ __pxe_location }}disks/bootstrap.vmlinuz {% if _provisioning_interface_mac %}interface_mac={{ _provisioning_interface_mac }}{% elif _provisioning_interface %}interface={{ _provisioning_interface }}{% endif %} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} {% if _hostname %}hostname={{ _hostname }}{% endif %}
+kernel {{ __pxe_location }}disks/bootstrap.vmlinuz {% if _provisioning_interface_mac %}interface_mac={{ _provisioning_interface_mac }}{% elif _provisioning_interface %}interface={{ _provisioning_interface }}{% endif %} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} {% if _hostname %}hostname={{ _hostname }}{% endif %}{% if _console.startswith("ttyS") %} console={{ _console }},115200 console=tty1{% endif %}
 initrd {{ __pxe_location }}disks/bootstrap.initrd
 boot
 '''
@@ -109,7 +109,7 @@ boot
 [ pxe.set-rtc ]
   description = 'T3kton Disks - Set RTC'
   boot_script = '''echo Set RTC
-kernel {{ __pxe_location }}disks/set-rtc.vmlinuz interface_mac={{ _provisioning_interface_mac }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ _hostname }}
+kernel {{ __pxe_location }}disks/set-rtc.vmlinuz interface_mac={{ _provisioning_interface_mac }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ _hostname }}{% if _console.startswith("ttyS") %} console={{ _console }},115200 console=tty1{% endif %}
 initrd {{ __pxe_location }}disks/set-rtc.initrd
 boot
 '''
@@ -119,7 +119,7 @@ boot
 [ pxe.linux-installer ]
   description = 'T3kton Disks - Linux Installer'
   boot_script = '''echo Linux Installer
-kernel {{ __pxe_location }}disks/linux-installer.vmlinuz interface_mac={{ _provisioning_interface_mac }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ _hostname }}
+kernel {{ __pxe_location }}disks/linux-installer.vmlinuz interface_mac={{ _provisioning_interface_mac }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ _hostname }}{% if _console.startswith("ttyS") %} console={{ _console }},115200 console=tty1{% endif %}
 initrd {{ __pxe_location }}disks/linux-installer.initrd
 boot
 '''
@@ -128,7 +128,7 @@ boot
 [ pxe.disk-wipe ]
   description = 'T3kton Disks - Disk Wipe'
   boot_script = '''echo Linux Installer
-kernel {{ __pxe_location }}disks/disk-wipe.vmlinuz interface_mac={{ _provisioning_interface_mac }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ _hostname }}
+kernel {{ __pxe_location }}disks/disk-wipe.vmlinuz interface_mac={{ _provisioning_interface_mac }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ _hostname }}{% if _console.startswith("ttyS") %} console={{ _console }},115200 console=tty1{% endif %}
 initrd {{ __pxe_location }}disks/disk-wipe.initrd
 boot
 '''

@@ -52,7 +52,9 @@ CONFIG='{
   }
 }'
 
-EXTLINUX='PROMPT 1
+EXTLINUX='__BOOT_CONSOLE__
+CONSOLE 1
+PROMPT 1
 TIMEOUT 10
 DEFAULT normal
 
@@ -75,10 +77,12 @@ post_process()
   then
     BOOT_CONSOLE=""
     CFG_CONSOLE=""
+    CONFIG_CONSOLE=""
     PACKAGES=""
   else
-    BOOT_CONSOLE=""
+    BOOT_CONSOLE="SERIAL 0 115200"
     KERNEL_CONSOLE="console=tty0 console=ttyS1,115200n8"
+    CONFIG_CONSOLE="/dev/ttyS1"
     PACKAGES=""
   fi
 
