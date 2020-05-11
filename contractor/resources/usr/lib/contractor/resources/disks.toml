@@ -17,7 +17,7 @@
   >repo_list = [
     { distribution = '{{ distro_version }}', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
     { distribution = '{{ distro_version }}-updates', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
-    { distribution = '{{ distro_version }}-security', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
+    { distribution = '{{ distro_version }}-security', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' }
   ]
   '>package_list' = [ 'openssh-server', 'openssh-client' ]
   '>package_list:VCenter' = [ 'open-vm-tools' ]
@@ -57,11 +57,11 @@
   mirror_server = 'ftp.us.debian.org'
   config_host = 'http://contractor'
   bootstrap_source = 'http://{{ mirror_server }}/debian'
-  distro = 'ubuntu'
+  distro = 'debian'
   repo_components = [ 'main' ]
   >repo_list = [
     { distribution = '{{ distro_version }}', type = 'apt', uri = 'http://{{ mirror_server }}/debian/', components = [ 'main', 'contrib', 'non-free' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
-    { distribution = '{{ distro_version }}-updates', type = 'apt', uri = 'http://{{ mirror_server }}/debian/', components = [ 'main', 'contrib', 'non-free' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
+    { distribution = '{{ distro_version }}-updates', type = 'apt', uri = 'http://{{ mirror_server }}/debian/', components = [ 'main', 'contrib', 'non-free' ], proxy = '{{ mirror_proxy|default( "local" ) }}' }
   ]
   '>package_list' = [ 'openssh-server', 'openssh-client' ]
   '>package_list:VCenter' = [ 'open-vm-tools' ]
@@ -72,7 +72,7 @@
 [ structure.debian-buster-base ]
   description = 'Base Debian Buster (10)'
   parents = [ 'debian-base' ]
-[ structure.ubuntu-bionic-base.config_values ]
+[ structure.debian-buster-base.config_values ]
   distro_version = 'buster'
 
 # Centos
@@ -90,7 +90,7 @@
     { type = 'yum', name = 'base', uri = 'http://{{ mirror_server }}/centos-{{ distro_version }}/{{ distro_version }}/os/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-{{ distro_version }}', proxy = '{{ mirror_proxy|default( "local" ) }}' },
     { type = 'yum', name = 'updates', uri = 'http://{{ mirror_server }}/centos-{{ distro_version }}/{{ distro_version }}/updates/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-{{ distro_version }}', proxy = '{{ mirror_proxy|default( "local" ) }}' },
     { type = 'yum', name = 'extras', uri = 'http://{{ mirror_server }}/centos-{{ distro_version }}/{{ distro_version }}/extras/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-{{ distro_version }}', proxy = '{{ mirror_proxy|default( "local" ) }}' },
-    { type = 'yum', name = 'epel', uri = 'http://download.fedoraproject.org/pub/epel/{{ distro_version }}/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-{{ distro_version }}', key_uri = 'http://download.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ distro_version }}', proxy = '{{ mirror_proxy|default( "local" ) }}' },
+    { type = 'yum', name = 'epel', uri = 'http://download.fedoraproject.org/pub/epel/{{ distro_version }}/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-{{ distro_version }}', key_uri = 'http://download.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ distro_version }}', proxy = '{{ mirror_proxy|default( "local" ) }}' }
   ]
   '>package_list' = [ 'openssh-server' ]
   '>package_list:VCenter' = [ 'open-vm-tools' ]
