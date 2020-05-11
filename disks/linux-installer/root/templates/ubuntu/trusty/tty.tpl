@@ -1,6 +1,6 @@
-{% if sol_console %}{% target '/etc/init/' + sol_console + '.conf' %}# Auto Generated During Install
+{% if _console %}{% target '/etc/init/' + _console + '.conf' %}# Auto Generated During Install
 
-# {{ sol_console }} - getty
+# {{ _console }} - getty
 
 start on stopped rc RUNLEVEL=[2345] and (
             not-container or
@@ -10,6 +10,5 @@ start on stopped rc RUNLEVEL=[2345] and (
 stop on runlevel [!2345]
 
 respawn
-exec /sbin/getty -8 115200 {{ sol_console }}
+exec /sbin/getty -8 115200 {{ _console }}
 {% endtarget %}{% endif %}
-

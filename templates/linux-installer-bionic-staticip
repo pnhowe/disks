@@ -16,6 +16,7 @@ CONFIG='{
   "distro_version": "bionic",
   "bootstrap_source": "http://__MIRROR_SERVER__/ubuntu",
   "_hostname": "__HOSTNAME__",
+  "_console": "__CONFIG_CONSOLE__",
   "package_list": [ "openssh-server", "openssh-client" __PACKAGES__ ],
   "swap_size": "__SWAP_SIZE__",
   "http_proxy": "__PROXY__",
@@ -76,12 +77,12 @@ post_process()
   if [ "x$IS_VM" == "xyes" ];
   then
     BOOT_CONSOLE=""
-    CFG_CONSOLE=""
-    CONFIG_CONSOLE=""
+    KERNEL_CONSOLE=""
+    CONFIG_CONSOLE="console"
     PACKAGES=""
   else
     BOOT_CONSOLE="SERIAL 0 115200"
-    KERNEL_CONSOLE="console=tty0 console=ttyS1,115200n8"
+    KERNEL_CONSOLE="console=tty1 console=ttyS1,115200n8"
     CONFIG_CONSOLE="/dev/ttyS1"
     PACKAGES=""
   fi

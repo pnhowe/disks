@@ -2,12 +2,13 @@
 #TODO: find a way for a blueprint to provide a config template?
 #TODO: find a way for a bluepriont to provide static config files?
 
+#Ubuntu
 [ structure.ubuntu-base ]
   description = 'Base Ubuntu'
   parents = [ 'linux-base' ]
 
 [ structure.ubuntu-base.config_values ]
-  installer_pxe = 'disks-linux-installer'
+  installer_pxe = 'linux-installer'
   mirror_server = 'us.archive.ubuntu.com'
   config_host = 'http://contractor'
   bootstrap_source = 'http://{{ mirror_server }}/ubuntu'
@@ -17,7 +18,6 @@
     { distribution = '{{ distro_version }}', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
     { distribution = '{{ distro_version }}-updates', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
     { distribution = '{{ distro_version }}-security', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
-    { type = 'apt', uri = 'http://d16r8ew072anqo.cloudfront.net/', proxy = '{{ mirror_proxy|default( "local" ) }}' },  # getting a proxy setting for other servers that get refrenced
   ]
   '>package_list' = [ 'openssh-server', 'openssh-client' ]
   '>package_list:VCenter' = [ 'open-vm-tools' ]
@@ -47,12 +47,41 @@
   distro_version = 'bionic'
   azure_image = { 'publisher' = 'Canonical', 'offer' = 'UbuntuServer', 'sku' = '18.04-LTS', 'version' = 'latest' }
 
+# Debian
+[ structure.debian-base ]
+  description = 'Base Debian'
+  parents = [ 'linux-base' ]
+
+[ structure.debian-base.config_values ]
+  installer_pxe = 'linux-installer'
+  mirror_server = 'ftp.us.debian.org'
+  config_host = 'http://contractor'
+  bootstrap_source = 'http://{{ mirror_server }}/debian'
+  distro = 'ubuntu'
+  repo_components = [ 'main' ]
+  >repo_list = [
+    { distribution = '{{ distro_version }}', type = 'apt', uri = 'http://{{ mirror_server }}/debian/', components = [ 'main', 'contrib', 'non-free' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
+    { distribution = '{{ distro_version }}-updates', type = 'apt', uri = 'http://{{ mirror_server }}/debian/', components = [ 'main', 'contrib', 'non-free' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
+  ]
+  '>package_list' = [ 'openssh-server', 'openssh-client' ]
+  '>package_list:VCenter' = [ 'open-vm-tools' ]
+  vcenter_guest_id = 'ubuntu64Guest'
+  virtualbox_guest_type = 'Debian_64'
+  timezone = 'Etc/UTC'
+
+[ structure.debian-buster-base ]
+  description = 'Base Debian Buster (10)'
+  parents = [ 'debian-base' ]
+[ structure.ubuntu-bionic-base.config_values ]
+  distro_version = 'buster'
+
+# Centos
 [ structure.centos-base ]
   description = 'Base CentOS'
   parents = [ 'linux-base' ]
 
 [ structure.centos-base.config_values ]
-  installer_pxe = 'disks-linux-installer'
+  installer_pxe = 'linux-installer'
   mirror_server = 'mirror.centos.org'
   config_host = 'http://contractor'
   bootstrap_source = 'http://{{ mirror_server }}/centos/'
@@ -99,6 +128,7 @@ boot
 [ pxe.bootstrap ]
   description = 'T3kton Disks - Bootstrap'
   boot_script = '''echo Bootstrap
+{% if not _console %}{% set _console = "console" %}{% endif %}
 kernel {{ __pxe_location }}disks/bootstrap.vmlinuz {% if _provisioning_interface_mac %}interface_mac={{ _provisioning_interface_mac }}{% elif _provisioning_interface %}interface={{ _provisioning_interface }}{% endif %} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} {% if _hostname %}hostname={{ _hostname }}{% endif %}{% if _console.startswith("ttyS") %} console={{ _console }},115200 console=tty1{% endif %}
 initrd {{ __pxe_location }}disks/bootstrap.initrd
 boot

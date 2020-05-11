@@ -150,9 +150,9 @@ if foundation_type == 'IPMI' and 'ipmi_ip_address' in config:  # TODO: when the 
 
   # remove the other users first
   lib.ipmicommand( 'user disable 5' )
-  # # lib.ipmicommand( 'user set name 5 {0}_'.format( ipmi_username ) )  # some ipmi's don't like you to set the username to the same as it is allready....Intel!!!
+  # lib.ipmicommand( 'user set name 5 {0}_'.format( ipmi_username ) )  # some ipmi's don't like you to set the username to the same as it is allready....Intel!!!
   # lib.ipmicommand( 'user set name 5 {0}'.format( ipmi_username ) )
-  # lib.ipmicommand( 'user set password 5 {0}'.format( ipmi_password ) )  # make sure username and password match /plato/plato-pod/plato/lib/IPMI.py, SOL.py
+  # lib.ipmicommand( 'user set password 5 {0}'.format( ipmi_password ) )
   # lib.ipmicommand( 'user enable 5' )
   # lib.ipmicommand( 'user priv 5 4 {0}'.format( config[ 'ipmi_lan_channel' ] ) )  # 4 = ADMINISTRATOR
 
