@@ -567,6 +567,46 @@ def getATAPorts_ESX():
   return ports
 
 
+# NVME
+class NVMEPort( Port ):
+  def __init__( self, port, *args, **kwargs  ):
+    super( NVMEPort, self ).__init__( *args, **kwargs )
+    self.port = port
+
+  @property
+  def location( self ):
+    return 'NVME {0}'.format( self.port )
+
+  @property
+  def type( self ):
+    return 'NVME'
+
+  def __hash__( self ):
+    return ( 'NVME {0}'.format( self.port ).__hash__() )
+
+
+def getNVMEPorts():
+  # tmp_list = []
+  # for item in glob.glob( '/sys/devices/pci[0-9]*/[0-9]*/[0-9]*/[0-9]*/nvme/nvme*' ):  then there will be a nvme0n1 inside this
+  #   tmp = item.replace( ':', '' ).replace( '.', '' ).split( '/' )
+  #   tmp_list.append( ( '{0} {1} {2} {3} {4:04d}'.format( tmp[3], tmp[4], tmp[5], tmp[6], int( re.sub( '[^0-9]', '', tmp[8] ) ) ), tmp[8] ) )
+  #
+  # for item in glob.glob( '/sys/devices/pci[0-9]*/[0-9]*/[0-9]*//nvme/nvme*' ):
+  #   tmp = item.replace( ':', '' ).replace( '.', '' ).split( '/' )
+  #   tmp_list.append( ( '{0} {1} {2} 000000000 {3:04d}'.format( tmp[3], tmp[4], tmp[5], int( re.sub( '[^0-9]', '', tmp[6] ) ) ), tmp[6] ) )
+  #
+  # for item in glob.glob( '/sys/devices/pci[0-9]*/[0-9]*/nvme/nvme*' ):
+  #   tmp = item.replace( ':', '' ).replace( '.', '' ).split( '/' )
+  #   tmp_list.append( ( '{0} {1} 000000000 000000000 {2:04d}'.format( tmp[3], tmp[4], int( re.sub( '[^0-9]', '', tmp[5] ) ) ), tmp[5] ) )
+  #
+  # tmp_list.sort()
+
+  port_list = []
+  for item in glob.glob( '/dev/nvme*' ):  # TODO: do this right, super hack
+    ( _, _, name ) = item.split( '/' )
+    port_list.append( NVMEPort( name ) )
+
+
 # 3Ware
 class ThreeWarePort( Port ):
   def __init__( self, host, controller, enclosure, slot, port, *args, **kwargs  ):
@@ -1400,7 +1440,7 @@ class DriveManager( object ):
   @property
   def port_list( self ):
     tmp = list( self._port_list )  # make a copy
-    tmp.sort( key=lambda drive: drive.name )
+    tmp.sort( key=lambda port: port.location )
     return tmp
 
   @property
@@ -1485,6 +1525,15 @@ class DriveManager( object ):
             self._drive_list.append( Drive( port, block, block, '/dev/{0}'.format( block ) ) )
 
       port_list = getATAPorts()
+      if port_list:
+        for port in port_list:
+          block = port_list[ port ]
+          self._port_list.append( port )
+          if block and block not in block_list:
+            block_list.append( block )
+            self._drive_list.append( Drive( port, block, block, '/dev/{0}'.format( block ) ) )
+
+      port_list = getNVMEPorts()
       if port_list:
         for port in port_list:
           block = port_list[ port ]
