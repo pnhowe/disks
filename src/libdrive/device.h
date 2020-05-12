@@ -19,7 +19,7 @@ enum driver_type
   DRIVER_TYPE_SAT      = 0x03,
 
 // LSI
-  DRIVER_TYPE_3WARE    = 0x10,
+  // DRIVER_TYPE_3WARE    = 0x10,
   DRIVER_TYPE_MEGADEV  = 0x11,
   DRIVER_TYPE_MEGASAS  = 0x12
 };

@@ -145,7 +145,7 @@ if not image_package:
   divert( profile )
 
   contractor.postMessage( 'Before Base Setup....' )
-  preBaseSetup( profile )
+  preBaseSetup( profile, value_map )
 
   contractor.postMessage( 'Installing Base...' )
   installBase( install_root, profile )

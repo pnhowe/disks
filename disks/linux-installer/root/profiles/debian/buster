@@ -55,7 +55,7 @@ bootloader_templates=grub
 bootloader_install=/usr/sbin/grub-install {0}
 
 [general]
-after_cmd_1=sed s/"PermitRootLogin [A-Za-z\-]*"/"PermitRootLogin yes"/ -i /etc/ssh/sshd_config
+after_cmd_1=sed s/"#PermitRootLogin [A-Za-z\-]*"/"PermitRootLogin yes"/ -i /etc/ssh/sshd_config
 after_cmd_2=rm -f /etc/resolvconf/resolv.conf.d/original
 
 [packages]

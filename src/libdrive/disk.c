@@ -69,8 +69,6 @@ int openDisk( const char *device, struct device_handle *drive, const enum driver
     rc = lsi_open( device, drive, DRIVER_TYPE_MEGADEV );
   else if( drive->driver == DRIVER_TYPE_MEGASAS )
     rc = lsi_open( device, drive, DRIVER_TYPE_MEGASAS );
-  else if( drive->driver == DRIVER_TYPE_3WARE )
-    rc = lsi_open( device, drive, DRIVER_TYPE_3WARE  );
   else
   {
     if( verbose )
@@ -79,7 +77,7 @@ int openDisk( const char *device, struct device_handle *drive, const enum driver
     return -1;
   }
 
-  if( ( drive->driver == DRIVER_TYPE_3WARE ) || ( drive->driver == DRIVER_TYPE_IDE ) )
+  if( drive->driver == DRIVER_TYPE_IDE )
     drive->protocol = PROTOCOL_TYPE_ATA;
 
   if( rc )

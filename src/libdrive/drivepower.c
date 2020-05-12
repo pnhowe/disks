@@ -31,7 +31,7 @@ Usage: [OPTIONS] device\n\
 Options:\n\
   -v,  --verbose   Verbose, more -v more stuff.(4 levles, starts on level 1)\n\
   -q,  --quiet     Less Verbose, more -q less stuff.\n\
-  -d, --driver     Force a Driver to use ( SGIO, SAT, 3Ware, MegaDev, MegaSAS, IDE(forces -pATA) )\n\
+  -d, --driver     Force a Driver to use ( SGIO, SAT, MegaDev, MegaSAS, IDE(forces -pATA) )\n\
   -p, --protocol   Force a Protocol to use ( ATA, SCSI )\n\
   -l  --sleep      Tell Drive to Sleep (Not for SCSI)\n\
   -w  --wake       Tell Drive to Wake Up from Sleep (Not for SCSI)\n\
@@ -141,8 +141,6 @@ int main( int argc, char **argv )
           driver = DRIVER_TYPE_SGIO;
         else if( strcmp( optarg, "SAT" ) == 0 )
           driver = DRIVER_TYPE_SAT;
-        else if( strcmp( optarg, "3Ware" ) == 0 )
-          driver = DRIVER_TYPE_3WARE;
         else if( strcmp( optarg, "MegaDev" ) == 0 )
           driver = DRIVER_TYPE_MEGADEV;
         else if( strcmp( optarg, "MegaSAS" ) == 0 )
@@ -216,20 +214,6 @@ int main( int argc, char **argv )
   {
     fprintf( stderr, "Error opening device '%s', errno: %i.\n", device, errno );
     exit( 1 );
-  }
-
-  if( ( mode == MODE_SLEEP ) && ( drive.driver == DRIVER_TYPE_3WARE ) )
-  { // The Driver for some reason locks out the disk
-    if( verbose )
-      fprintf( stderr, "WARNING: 3Ware is buggy with putting disk to sleep, doing standby instead.\n" );
-    mode = MODE_STANDBY;
-  }
-
-  if( ( mode == MODE_WAKE ) && ( drive.driver == DRIVER_TYPE_3WARE ) )
-  { // The Driver for some reason locks out the disk
-    if( verbose )
-      fprintf( stderr, "WARNING: 3Ware is buggy with putting disk to sleep, doing active instead.\n" );
-    mode = MODE_ACTIVE;
   }
 
   if( ( ( mode == MODE_SLEEP ) || ( mode == MODE_WAKE ) ) && ( drive.protocol == PROTOCOL_TYPE_SCSI ) )

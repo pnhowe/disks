@@ -32,7 +32,7 @@ else:
     ctypes._pointer_t_type_cache = {}
     def POINTER_T(pointee):
         # a pointer should have the same length as LONG
-        fake_ptr_base_type = ctypes.c_uint64 
+        fake_ptr_base_type = ctypes.c_uint64
         # specific case for c_void_p
         if pointee is None: # VOID pointer type. c_void_p.
             pointee = type(None) # ctypes.c_void_p # ctypes.c_ulong
@@ -53,7 +53,7 @@ else:
                 raise TypeError('This is not a ctypes pointer.')
             def __init__(self, **args):
                 raise TypeError('This is not a ctypes pointer. It is not instanciable.')
-        _class = type('LP_%d_%s'%(8, clsname), (_T,),{}) 
+        _class = type('LP_%d_%s'%(8, clsname), (_T,),{})
         ctypes._pointer_t_type_cache[clsname] = _class
         return _class
 
@@ -74,7 +74,6 @@ DRIVER_TYPE_UNKNOWN = 0
 DRIVER_TYPE_IDE = 1
 DRIVER_TYPE_SGIO = 2
 DRIVER_TYPE_SAT = 3
-DRIVER_TYPE_3WARE = 16
 DRIVER_TYPE_MEGADEV = 17
 DRIVER_TYPE_MEGASAS = 18
 driver_type = ctypes.c_int # enum
@@ -152,4 +151,4 @@ __all__ = \
     'PROTOCOL_TYPE_SCSI', 'protocol_type', 'DRIVER_TYPE_MEGADEV',
     'struct_enclosure_info', 'DRIVER_TYPE_UNKNOWN',
     'set_subenc_descriptors', 'DRIVER_TYPE_IDE', 'DRIVER_TYPE_SGIO',
-    'set_verbose', 'DRIVER_TYPE_3WARE']
+    'set_verbose']

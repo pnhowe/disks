@@ -6,6 +6,7 @@ import glob
 import os
 import hashlib
 import lib
+import random
 from contractor.client import getClient
 from libdrive.libdrive import DriveManager
 from libhardware.libhardware import dmiInfo, pciInfo
@@ -73,8 +74,8 @@ while not foundation_locator:
 
   if lookup[ 'matched_by' ] is None:
     bootstrap.setMessage( 'no match' )
-    print( 'Waiting 30 seconds....' )
-    time.sleep( 30 )
+    print( 'Waiting 30+-20 seconds....' )
+    time.sleep( 10 + random.randint( 0, 41 ) )
 
   else:
     foundation_locator = lookup[ 'locator' ]

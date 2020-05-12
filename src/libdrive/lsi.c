@@ -185,178 +185,6 @@ int lsi_megadev_cmd( struct device_handle *drive, const enum cdb_rw rw, unsigned
   return 0;
 }
 
-int lsi_3ware_cmd( struct device_handle *drive, const enum cdb_rw rw, unsigned char *cdb, const unsigned int cdb_len, void *data, const unsigned int data_len, __attribute__((unused)) const unsigned int timeout )
-{
-  int rc;
-
-  if( ( drive->protocol != PROTOCOL_TYPE_ATA ) || ( cdb_len != 16 ) || ( cdb[0] != ATA_16 ) ) // this driver can only do ATA
-  {
-    errno = EINVAL;
-    return -1;
-  }
-
-  if( data && ( data_len > 512 ) )
-  {
-    if( verbose >= 2 )
-    {
-      errno = EINVAL;
-      fprintf( stderr, "3WARE: can't handle buffers larger than 512\n" );
-    }
-    return -1;
-  }
-
-  TW_Passthru *passthru=NULL;
-  char ioctl_buffer[TW_IOCTL_BUFFER_SIZE];
-  TW_Ioctl_Buf_Apache *tw_ioctl_apache=NULL;
-
-  tw_ioctl_apache                               = (TW_Ioctl_Buf_Apache *)ioctl_buffer;
-  tw_ioctl_apache->driver_command.control_code  = TW_IOCTL_FIRMWARE_PASS_THROUGH;
-  tw_ioctl_apache->driver_command.buffer_length = 512; /* payload size */
-  passthru                                      = (TW_Passthru *)&(tw_ioctl_apache->firmware_command.command.oldcommand);
-
-  // Same for (almost) all commands - but some reset below
-  passthru->byte0.opcode  = TW_OP_ATA_PASSTHRU;
-  passthru->request_id    = 0xFF;
-  passthru->unit          = drive->port;
-  passthru->status        = 0;
-  passthru->flags         = 0x1;
-
-  passthru->features     = cdb[4];
-  passthru->sector_count = cdb[6];
-  passthru->sector_num   = cdb[8];
-  passthru->cylinder_lo  = cdb[10];
-  passthru->cylinder_hi  = cdb[12];
-  passthru->drive_head   = cdb[13];
-  passthru->command      = cdb[14];
-
-  if( ( verbose >= 4 ) && ( rw == RW_WRITE ) )
-    dump_bytes( "3WARE: send", data, data_len );
-
-  // 48 bit regs... where?
-
-  // Is this a command that reads or returns 512 bytes?
-  // passthru->param values are:
-  // 0x0 - non data command without TFR write check,
-  // 0x8 - non data command with TFR write check,
-  // 0xD - data command that returns data to host from device
-  // 0xF - data command that writes data from host to device
-  // passthru->size values are 0x5 for non-data and 0x07 for data
-
-  if( ( rw == RW_WRITE ) && data )
-  {
-    memcpy( tw_ioctl_apache->data_buffer, data, data_len );
-    passthru->byte0.sgloff = 0x5;
-    passthru->size         = 0x8;  // this should be 7 for 32 bit kernels
-    passthru->param        = 0xF;  // PIO data write
-  }
-  else if( ( rw == RW_READ ) && data )
-  {
-    passthru->byte0.sgloff = 0x5;
-    passthru->size         = 0x8;  // this should be 7 for 32 bit kernels
-    passthru->param        = 0xD;
-  }
-  else
-  {
-    // Non data command -- but doesn't use large sector
-    // count register values.
-    passthru->byte0.sgloff = 0x0;
-    passthru->size         = 0x5;
-    passthru->param        = 0x8;
-    passthru->sector_count = 0x0;
-  }
-
-  //if( verbose >= 3 )
-  //  dump_bytes( "3WARE: passthru out", passthru, sizeof( TW_Passthru ));
-
-  rc = ioctl( drive->fd, TW_IOCTL_FIRMWARE_PASS_THROUGH, tw_ioctl_apache );
-  if( verbose >= 3 )
-    fprintf( stderr, "3WARE: ioctl returnd: %i, errno: %i\n", rc, errno );
-
-  if( rc )
-  {
-    if( verbose >= 2 )
-      fprintf( stderr, "3WARE: ioctl Failed, errno: %i\n", errno );
-    return -1;
-  }
-
-  //if( verbose >= 3 )
-  //  dump_bytes( "3WARE: passthru in", passthru, sizeof( TW_Passthru ));
-
-  // See if the ATA command failed.  Now that we have returned from
-  // the ioctl() call, if passthru is valid, then:
-  // - passthru->status contains the 3ware controller STATUS  -> I think http://oss.sgi.com/LDP/HOWTO/SCSI-Programming-HOWTO-21.html#ss21.4
-  // - passthru->command contains the ATA STATUS register
-  // - passthru->features contains the ATA ERROR register
-  //
-  // Check bits 0 (error bit) and 5 (device fault) of the ATA STATUS
-  // If bit 0 (error bit) is set, then ATA ERROR register is valid.
-  // While we *might* decode the ATA ERROR register, at the moment it
-  // doesn't make much sense: we don't care in detail why the error
-  // happened.
-
-  // page 70
-  // I'm guessing this is reset, got it shen status==0x03 and command = 0xd0 when doing a reset (wakeup)
-  if( passthru->status == 0x03 )
-  {
-    if( verbose >= 2 )
-      fprintf( stderr, "3WARE:   driver timeout\n");
-    errno = ETIMEDOUT;
-    return -1;
-  }
-
-  if( passthru->status || ( passthru->command & 0x21 ) )
-  {
-    if( verbose >= 2 )
-      fprintf( stderr, "3WARE: bad passthru, Controller Status: 0x%x, ATA Status: 0x%x, ATA Error: 0x%x\n", passthru->status, passthru->command, passthru->features );
-    errno = EIO;
-    return -1;
-  }
-
-  if( ( verbose >= 4 ) && ( rw == RW_READ ) )
-    dump_bytes( "3WARE: received", data, data_len );
-
-  // If this is a read data command, copy data to output buffer
-  if( ( rw == RW_READ ) && data )
-    memcpy( data, tw_ioctl_apache->data_buffer, data_len );
-
-  // Return register values
-  //cdb[4] = passthru->features;    error
-  cdb[6] = passthru->sector_count;
-  cdb[8] = passthru->sector_num;
-  cdb[10] = passthru->cylinder_lo;
-  cdb[12] = passthru->cylinder_hi;
-  cdb[13] = passthru->drive_head;
-  // cdb[14] = passthru->command;    status
-
-  // 48 bit regs... where?
-
-  // look for nonexistent devices/ports
-  //if( cdb[14] == ATA_OP_IDENTIFY && !nonempty( (unsigned char *) data, data_len ) )
-  if( cdb[14] == ATA_OP_IDENTIFY &&  ((unsigned char *) data)[60] == 0 && ((unsigned char *) data)[61] == 0 ) // cheating by looking at LBA28, should probably find something better later
-  {
-    //set_err(ENODEV, "No drive on port %d", port);
-    errno = ENODEV;
-    return -1;
-  }
-
-  return 0;
-}
-/*
-// Hm... interesting...
-  if (iop->cmnd[0] == SAT_ATA_PASSTHROUGH_12 || iop->cmnd[0] == SAT_ATA_PASSTHROUGH_16) {
-    // Controller does not return ATA output registers in SAT sense data
-    if (iop->cmnd[2] & (1 << 5)) // chk_cond
-      return set_err(ENOSYS, "ATA return descriptor not supported by controller firmware");
-  }
-  // SMART WRITE LOG SECTOR causing media errors
-  if ((iop->cmnd[0] == SAT_ATA_PASSTHROUGH_16 && iop->cmnd[14] == ATA_SMART_CMD
-        && iop->cmnd[3]==0 && iop->cmnd[4] == ATA_SMART_WRITE_LOG_SECTOR) ||
-      (iop->cmnd[0] == SAT_ATA_PASSTHROUGH_12 && iop->cmnd[9] == ATA_SMART_CMD &&
-        iop->cmnd[3] == ATA_SMART_WRITE_LOG_SECTOR))
-    return set_err(ENOSYS, "SMART WRITE LOG SECTOR command is not supported by controller firmware");
-
-*/
-
 
 void lsi_close( struct device_handle *drive )
 {
@@ -488,31 +316,7 @@ int lsi_open( const char *device, struct device_handle *drive, __attribute__((un
       return -1;
     }
 
-    if( !strncmp( device, "/dev/twa", ( dev_len - 1 ) ) )
-    {
-      drive->port = atoi( delim + 1 );
-      drive->driver = DRIVER_TYPE_3WARE;
-      drive->driver_cmd = &lsi_3ware_cmd;
-    }
-    else if( !strncmp( device, "/dev/twl", ( dev_len - 1 ) ) )
-    {
-      drive->port = atoi( delim + 1 );
-      drive->driver = DRIVER_TYPE_3WARE;
-      drive->driver_cmd = &lsi_3ware_cmd;
-    }
-    else if( !strncmp( device, "/dev/twavm", ( dev_len - 1 ) ) )
-    {
-      drive->port = atoi( delim + 1 );
-      drive->driver = DRIVER_TYPE_3WARE;
-      drive->driver_cmd = &lsi_3ware_cmd;
-    }
-    else if( !strncmp( device, "/dev/twlvm", ( dev_len - 1 ) ) )
-    {
-      drive->port = atoi( delim + 1 );
-      drive->driver = DRIVER_TYPE_3WARE;
-      drive->driver_cmd = &lsi_3ware_cmd;
-    }
-    else if( ( !strncmp( device, "/dev/sd", ( dev_len - 1 ) ) || !strncmp( device, "/dev/sd", ( dev_len - 2 ) ) ) && has_megasas )
+    if( ( !strncmp( device, "/dev/sd", ( dev_len - 1 ) ) || !strncmp( device, "/dev/sd", ( dev_len - 2 ) ) ) && has_megasas )
     {
       drive->port = atoi( delim + 1 );
       drive->driver = DRIVER_TYPE_MEGASAS;
@@ -543,7 +347,7 @@ int lsi_open( const char *device, struct device_handle *drive, __attribute__((un
   if( !drive->driver )
   {
     if( verbose )
-      fprintf( stderr, "LSI device name '%s', expecting something like '/dev/tw[al]0:15',' /dev/tw[al]vm0:15', 'host1:5', or '/dev/sda:5'\n", device );
+      fprintf( stderr, "LSI device name '%s', expecting something like 'host1:5' or '/dev/sda:5'\n", device );
     errno = EINVAL;
     return -1;
   }
@@ -621,9 +425,7 @@ int lsi_open( const char *device, struct device_handle *drive, __attribute__((un
   {
     if( verbose >= 3 )
     {
-      if( drive->driver == DRIVER_TYPE_3WARE )
-        fprintf( stderr, "Using 3Ware Host/HBA '%i' port '%d'\n", drive->hba, drive->port );
-      else if( drive->driver == DRIVER_TYPE_MEGADEV )
+      if( drive->driver == DRIVER_TYPE_MEGADEV )
         fprintf( stderr, "Using MegaDev Host/HBA '%i' port '%d'\n", drive->hba, drive->port );
       else if( drive->driver == DRIVER_TYPE_MEGASAS )
         fprintf( stderr, "Using MegaSAS Host/HBA '%i' port '%d'\n", drive->hba, drive->port );
@@ -664,13 +466,7 @@ int lsi_open( const char *device, struct device_handle *drive, __attribute__((un
 
 int lsi_isvalidname( const char *device )
 {
-  if( !strncmp( device, "/dev/twa", 8 ) )  // should also match twavm
-    return 1;
-
-  else if( !strncmp( device, "/dev/twl", 8 ) )   // should also match twlvm
-    return 1;
-
-  else if( !strncmp( device, "/dev/sd", 7 ) && ( strlen( device ) > 8 ) && ( ( device[8] == ':' ) || ( device[9] == ':' ) ) )
+  if( !strncmp( device, "/dev/sd", 7 ) && ( strlen( device ) > 8 ) && ( ( device[8] == ':' ) || ( device[9] == ':' ) ) )
     return 1;
 
   else if( !strncmp( device, "host", 4 ) && ( strlen( device ) > 5 ) && ( ( device[5] == ':' ) || ( device[6] == ':' ) || ( device[7] == ':' ) ) ) // should give us 4 digit host numbers
@@ -681,5 +477,5 @@ int lsi_isvalidname( const char *device )
 
 char *lsi_validnames( void )
 {
-  return "'/dev/tw[al]0:15', '/dev/tw[al]vm0:15', 'host1:5', '/dev/sda:5'";
+  return "'host1:5', '/dev/sda:5'";
 }
