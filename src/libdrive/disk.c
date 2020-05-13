@@ -18,6 +18,7 @@
 #include "lsi.h"
 #include "ide.h"
 #include "sat.h"
+#include "nvme.h"
 
 extern int verbose;
 
@@ -26,7 +27,6 @@ extern int cmdTimeout;
 int openDisk( const char *device, struct device_handle *drive, const enum driver_type driver, const enum protocol_type protocol, unsigned char ident )
 {
   int rc;
-  unsigned char data[512];
 
   memset( &drive->drive_info, 0, sizeof( drive->drive_info ) );
 
@@ -44,6 +44,8 @@ int openDisk( const char *device, struct device_handle *drive, const enum driver
       rc = lsi_open( device, drive, DRIVER_TYPE_UNKNOWN );
     else if( sgio_isvalidname( device ) )
       rc = sgio_open( device, drive );
+    else if( nvme_isvalidname( device ) )
+      rc = nvme_open( device, drive );
     else if( sat_isvalidname( device ) )
       rc = sat_open( device, drive );
     else if( ide_isvalidname( device ) )
@@ -51,7 +53,7 @@ int openDisk( const char *device, struct device_handle *drive, const enum driver
     else
     {
       if( verbose )
-        fprintf( stderr, "Unable to determine the device type, should be %s, %s, %s, or %s\n", sgio_validnames(), sat_validnames(), lsi_validnames(), ide_validnames() );
+        fprintf( stderr, "Unable to determine the device type, should be %s, %s, %s, %s, or %s\n", sgio_validnames(), sat_validnames(), nvme_validnames(), lsi_validnames(), ide_validnames() );
       errno = EINVAL;
       return -1;
     }
@@ -65,6 +67,8 @@ int openDisk( const char *device, struct device_handle *drive, const enum driver
     rc = sgio_open( device, drive );
   else if( drive->driver == DRIVER_TYPE_SAT )
     rc = sat_open( device, drive );
+  else if( drive->driver == DRIVER_TYPE_NVME )
+    rc = nvme_open( device, drive );
   else if( drive->driver == DRIVER_TYPE_MEGADEV )
     rc = lsi_open( device, drive, DRIVER_TYPE_MEGADEV );
   else if( drive->driver == DRIVER_TYPE_MEGASAS )
@@ -85,10 +89,11 @@ int openDisk( const char *device, struct device_handle *drive, const enum driver
 
   //now get the device information
 
-  memset( &data, 0, sizeof( data ) );
-
   if( drive->protocol == PROTOCOL_TYPE_UNKNOWN )
   {
+    unsigned char data[512];
+    memset( &data, 0, sizeof( data ) );
+
     if( verbose >= 2 )
       fprintf( stderr, "PROBE (SCSI)...\n" );
 
@@ -102,17 +107,20 @@ int openDisk( const char *device, struct device_handle *drive, const enum driver
     {
       drive->protocol = PROTOCOL_TYPE_SCSI;
       drive->cmd = &exec_cmd_scsi;
-    }
+    }  // add PROTOCOL_TYPE_NVME
   }
 
   if( ident == IDENT )
   {
     if( drive->protocol == PROTOCOL_TYPE_ATA )
     {
+      struct ata_identity ident;
+      memset( &ident, 0, sizeof( ident ) );
+
       if( verbose >= 2 )
         fprintf( stderr, "IDENTIFY (ATA)...\n" );
 
-      rc = exec_cmd_ata( drive, CMD_IDENTIFY, RW_READ, data, sizeof( data ), NULL, 0, cmdTimeout );
+      rc = exec_cmd_ata( drive, CMD_IDENTIFY, RW_READ, &ident, sizeof( ident ), NULL, 0, cmdTimeout );
       if( rc == -1 )
       {
         if( verbose )
@@ -121,14 +129,17 @@ int openDisk( const char *device, struct device_handle *drive, const enum driver
       }
 
       drive->protocol = PROTOCOL_TYPE_ATA;
-      loadInfoATA( drive, (struct ata_identity *) &data );
+      loadInfoATA( drive, &ident );
     }
     else if( drive->protocol == PROTOCOL_TYPE_SCSI )
     {
+      struct scsi_identity ident;
+      memset( &ident, 0, sizeof( ident ) );
+
       if( verbose >= 2 )
         fprintf( stderr, "IDENTIFY (SCSI)...\n" );
 
-      rc = exec_cmd_scsi( drive, CMD_IDENTIFY, RW_READ, data, sizeof( data ), NULL, 0, cmdTimeout );
+      rc = exec_cmd_scsi( drive, CMD_IDENTIFY, RW_READ, &ident, sizeof( ident ), NULL, 0, cmdTimeout );
       if( rc == -1 )
       {
         if( verbose )
@@ -137,7 +148,26 @@ int openDisk( const char *device, struct device_handle *drive, const enum driver
       }
 
       drive->protocol = PROTOCOL_TYPE_SCSI;
-      loadInfoSCSI( drive, (struct scsi_identity *) &data );
+      loadInfoSCSI( drive, &ident );
+    }
+    else if( drive->protocol == PROTOCOL_TYPE_NVME )
+    {
+      struct nvme_identity ident;
+      memset( &ident, 0, sizeof( ident ) );
+
+      if( verbose >= 2 )
+        fprintf( stderr, "IDENTIFY (NVME)...\n" );
+
+      rc = exec_cmd_nvme( drive, CMD_IDENTIFY, RW_READ, &ident, sizeof( ident ), NULL, 0, cmdTimeout );
+      if( rc == -1 )
+      {
+        if( verbose )
+          fprintf( stderr, "IDENTIFY (NVME) Failed, rc: %i errno: %i\n", rc, errno );
+        return -1;
+      }
+
+      drive->protocol = PROTOCOL_TYPE_NVME;
+      loadInfoNVME( drive, &ident );
     }
     else
     {

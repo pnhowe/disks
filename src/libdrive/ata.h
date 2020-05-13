@@ -49,7 +49,6 @@ struct ata_identity // needs to be 512 or less bytes
   __u16 pad_218[12];
   __u16 lbaextnded[4];                            // 230-233
 } __attribute__((packed));
-
 // use this for size dependant stuff -> ASSERT_SIZEOF_STRUCT(ata_identify_device, 512);
 
 

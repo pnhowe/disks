@@ -24,3 +24,11 @@ clean up::
 
   rm libdrive.so.3
   rm libenclosure.so.3
+
+
+Verbosity levels:
+
+1 - User errors - unable to find device type things
+2 - High Level Errors - generic "failed" stuff
+3 - Detail Errors - low level errors
+4 - debug - dump cdb etc

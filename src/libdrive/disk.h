@@ -5,6 +5,9 @@
 #include "cdb.h"
 #include "device.h"
 
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
+
 struct smart_attrib_ata
 {
   unsigned char id;

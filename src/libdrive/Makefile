@@ -10,7 +10,7 @@ LIB_CURRENT_VERSION = $(shell echo "$(PROG_VERSION)" | sed s/"\.[0-9]$$"//)
 LDLIBS = -lm
 PROGS = wipedrive muncher selftest driveinfo drivepower diskcopy smartinfo enclosureinfo
 SHARED_LIBS = libdrive.so.$(LIB_VERSION) libenclosure.so.$(LIB_VERSION)
-BASE_OBJS = device.o disk.o enclosure.o cdb.o ata.o scsi.o ide.o sgio.o sat.o lsi.o
+BASE_OBJS = device.o disk.o enclosure.o cdb.o ata.o scsi.o ide.o sgio.o sat.o nvme.o lsi.o
 
 override LDFLAGS +=
 override CFLAGS += -DPROG_VERSION=\"$(PROG_VERSION)\" -fno-builtin-memset
@@ -34,7 +34,7 @@ ALL_OBJS = $(BASE_OBJS) $(PROG_OBJS) $(LIB_OBJS)
 
 all: $(PROGS) $(SHARED_LIBS) libdrive_h.py libenclosure_h.py
 
-$(ALL_OBJS): device.h disk.h enclosure.h cdb.h ata.h scsi.h ide.h sgio.h sat.h lsi.h libdrive.py
+$(ALL_OBJS): device.h disk.h enclosure.h cdb.h ata.h scsi.h ide.h sgio.h sat.h nvme.h lsi.h libdrive.py
 
 esx-lib: override CFLAGS += -m32
 esx-lib: override LDFLAGS += -m32

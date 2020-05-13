@@ -70,6 +70,8 @@ int main( int argc, char **argv )
           driver = DRIVER_TYPE_SGIO;
         else if( strcmp( optarg, "SAT" ) == 0 )
           driver = DRIVER_TYPE_SAT;
+        else if( strcmp( optarg, "NVME" ) == 0 )
+          driver = DRIVER_TYPE_NVME;
         else if( strcmp( optarg, "MegaDev" ) == 0 )
           driver = DRIVER_TYPE_MEGADEV;
         else if( strcmp( optarg, "MegaSAS" ) == 0 )

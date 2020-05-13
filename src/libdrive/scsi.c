@@ -330,9 +330,8 @@ static int load_cdb_scsi( unsigned char cdb[SCSI_16_CDB_LEN], const enum cdb_com
 
       return 0;
 
-
     default:
-      errno = EINVAL;
+      errno = ENOSYS;
       return -1;
   }
 }

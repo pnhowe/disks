@@ -5,7 +5,7 @@ import os
 import re
 import glob
 from subprocess import Popen, PIPE
-from libdrive.libdrive_h import struct_drive_info, struct_smart_attribs, set_verbose, get_drive_info, get_smart_attrs, smart_status, drive_last_selftest_passed, log_entry_count, PROTOCOL_TYPE_ATA, PROTOCOL_TYPE_SCSI
+from libdrive.libdrive_h import struct_drive_info, struct_smart_attribs, set_verbose, get_drive_info, get_smart_attrs, smart_status, drive_last_selftest_passed, log_entry_count, PROTOCOL_TYPE_ATA, PROTOCOL_TYPE_SCSI, PROTOCOL_TYPE_NVME
 
 __VERSION__ = '3.0.0'
 
@@ -192,6 +192,9 @@ class Drive( object ):
     elif tmp.protocol == PROTOCOL_TYPE_SCSI:
       self._info = { 'protocol': 'SCSI', 'vendor': str( tmp.vendor_id, 'utf-8' ).strip(), 'version': str( tmp.version, 'utf-8' ).strip() }
 
+    elif tmp.protocol == PROTOCOL_TYPE_NVME:
+      self._info = { 'protocol': 'NVME', 'firmware': str( tmp.firmware_rev, 'utf-8' ).strip() }
+
     else:
       raise Exception( 'Unkown Drive protocol "{0}"'.format( tmp.protocol ) )
 
@@ -222,6 +225,11 @@ class Drive( object ):
     elif attrs.protocol == PROTOCOL_TYPE_SCSI:
       for i in range( 0, attrs.count ):
         result[ '{0}-{1}'.format( attrs.data.scsi[ i ].page_code, attrs.data.scsi[ i ].parm_code ) ] = ( attrs.data.scsi[ i ].value )
+
+    elif attrs.protocol == PROTOCOL_TYPE_NVME:
+      pass  #  TODO: NVME
+      #for i in range( 0, attrs.count ):
+      #  result[ '{0}-{1}'.format( attrs.data.scsi[ i ].page_code, attrs.data.scsi[ i ].parm_code ) ] = ( attrs.data.scsi[ i ].value )
 
     else:
       raise Exception( 'Unknown protocol type: "{0}"'.format( attrs.protocol ) )
@@ -556,13 +564,13 @@ def getATAPorts_ESX():
 
 # NVME
 class NVMEPort( Port ):
-  def __init__( self, port, *args, **kwargs  ):
+  def __init__( self, address, *args, **kwargs  ):
     super( NVMEPort, self ).__init__( *args, **kwargs )
-    self.port = port
+    self.address = address
 
   @property
   def location( self ):
-    return 'NVME {0}'.format( self.port )
+    return 'NVME {0}'.format( self.address )
 
   @property
   def type( self ):
@@ -588,10 +596,14 @@ def getNVMEPorts():
   #
   # tmp_list.sort()
 
+  # port function namespace
+  # nvme<id>n<namespace>  namespace is the same disk, just a new block device
+
   port_map = {}
   for item in glob.glob( '/dev/nvme?n?' ):  # TODO: do this right, super hack
     ( _, _, name ) = item.split( '/' )
-    port = NVMEPort( name )
+    address = name[ 9 ]
+    port = NVMEPort( address )
     port_map[ port ] = name
 
   return port_map

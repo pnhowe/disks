@@ -30,7 +30,7 @@ Options:\n\
   -v,  --verbose   Verbose, more -v more stuff.(4 levles, starts on level 0)\n\
   -q,  --quiet     Less Verbose, more -q less stuff.\n\
   -d, --driver     Force a Driver to use ( SGIO, SAT, MegaDev, MegaSAS, IDE(forces -pATA) )\n\
-  -p, --protocol   Force a Protocol to use ( ATA, SCSI )\n\
+  -p, --protocol   Force a Protocol to use ( ATA, SCSI, NVME )\n\
   -o  --on         Turn SMART On (enable)\n\
   -f  --off        Turn SMART Off (disable)\n\
   -h,-?, --help    Show this\n\
@@ -75,6 +75,8 @@ int main( int argc, char **argv )
           driver = DRIVER_TYPE_SGIO;
         else if( strcmp( optarg, "SAT" ) == 0 )
           driver = DRIVER_TYPE_SAT;
+        else if( strcmp( optarg, "NVME" ) == 0 )
+          driver = DRIVER_TYPE_NVME;
         else if( strcmp( optarg, "MegaDev" ) == 0 )
           driver = DRIVER_TYPE_MEGADEV;
         else if( strcmp( optarg, "MegaSAS" ) == 0 )
@@ -93,6 +95,8 @@ int main( int argc, char **argv )
           protocol = PROTOCOL_TYPE_ATA;
         else if( strcmp( optarg, "SCSI" ) == 0 )
           protocol = PROTOCOL_TYPE_SCSI;
+        else if( strcmp( optarg, "NVME" ) == 0 )
+          protocol = PROTOCOL_TYPE_NVME;
         else
         {
           fprintf( stderr, "Unknwon Protocol '%s'\n", optarg );
@@ -174,6 +178,8 @@ int main( int argc, char **argv )
     printf( "Type:                 SGIO\n" );
   else if( info->driver == DRIVER_TYPE_SAT )
     printf( "Type:                 SAT\n" );
+  else if( info->driver == DRIVER_TYPE_NVME )
+    printf( "Type:                 NVME\n" );
   else if( info->driver == DRIVER_TYPE_MEGADEV )
     printf( "Type:                 MegaDev\n" );
   else if( info->driver == DRIVER_TYPE_MEGASAS )
@@ -185,10 +191,12 @@ int main( int argc, char **argv )
     printf( "Protocol:             ATA\n" );
   else if( info->protocol == PROTOCOL_TYPE_SCSI )
     printf( "Protocol:             SCSI\n" );
+  else if( info->protocol == PROTOCOL_TYPE_NVME )
+    printf( "Protocol:             NVME\n" );
   else
     printf( "Protocol:             UNKNOWN\n" );
 
-  if( info->protocol == PROTOCOL_TYPE_SCSI )
+  if( info->protocol == PROTOCOL_TYPE_SCSI ) /// TODO: update with NVME
     printf( "Vendor:               %s\n", info->vendor_id );
   printf( "Model:                %s\n", info->model );
   printf( "Serial:               %s\n", info->serial );

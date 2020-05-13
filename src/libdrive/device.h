@@ -17,6 +17,7 @@ enum driver_type
   DRIVER_TYPE_IDE      = 0x01,
   DRIVER_TYPE_SGIO     = 0x02,
   DRIVER_TYPE_SAT      = 0x03,
+  DRIVER_TYPE_NVME     = 0x04,
 
 // LSI
   // DRIVER_TYPE_3WARE    = 0x10,
@@ -28,7 +29,8 @@ enum protocol_type
 {
   PROTOCOL_TYPE_UNKNOWN = 0x00,
   PROTOCOL_TYPE_ATA     = 0x01,
-  PROTOCOL_TYPE_SCSI    = 0x02
+  PROTOCOL_TYPE_SCSI    = 0x02,
+  PROTOCOL_TYPE_NVME    = 0x03
 };
 
 // the boolean flags are chars and not bit masks to make it easier to get to python, and memory is cheep
