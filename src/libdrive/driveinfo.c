@@ -205,6 +205,9 @@ int main( int argc, char **argv )
   if( info->protocol == PROTOCOL_TYPE_SCSI )
     printf( "Version:              %s\n", info->version );
 
+  if( info->protocol == PROTOCOL_TYPE_NVME && drive.port )
+    printf( "Name Space:           %i\n", drive.port );
+
   if( info->protocol == PROTOCOL_TYPE_ATA )
     printf( "ATA Version:          %i, %s (0x%04x)\n", info->ATA_major_version, ata_version_desc( info->ATA_minor_version ), info->ATA_minor_version );
 
@@ -212,14 +215,39 @@ int main( int argc, char **argv )
     printf( "SCSI Version:         %s (0x%04x)\n", scsi_descriptor_desc( info->SCSI_version ), info->SCSI_version );
 
   if( info->WWN )
-    printf( "WWN:                  %016llx\n", info->WWN );
+  {
+    unsigned long long int WWN;
+    unsigned long long int uuid1, uuid2, uuid3, uuid4, uuid5;
+
+    WWN = (unsigned long long int) ( info->WWN & 0x0000000000000000FFFFFFFFFFFFFFFF );
+
+    uuid1 = (unsigned long long int) ( ( info->WWN >> 96 ) & 0x000000000000000000000000FFFFFFFF ); // ( ( info->WWN & 0xFFFFFFFF000000000000000000000000 ) >> 96 );
+    uuid2 = (unsigned long long int) ( ( info->WWN >> 80 ) & 0x0000000000000000000000000000FFFF ); // ( ( info->WWN & 0x00000000FFFF00000000000000000000 ) >> 80 );
+    uuid3 = (unsigned long long int) ( ( info->WWN >> 64 ) & 0x0000000000000000000000000000FFFF ); // ( ( info->WWN & 0x000000000000FFFF0000000000000000 ) >> 64 );
+    uuid4 = (unsigned long long int) ( ( info->WWN >> 48 ) & 0x0000000000000000000000000000FFFF ); // ( ( info->WWN & 0x0000000000000000FFFF000000000000 ) >> 48 );
+    uuid5 = (unsigned long long int) ( ( info->WWN       ) & 0x00000000000000000000FFFFFFFFFFFF ); //   ( info->WWN & 0x00000000000000000000FFFFFFFFFFFF );
+    printf( "WWN/GUID:             %016llx  %08llx-%04llx-%04llx-%04llx-%012llx\n", WWN, uuid1, uuid2, uuid3, uuid4, uuid5 );
+  }
+
+  if( info->numberOfNamespaces )
+    printf( "Namespace Count:      %i\n", info->numberOfNamespaces );
 
   printf( "LBA Count:            %llu\n", info->LBACount );
+  if( info->nsCapactyLBA )
+  {
+    printf( "LBA Capacity:         %llu\n", info->nsCapactyLBA );
+    printf( "LBA Utilitzation:     %llu\n", info->nsUtilitzationLBA );
+  }
+
   printf( "Logical Sector Size:  %i\n", info->LogicalSectorSize );
   printf( "Physical Sector Size: %i\n", info->PhysicalSectorSize );
   tmpSize = ( info->LogicalSectorSize * info->LBACount );
-  printf( "Total Disk Size:      %.3f (GiB)  %.3f (TiB)\n", ( tmpSize / ( 1024.0 * 1024.0 * 1024.0 ) ), ( tmpSize / ( 1024.0 * 1024.0 * 1024.0 * 1024.0 ) ) );
-  printf( "Total Disk Size:      %.3f (GB)   %.3f (TB)\n", ( tmpSize / ( 1000.0 * 1000.0 * 1000.0 ) ), ( tmpSize / ( 1000.0 * 1000.0 * 1000.0 * 1000.0 ) ) );
+  printf( "Total Disk Size:      %.3f (GiB) %.3f (GB)    %.3f (TiB) %.3f (TB)\n", ( tmpSize / ( 1024.0 * 1024.0 * 1024.0 ) ),  ( tmpSize / ( 1000.0 * 1000.0 * 1000.0 ) ), ( tmpSize / ( 1024.0 * 1024.0 * 1024.0 * 1024.0 ) ), ( tmpSize / ( 1000.0 * 1000.0 * 1000.0 * 1000.0 ) ) );
+  if( info->totalCapacity )
+  {
+    printf( "Total Disk Capacity:  %.3f (GiB) %.3f (GB)    %.3f (TiB) %.3f (TB)\n", ( info->totalCapacity / ( 1024.0 * 1024.0 * 1024.0 ) ),  ( info->totalCapacity / ( 1000.0 * 1000.0 * 1000.0 ) ), ( info->totalCapacity / ( 1024.0 * 1024.0 * 1024.0 * 1024.0 ) ), ( info->totalCapacity / ( 1000.0 * 1000.0 * 1000.0 * 1000.0 ) ) );
+    printf( "Total Disk Unalloc.:  %.3f (GiB) %.3f (GB)    %.3f (TiB) %.3f (TB)\n", ( info->unallocatedCapacity / ( 1024.0 * 1024.0 * 1024.0 ) ),  ( info->unallocatedCapacity / ( 1000.0 * 1000.0 * 1000.0 ) ), ( info->unallocatedCapacity / ( 1024.0 * 1024.0 * 1024.0 * 1024.0 ) ), ( info->unallocatedCapacity / ( 1000.0 * 1000.0 * 1000.0 * 1000.0 ) ) );
+  }
 
   if( !info->isSSD && info->RPM )
     printf( "Nominal Rotation Spd: %u\n", info->RPM );
@@ -240,6 +268,11 @@ int main( int argc, char **argv )
   }
   else
     printf( "Supports Trim/Unmap:  No\n" );
+
+  if( info->supportsSanitize )
+    printf( "Supports Sanitize:    Yes\n" );
+  else
+    printf( "Supports Sanitize:    No\n" );
 
   if( info->maxWriteSameLength )
     printf( "Max Write Same Length:  %llu\n", info->maxWriteSameLength );
@@ -311,6 +344,12 @@ int main( int argc, char **argv )
       printf( "    Block Limits\n" );
     if( info->hasVPDPageBlockDeviceCharacteristics )
       printf( "    Block Device Characteristics\n" );
+  }
+
+  if( info->protocol == PROTOCOL_TYPE_NVME )
+  {
+    if( drive.port && info->supportsThin ) // only for namespace
+      printf( "    Thin Provisioning\n" );
   }
 
 ok:

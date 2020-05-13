@@ -70,7 +70,10 @@ class Drive( object ):
     self.pcipath = None
     self.scsi_generic = None
     if block_name is not None:
-      tmp_list = glob.glob( '/sys/block/{0}/device/scsi_disk/*'.format( block_name ) )
+      if port.type == 'NVME':
+        tmp_list = glob.glob( '/sys/block/{0}/device'.format( block_name ) )
+      else:
+        tmp_list = glob.glob( '/sys/block/{0}/device/scsi_disk/*'.format( block_name ) )
       if tmp_list:
         self.devpath = re.sub( '^/sys', '', os.path.realpath( tmp_list[0] ) )  # for use with udev
 
@@ -171,7 +174,7 @@ class Drive( object ):
     return self._info[ 'capacity' ]
 
   def __getattr__( self, name ):
-    if name in ( 'SMARTSupport', 'SMARTEnabled', 'supportsSelfTest', 'supportsLBA', 'supportsWriteSame', 'supportsTrim', 'isSSD', 'RPM', 'LogicalSectorSize', 'PhysicalSectorSize', 'LBACount', 'WWN' ):
+    if name in ( 'SMARTSupport', 'SMARTEnabled', 'supportsSelfTest', 'supportsLBA', 'supportsWriteSame', 'supportsTrim', 'isSSD', 'RPM', 'LogicalSectorSize', 'PhysicalSectorSize', 'LBACount', 'WWN', 'GUID' ):
       if not self._info:
         self._loadInfo()
 
@@ -204,8 +207,16 @@ class Drive( object ):
     for item in ( 'SMARTSupport', 'SMARTEnabled', 'supportsSelfTest', 'supportsLBA', 'supportsWriteSame', 'supportsTrim', 'isSSD' ):
       self._info[ item ] = ( getattr( tmp, item ) == '\x01' )
 
-    for item in ( 'RPM', 'LogicalSectorSize', 'PhysicalSectorSize', 'LBACount', 'WWN' ):
+    for item in ( 'RPM', 'LogicalSectorSize', 'PhysicalSectorSize', 'LBACount' ):
       self._info[ item ] = getattr( tmp, item )
+
+    guid = ''.join( [ '{:02x}'.format( tmp.WWN[i]) for i in range( 0, 16 ) ] )
+    if guid[ 0:16 ] == '0000000000000000':
+      self._info[ 'WWN' ] = guid[ 16: ]
+      self._info[ 'GUID' ] = ''
+    else:
+      self._info[ 'WWN' ] = ''
+      self._info[ 'GUID' ] = '{0}-{1}-{2}-{3}-{4}'.format( guid[0:8], guid[8:12], guid[12:16], guid[16:20], guid[20:] )
 
     self._info['capacity'] = ( tmp.LogicalSectorSize * tmp.LBACount ) / ( 1024.0 * 1024.0 * 1024.0 )  # in GiB
 
@@ -227,9 +238,9 @@ class Drive( object ):
         result[ '{0}-{1}'.format( attrs.data.scsi[ i ].page_code, attrs.data.scsi[ i ].parm_code ) ] = ( attrs.data.scsi[ i ].value )
 
     elif attrs.protocol == PROTOCOL_TYPE_NVME:
-      pass  #  TODO: NVME
-      #for i in range( 0, attrs.count ):
-      #  result[ '{0}-{1}'.format( attrs.data.scsi[ i ].page_code, attrs.data.scsi[ i ].parm_code ) ] = ( attrs.data.scsi[ i ].value )
+      pass  # TODO: NVME
+      # for i in range( 0, attrs.count ):
+      #   result[ '{0}-{1}'.format( attrs.data.scsi[ i ].page_code, attrs.data.scsi[ i ].parm_code ) ] = ( attrs.data.scsi[ i ].value )
 
     else:
       raise Exception( 'Unknown protocol type: "{0}"'.format( attrs.protocol ) )
@@ -371,15 +382,6 @@ class IDEPort( Port ):
 
 def getIDEPorts():
   ports = {}
-
-  if _kernelCompare( '2.6.28' ):
-    globfilter = '/sys/class/ide_port/{0}/device/*/block/hd*'
-    globdelim = '/'
-
-  else:  # for <= 2.6.26 kernel, when move off etch/lenny, can be removed
-    globfilter = '/sys/class/ide_port/{0}/device/*/block:hd*'
-    globdelim = ':'
-
   ide_list = []
   tmp_list = glob.glob( '/sys/class/ide_port/ide*' )
   for name in tmp_list:
@@ -389,9 +391,9 @@ def getIDEPorts():
 
   for ide in ide_list:
     port = IDEPort( i )
-    tmp_list = glob.glob( globfilter.format( ide ) )
+    tmp_list = glob.glob( '/sys/class/ide_port/{0}/device/*/block/hd*'.format( ide ) )
     if len( tmp_list ) > 0:
-      tmp = tmp_list[0].split( globdelim )[-1]
+      tmp = tmp_list[0].split( '/' )[-1]
       ports[ port ] = tmp
 
     else:
@@ -424,13 +426,6 @@ def getATAPorts():
   ports = {}
   exclude_hosts = []
   double_hosts = []
-
-  if _kernelCompare( '2.6.28' ):
-    globfilter = '/sys/class/scsi_host/{0}/device/target*/*/block/sd*'
-    globdelim = '/'
-  else:  # for <= 2.6.26 kernel, when move off etch/lenny, can be removed
-    globfilter = '/sys/class/scsi_host/{0}/device/target*/*/block:sd*'
-    globdelim = ':'
 
   # add usb disks to exclude list
   tmp_list = glob.glob( '/sys/bus/usb/devices/*/host*' )
@@ -503,15 +498,15 @@ def getATAPorts():
 
   for name in name_map:
     port = ATAPort( int( re.sub( '[^0-9]', '', name ) ), name_map[ name ] )
-    tmp_list = glob.glob( globfilter.format( name ) )
+    tmp_list = glob.glob( '/sys/class/scsi_host/{0}/device/target*/*/block/sd*'.format( name ) )
     if name in double_hosts:
       port2 = ATAPort( int( re.sub( '[^0-9]', '', name ) ), ( name_map[ name ] + 1 ) )
       if len( tmp_list ) > 1:
-        ports[ port ] = tmp_list[0].split( globdelim )[-1]
-        ports[ port2 ] = tmp_list[1].split( globdelim )[-1]
+        ports[ port ] = tmp_list[0].split( '/' )[-1]
+        ports[ port2 ] = tmp_list[1].split( '/' )[-1]
 
       elif len( tmp_list ) > 0:
-        ports[ port ] = tmp_list[0].split( globdelim )[-1]
+        ports[ port ] = tmp_list[0].split( '/' )[-1]
         ports[ port2 ] = None
 
       else:
@@ -520,7 +515,7 @@ def getATAPorts():
 
     else:
       if len( tmp_list ) > 0:
-        ports[ port ] = tmp_list[0].split( globdelim )[-1]
+        ports[ port ] = tmp_list[0].split( '/' )[-1]
 
       else:
         ports[ port ] = None
@@ -564,47 +559,47 @@ def getATAPorts_ESX():
 
 # NVME
 class NVMEPort( Port ):
-  def __init__( self, address, *args, **kwargs  ):
+  def __init__( self, controller, namespace, *args, **kwargs  ):
     super( NVMEPort, self ).__init__( *args, **kwargs )
-    self.address = address
+    self.controller = controller
+    self.namespace = namespace
 
   @property
   def location( self ):
-    return 'NVME {0}'.format( self.address )
+    return 'NVME {0}:{1}'.format( self.controller, self.namespace )
 
   @property
   def type( self ):
     return 'NVME'
 
   def __hash__( self ):
-    return ( 'NVME {0}'.format( self.port ).__hash__() )
+    return ( 'NVME {0} {1}'.format( self.controller, self.namespace ).__hash__() )
 
 
 def getNVMEPorts():
-  # tmp_list = []
-  # for item in glob.glob( '/sys/devices/pci[0-9]*/[0-9]*/[0-9]*/[0-9]*/nvme/nvme*' ):  then there will be a nvme0n1 inside this
-  #   tmp = item.replace( ':', '' ).replace( '.', '' ).split( '/' )
-  #   tmp_list.append( ( '{0} {1} {2} {3} {4:04d}'.format( tmp[3], tmp[4], tmp[5], tmp[6], int( re.sub( '[^0-9]', '', tmp[8] ) ) ), tmp[8] ) )
-  #
-  # for item in glob.glob( '/sys/devices/pci[0-9]*/[0-9]*/[0-9]*//nvme/nvme*' ):
-  #   tmp = item.replace( ':', '' ).replace( '.', '' ).split( '/' )
-  #   tmp_list.append( ( '{0} {1} {2} 000000000 {3:04d}'.format( tmp[3], tmp[4], tmp[5], int( re.sub( '[^0-9]', '', tmp[6] ) ) ), tmp[6] ) )
-  #
-  # for item in glob.glob( '/sys/devices/pci[0-9]*/[0-9]*/nvme/nvme*' ):
-  #   tmp = item.replace( ':', '' ).replace( '.', '' ).split( '/' )
-  #   tmp_list.append( ( '{0} {1} 000000000 000000000 {2:04d}'.format( tmp[3], tmp[4], int( re.sub( '[^0-9]', '', tmp[5] ) ) ), tmp[5] ) )
-  #
-  # tmp_list.sort()
-
-  # port function namespace
-  # nvme<id>n<namespace>  namespace is the same disk, just a new block device
-
   port_map = {}
-  for item in glob.glob( '/dev/nvme?n?' ):  # TODO: do this right, super hack
-    ( _, _, name ) = item.split( '/' )
-    address = name[ 9 ]
-    port = NVMEPort( address )
-    port_map[ port ] = name
+  tmp_list = []  # the first part of the tuple is for PCI location sorting, the second is what we are after (when it is sorted)
+  for item in glob.glob( '/sys/devices/pci[0-9]*/[0-9]*/[0-9]*/[0-9]*/nvme/nvme*' ):
+    tmp = item.replace( ':', '' ).replace( '.', '' ).split( '/' )
+    tmp_list.append( ( '{0} {1} {2} {3} {4:04d}'.format( tmp[3], tmp[4], tmp[5], tmp[6], int( re.sub( '[^0-9]', '', tmp[8] ) ) ), tmp[8] ) )
+
+  for item in glob.glob( '/sys/devices/pci[0-9]*/[0-9]*/[0-9]*/nvme/nvme*' ):
+    tmp = item.replace( ':', '' ).replace( '.', '' ).split( '/' )
+    tmp_list.append( ( '{0} {1} {2} 000000000 {3:04d}'.format( tmp[3], tmp[4], tmp[5], int( re.sub( '[^0-9]', '', tmp[7] ) ) ), tmp[7] ) )
+
+  for item in glob.glob( '/sys/devices/pci[0-9]*/[0-9]*/nvme/nvme*' ):
+    tmp = item.replace( ':', '' ).replace( '.', '' ).split( '/' )
+    tmp_list.append( ( '{0} {1} 000000000 000000000 {2:04d}'.format( tmp[3], tmp[4], int( re.sub( '[^0-9]', '', tmp[6] ) ) ), tmp[6] ) )
+
+  tmp_list.sort()
+
+  for name in [ i[1] for i in tmp_list ]:
+    tmp_list = glob.glob( '/sys/class/nvme/{0}/{0}n*'.format( name, name ) )
+    for tmp in tmp_list:
+      block = tmp.split( '/' )[ -1 ]
+      namespace = int( block.split( 'n' )[-1] )
+      port = NVMEPort( re.sub( '[^0-9]', '', name ), namespace )
+      port_map[ port ] = ( block, '/dev/{0}:{1}'.format( name, namespace ) )
 
   return port_map
 
@@ -1195,11 +1190,11 @@ class DriveManager( object ):
       port_list = getNVMEPorts()
       if port_list:
         for port in port_list:
-          block = port_list[ port ]
+          ( block, libdrive ) = port_list[ port ]
           self._port_list.append( port )
           if block and block not in block_list:
             block_list.append( block )
-            self._drive_list.append( Drive( port, block, block, '/dev/{0}'.format( block ) ) )
+            self._drive_list.append( Drive( port, block, block, libdrive ) )
 
       port_list = getMegaRAIDPorts()
       if port_list:

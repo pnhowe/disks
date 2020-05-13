@@ -33,8 +33,8 @@ struct scsi_identity_page0
 
 struct scsi_identity
 {
-  __u8 data[512];
-} __attribute__((packed));
+  __u8 data[ sizeof( struct drive_info ) ];
+};
 
 struct sence_log_15h_100h  // background scan status log
 { // bytes 0-3 are sucked up by the log scanner

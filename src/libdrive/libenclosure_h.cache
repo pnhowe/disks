@@ -32,7 +32,7 @@ else:
     ctypes._pointer_t_type_cache = {}
     def POINTER_T(pointee):
         # a pointer should have the same length as LONG
-        fake_ptr_base_type = ctypes.c_uint64
+        fake_ptr_base_type = ctypes.c_uint64 
         # specific case for c_void_p
         if pointee is None: # VOID pointer type. c_void_p.
             pointee = type(None) # ctypes.c_void_p # ctypes.c_ulong
@@ -53,7 +53,7 @@ else:
                 raise TypeError('This is not a ctypes pointer.')
             def __init__(self, **args):
                 raise TypeError('This is not a ctypes pointer. It is not instanciable.')
-        _class = type('LP_%d_%s'%(8, clsname), (_T,),{})
+        _class = type('LP_%d_%s'%(8, clsname), (_T,),{}) 
         ctypes._pointer_t_type_cache[clsname] = _class
         return _class
 
@@ -146,11 +146,11 @@ set_subenc_descriptors = _libraries['libenclosure.so.3'].set_subenc_descriptors
 set_subenc_descriptors.restype = ctypes.c_int32
 set_subenc_descriptors.argtypes = [POINTER_T(ctypes.c_char), POINTER_T(struct_subenc_descriptors), POINTER_T(ctypes.c_char)]
 __all__ = \
-    ['get_subenc_descriptors', 'DRIVER_TYPE_SAT',
-    'struct_subenc_descriptors', 'DRIVER_TYPE_MEGASAS',
-    'PROTOCOL_TYPE_ATA', 'PROTOCOL_TYPE_UNKNOWN', 'driver_type',
-    'get_enclosure_info', 'struct_subenc_descriptor_element',
-    'PROTOCOL_TYPE_SCSI', 'PROTOCOL_TYPE_NVME', 'protocol_type', 'DRIVER_TYPE_MEGADEV',
-    'struct_enclosure_info', 'DRIVER_TYPE_UNKNOWN', 'DRIVER_TYPE_NVME',
-    'set_subenc_descriptors', 'DRIVER_TYPE_IDE', 'DRIVER_TYPE_SGIO',
-    'set_verbose']
+    ['PROTOCOL_TYPE_NVME', 'DRIVER_TYPE_MEGASAS',
+    'struct_subenc_descriptor_element', 'DRIVER_TYPE_SAT',
+    'set_verbose', 'DRIVER_TYPE_MEGADEV', 'PROTOCOL_TYPE_SCSI',
+    'struct_enclosure_info', 'DRIVER_TYPE_UNKNOWN',
+    'PROTOCOL_TYPE_ATA', 'struct_subenc_descriptors', 'driver_type',
+    'get_subenc_descriptors', 'get_enclosure_info', 'protocol_type',
+    'DRIVER_TYPE_IDE', 'DRIVER_TYPE_NVME', 'PROTOCOL_TYPE_UNKNOWN',
+    'DRIVER_TYPE_SGIO', 'set_subenc_descriptors']

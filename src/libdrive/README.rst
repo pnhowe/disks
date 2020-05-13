@@ -17,8 +17,8 @@ make a symlink for short version name::
 
 generate the python header::
 
-  ~/.local/bin/clang2py --clang-args="-I /usr/include/x86_64-linux-gnu -I /usr/lib/gcc/x86_64-linux-gnu/6/include/ -target x86_64" -t x86_64-Linux -kfs libdrive.h -l libdrive.so.3 > libdrive_h.py
-  ~/.local/bin/clang2py --clang-args="-I /usr/include/x86_64-linux-gnu -I /usr/lib/gcc/x86_64-linux-gnu/6/include/ -target x86_64" -t x86_64-Linux -kfs libenclosure.h -l libenclosure.so.3 > libenclosure_h.py
+  LD_LIBRARY_PATH=. ~/.local/bin/clang2py --clang-args="-I /usr/include/x86_64-linux-gnu -I /usr/lib/gcc/x86_64-linux-gnu/6/include/ -target x86_64" -t x86_64-Linux -kfs libdrive.h -l libdrive.so.3 > libdrive_h.cache
+  LD_LIBRARY_PATH=. ~/.local/bin/clang2py --clang-args="-I /usr/include/x86_64-linux-gnu -I /usr/lib/gcc/x86_64-linux-gnu/6/include/ -target x86_64" -t x86_64-Linux -kfs libenclosure.h -l libenclosure.so.3 > libenclosure_h.cache
 
 clean up::
 

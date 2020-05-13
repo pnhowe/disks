@@ -31,7 +31,7 @@ enum {
         NVME_PS_FLAGS_NON_OP_STATE      = 1 << 1,
 };
 
-struct nvme_identity {
+struct nvme_identity_controller {
         __le16                  vid;
         __le16                  ssvid;
         char                    serial_number[NVME_SERIAL_NUMBER_LEN];
@@ -104,25 +104,66 @@ struct nvme_identity {
         __u8                    vs[1024];
 };
 
+struct nvme_lbaf { // Figure 246
+__le16                  ms;
+__u8                    ds;
+__u8                    rp;
+};
 
+struct nvme_identity_ns {
+        __le64                  nsze;
+        __le64                  ncap;
+        __le64                  nuse;
+        __u8                    nsfeat;
+        __u8                    nlbaf;
+        __u8                    flbas;
+        __u8                    mc;
+        __u8                    dpc;
+        __u8                    dps;
+        __u8                    nmic;
+        __u8                    rescap;
+        __u8                    fpi;
+        __u8                    rsvd33;
+        __le16                  nawun;
+        __le16                  nawupf;
+        __le16                  nacwu;
+        __le16                  nabsn;
+        __le16                  nabo;
+        __le16                  nabspf;
+        __le16                  noiob;
+        __u8                    nvmcap[16];
+        __u8                    rsvd64[40];
+        __u8                    nguid[16];
+        __u8                    eui64[8];
+        struct nvme_lbaf        lbaf[16];
+        __u8                    rsvd192[192];
+        __u8                    vs[3712];
+};
 
+struct nvme_identity
+{
+  __u8 data[ sizeof( struct drive_info ) ];
+};
 
 typedef enum
 {
   NVME_OP_AMDIN_GET_LOG_PAGE     = 0x02,
 
   NVME_OP_AMDIN_GET_LOG_IDENTIFY = 0x06,
+
+  NVME_OP_AMDIN_KEEP_ALIVE       = 0x18, // used to probe/ping the controller
 } NVME_COMMANDS;
 
 
 struct nvme_cdb {
   NVME_COMMANDS  opcode;
-  unsigned int  cdw10;
-  unsigned int  cdw11;
-  unsigned int  cdw12;
-  unsigned int  cdw13;
-  unsigned int  cdw14;
-  unsigned int  cdw15;
+  unsigned int   nsid;
+  unsigned int   cdw10;
+  unsigned int   cdw11;
+  unsigned int   cdw12;
+  unsigned int   cdw13;
+  unsigned int   cdw14;
+  unsigned int   cdw15;
 };
 
 void loadInfoNVME( struct device_handle *drive, const struct nvme_identity *identity );

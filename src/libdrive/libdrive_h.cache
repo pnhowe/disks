@@ -32,7 +32,7 @@ else:
     ctypes._pointer_t_type_cache = {}
     def POINTER_T(pointee):
         # a pointer should have the same length as LONG
-        fake_ptr_base_type = ctypes.c_uint64
+        fake_ptr_base_type = ctypes.c_uint64 
         # specific case for c_void_p
         if pointee is None: # VOID pointer type. c_void_p.
             pointee = type(None) # ctypes.c_void_p # ctypes.c_ulong
@@ -53,7 +53,7 @@ else:
                 raise TypeError('This is not a ctypes pointer.')
             def __init__(self, **args):
                 raise TypeError('This is not a ctypes pointer. It is not instanciable.')
-        _class = type('LP_%d_%s'%(8, clsname), (_T,),{})
+        _class = type('LP_%d_%s'%(8, clsname), (_T,),{}) 
         ctypes._pointer_t_type_cache[clsname] = _class
         return _class
 
@@ -79,7 +79,7 @@ DRIVER_TYPE_NVME = 4
 DRIVER_TYPE_MEGADEV = 17
 DRIVER_TYPE_MEGASAS = 18
 driver_type = ctypes.c_int # enum
-struct_drive_info._pack_ = True # source:False
+struct_drive_info._pack_ = True # source:True
 struct_drive_info._fields_ = [
     ('driver', driver_type),
     ('protocol', protocol_type),
@@ -92,14 +92,12 @@ struct_drive_info._fields_ = [
     ('supportsWriteSame', ctypes.c_char),
     ('supportsTrim', ctypes.c_char),
     ('isSSD', ctypes.c_char),
-    ('PADDING_0', ctypes.c_ubyte),
     ('RPM', ctypes.c_int32),
     ('LogicalSectorSize', ctypes.c_int32),
     ('PhysicalSectorSize', ctypes.c_int32),
     ('LBACount', ctypes.c_uint64),
-    ('WWN', ctypes.c_uint64),
+    ('WWN', c_uint128),
     ('firmware_rev', ctypes.c_char * 10),
-    ('PADDING_1', ctypes.c_ubyte * 2),
     ('ATA_major_version', ctypes.c_int32),
     ('ATA_minor_version', ctypes.c_int32),
     ('bit48LBA', ctypes.c_char),
@@ -108,7 +106,6 @@ struct_drive_info._fields_ = [
     ('supportsSETMAX', ctypes.c_char),
     ('vendor_id', ctypes.c_char * 9),
     ('version', ctypes.c_char * 5),
-    ('PADDING_2', ctypes.c_ubyte * 2),
     ('SCSI_version', ctypes.c_int32),
     ('hasLogPageErrorWrite', ctypes.c_char),
     ('hasLogPageErrorRead', ctypes.c_char),
@@ -125,11 +122,16 @@ struct_drive_info._fields_ = [
     ('hasVPDPageIdentification', ctypes.c_char),
     ('hasVPDPageBlockLimits', ctypes.c_char),
     ('hasVPDPageBlockDeviceCharacteristics', ctypes.c_char),
-    ('PADDING_3', ctypes.c_ubyte),
     ('maxUnmapLBACount', ctypes.c_uint32),
     ('maxUnmapDescriptorCount', ctypes.c_uint32),
-    ('PADDING_4', ctypes.c_ubyte * 4),
     ('maxWriteSameLength', ctypes.c_uint64),
+    ('supportsSanitize', ctypes.c_char),
+    ('numberOfNamespaces', ctypes.c_uint32),
+    ('totalCapacity', c_uint128),
+    ('unallocatedCapacity', c_uint128),
+    ('nsCapactyLBA', ctypes.c_uint64),
+    ('nsUtilitzationLBA', ctypes.c_uint64),
+    ('supportsThin', ctypes.c_char),
 ]
 
 class struct_smart_attrib_ata(ctypes.Structure):
@@ -188,12 +190,12 @@ log_entry_count = _libraries['libdrive.so.3'].log_entry_count
 log_entry_count.restype = ctypes.c_int32
 log_entry_count.argtypes = [POINTER_T(ctypes.c_char), POINTER_T(ctypes.c_int32), POINTER_T(ctypes.c_char)]
 __all__ = \
-    ['smart_status', 'PROTOCOL_TYPE_UNKNOWN', 'protocol_type',
-    'DRIVER_TYPE_MEGASAS', 'PROTOCOL_TYPE_ATA',
-    'struct_smart_attribs', 'struct_drive_info',
-    'struct_smart_attrib_scsi', 'get_drive_info', 'get_smart_attrs',
-    'DRIVER_TYPE_SAT', 'set_verbose', 'driver_type',
-    'drive_last_selftest_passed', 'PROTOCOL_TYPE_SCSI', 'PROTOCOL_TYPE_NVME',
-    'DRIVER_TYPE_MEGADEV', 'DRIVER_TYPE_NVME', 'log_entry_count',
-    'DRIVER_TYPE_UNKNOWN', 'DRIVER_TYPE_SGIO', 'DRIVER_TYPE_IDE',
-    'struct_smart_attrib_ata', 'union_smart_attribs_0']
+    ['DRIVER_TYPE_MEGADEV', 'struct_smart_attribs',
+    'DRIVER_TYPE_MEGASAS', 'union_smart_attribs_0',
+    'PROTOCOL_TYPE_UNKNOWN', 'set_verbose', 'PROTOCOL_TYPE_NVME',
+    'DRIVER_TYPE_NVME', 'get_smart_attrs', 'PROTOCOL_TYPE_ATA',
+    'DRIVER_TYPE_SAT', 'PROTOCOL_TYPE_SCSI', 'DRIVER_TYPE_SGIO',
+    'struct_smart_attrib_ata', 'protocol_type', 'driver_type',
+    'get_drive_info', 'smart_status', 'drive_last_selftest_passed',
+    'DRIVER_TYPE_UNKNOWN', 'struct_smart_attrib_scsi',
+    'struct_drive_info', 'DRIVER_TYPE_IDE', 'log_entry_count']

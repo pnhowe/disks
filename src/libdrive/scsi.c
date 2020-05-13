@@ -506,7 +506,7 @@ int exec_cmd_scsi( struct device_handle *drive, const enum cdb_command command, 
       {
         if( ( ( tdata[offset + 1] & 0x0f ) == 3 ) && ( tdata[offset + 3] == 8 ) )
         {
-          info->WWN = ( ( ( __u64 ) ( tdata[offset + 4] ) ) << 56 ) | ( ( ( __u64 ) ( tdata[offset + 5] ) ) << 48 ) | ( ( ( __u64 ) ( tdata[offset + 6] ) ) << 40 ) | ( ( ( __u64 ) tdata[offset + 7] ) << 32 ) | ( ( ( __u64 ) tdata[offset + 8] ) << 24 ) | ( ( ( __u64 ) tdata[offset + 9] ) << 16 ) | ( ( ( __u64 ) tdata[offset + 10] ) << 8 ) | tdata[offset + 11];
+          info->WWN = getu64( &tdata[offset + 4] ); // ( ( ( __u64 ) ( tdata[offset + 4] ) ) << 56 ) | ( ( ( __u64 ) ( tdata[offset + 5] ) ) << 48 ) | ( ( ( __u64 ) ( tdata[offset + 6] ) ) << 40 ) | ( ( ( __u64 ) tdata[offset + 7] ) << 32 ) | ( ( ( __u64 ) tdata[offset + 8] ) << 24 ) | ( ( ( __u64 ) tdata[offset + 9] ) << 16 ) | ( ( ( __u64 ) tdata[offset + 10] ) << 8 ) | tdata[offset + 11];
           break;
         }
       }
@@ -522,9 +522,9 @@ int exec_cmd_scsi( struct device_handle *drive, const enum cdb_command command, 
       if( ( tdata[3] > 0x10 ) && ( tdata[20] | tdata[21] | tdata[22] | tdata[23] ) )// ie tdata[20-23] is non-zero
       {
         info->supportsTrim = 1;
-        info->maxUnmapLBACount = ( (__u64) tdata[20] << 24 ) + ( (__u64) tdata[21] << 16 ) + ( (__u64) tdata[22] << 8 ) + ( (__u64) tdata[23] );
-        info->maxUnmapDescriptorCount = ( (__u64) tdata[24] << 24 ) + ( (__u64) tdata[25] << 16 ) + ( (__u64) tdata[26] << 8 ) + ( (__u64) tdata[27] );
-        info->maxWriteSameLength = ( ( __u64 ) tdata[36] << 56 ) + ( ( __u64 ) tdata[37] << 48 ) + ( ( __u64 ) tdata[38] << 40 ) + ( ( __u64 ) tdata[39] << 32 ) + ( (__u64) tdata[40] << 24 ) + ( (__u64) tdata[41] << 16 ) + ( (__u64) tdata[42] << 8 ) + ( (__u64) tdata[43] );
+        info->maxUnmapLBACount = getu32( &tdata[20] ); //( (__u64) tdata[20] << 24 ) + ( (__u64) tdata[21] << 16 ) + ( (__u64) tdata[22] << 8 ) + ( (__u64) tdata[23] );
+        info->maxUnmapDescriptorCount = getu32( &tdata[24] ); //( (__u64) tdata[24] << 24 ) + ( (__u64) tdata[25] << 16 ) + ( (__u64) tdata[26] << 8 ) + ( (__u64) tdata[27] );
+        info->maxWriteSameLength = getu64( &tdata[36] ); //( ( __u64 ) tdata[36] << 56 ) + ( ( __u64 ) tdata[37] << 48 ) + ( ( __u64 ) tdata[38] << 40 ) + ( ( __u64 ) tdata[39] << 32 ) + ( (__u64) tdata[40] << 24 ) + ( (__u64) tdata[41] << 16 ) + ( (__u64) tdata[42] << 8 ) + ( (__u64) tdata[43] );
       }
     }
 
@@ -549,9 +549,9 @@ int exec_cmd_scsi( struct device_handle *drive, const enum cdb_command command, 
       if( exec_cmd_scsi( drive, CMD_SCSI_READ_CAPACITY, RW_READ, tdata, sizeof( tdata ), NULL, 0, timeout ) )
         return -1;
 
-      info->LBACount = ( (__u64) tdata[0] << 56 ) + ( (__u64) tdata[1] << 48 ) + ( (__u64) tdata[2] << 40 ) + ( (__u64) tdata[3] << 32 ) + ( (__u64) tdata[4] << 24 ) + ( (__u64) tdata[5] << 16 ) + ( (__u64) tdata[6] << 8 ) + ( (__u64) tdata[7] );
+      info->LBACount = getu64( &tdata[0] ); // ( (__u64) tdata[0] << 56 ) + ( (__u64) tdata[1] << 48 ) + ( (__u64) tdata[2] << 40 ) + ( (__u64) tdata[3] << 32 ) + ( (__u64) tdata[4] << 24 ) + ( (__u64) tdata[5] << 16 ) + ( (__u64) tdata[6] << 8 ) + ( (__u64) tdata[7] );
 
-      info->LogicalSectorSize = ( (__u32) tdata[8] << 24 ) + ( (__u32) tdata[9] << 16 ) + ( (__u32) tdata[10] << 8 ) + ( (__u32) tdata[11] );
+      info->LogicalSectorSize = getu32( &tdata[8] ); // ( (__u32) tdata[8] << 24 ) + ( (__u32) tdata[9] << 16 ) + ( (__u32) tdata[10] << 8 ) + ( (__u32) tdata[11] );
 
       if( tdata[13] & 0x0f )
         info->PhysicalSectorSize = pow( 2, ( tdata[13] & 0x0f ) ) * info->LogicalSectorSize;
@@ -704,7 +704,7 @@ int exec_cmd_scsi( struct device_handle *drive, const enum cdb_command command, 
       {
         if( ( ( tdata[offset + 1] & 0x0f ) == 3 ) && ( tdata[offset + 3] == 8 ) )
         {
-          info->WWN = ( ( ( __u64 ) ( tdata[offset + 5] ) ) << 48 ) | ( ( ( __u64 ) ( tdata[offset + 6] ) ) << 40 ) | ( ( ( __u64 ) tdata[offset + 7] ) << 32 ) | ( ( ( __u64 ) tdata[offset + 8] ) << 24 ) | ( ( ( __u64 ) tdata[offset + 9] ) << 16 ) | ( ( ( __u64 ) tdata[offset + 10] ) << 8 ) | tdata[offset + 11];
+          info->WWN = getu64( &tdata[offset + 5] ); // ( ( ( __u64 ) ( tdata[offset + 5] ) ) << 48 ) | ( ( ( __u64 ) ( tdata[offset + 6] ) ) << 40 ) | ( ( ( __u64 ) tdata[offset + 7] ) << 32 ) | ( ( ( __u64 ) tdata[offset + 8] ) << 24 ) | ( ( ( __u64 ) tdata[offset + 9] ) << 16 ) | ( ( ( __u64 ) tdata[offset + 10] ) << 8 ) | tdata[offset + 11];
           break;
         }
       }

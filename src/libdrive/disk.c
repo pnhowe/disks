@@ -98,16 +98,40 @@ int openDisk( const char *device, struct device_handle *drive, const enum driver
       fprintf( stderr, "PROBE (SCSI)...\n" );
 
     rc = exec_cmd_scsi( drive, CMD_PROBE, RW_READ, data, sizeof( data ), NULL, 0, cmdTimeout );
-    if( rc == -1 || ( strncmp( ( (char *) data ) + 8, "ATA", 3 ) == 0 ) )
+    if( rc == 0 )
     {
-      drive->protocol = PROTOCOL_TYPE_ATA;
-      drive->cmd = &exec_cmd_ata;
+      if( strncmp( ( (char *) data ) + 8, "ATA", 3 ) == 0 )
+        drive->protocol = PROTOCOL_TYPE_ATA;
+      else
+        drive->protocol = PROTOCOL_TYPE_SCSI;
     }
     else
     {
-      drive->protocol = PROTOCOL_TYPE_SCSI;
+      if( verbose >= 2 )
+        fprintf( stderr, "PROBE (NVME)...\n" );
+
+      rc = exec_cmd_nvme( drive, CMD_PROBE, RW_NONE, NULL, 0, NULL, 0, cmdTimeout );
+      if( rc == 0 )
+        drive->protocol = PROTOCOL_TYPE_NVME;
+      else
+        drive->protocol = PROTOCOL_TYPE_ATA;
+    }
+
+
+    if( drive->protocol == PROTOCOL_TYPE_ATA )
+      drive->cmd = &exec_cmd_ata;
+    else if( drive->protocol == PROTOCOL_TYPE_SCSI )
       drive->cmd = &exec_cmd_scsi;
-    }  // add PROTOCOL_TYPE_NVME
+    else if( drive->protocol == PROTOCOL_TYPE_NVME )
+      drive->cmd = &exec_cmd_nvme;
+    else
+    {
+      if( verbose )
+        fprintf( stderr, "Unable to detect the disk type\n" );
+
+      errno = EINVAL;
+      return -1;
+    }
   }
 
   if( ident == IDENT )
