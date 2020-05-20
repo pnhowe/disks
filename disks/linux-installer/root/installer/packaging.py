@@ -140,7 +140,7 @@ def preBaseSetup( profile, value_map ):
       if item[0].startswith( 'selection_' ):
         chroot_execute( '/usr/bin/debconf-set-selections', item[1] )
 
-    for item in value_map[ 'debconf_selection_list' ]:
+    for item in value_map.get( 'debconf_selection_list', [] ):
       chroot_execute( '/usr/bin/debconf-set-selections', item )
 
   for item in profile.items( 'packaging' ):

@@ -1,5 +1,1 @@
-export TW_CLI_LOG=OFF
-
-THREEWARE_CLI="/usr/sbin/tw_cli"
-
 STORCLI_CLI="/usr/sbin/storcli64"
