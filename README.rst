@@ -2,7 +2,6 @@ Bootable Disks
 ==============
 
 
-
 Building
 --------
 
@@ -16,8 +15,38 @@ Install required packages::
 
   sudo apt install build-essential libelf-dev bc zlib1g-dev libssl-dev gperf libreadline-dev libsqlite3-dev libbz2-dev liblzma-dev uuid-dev libdevmapper-dev libgcrypt-dev libgpg-error-dev libassuan-dev libksba-dev libnpth0-dev python3-dev python3-setuptools pkg-config libblkid-dev gettext
 
+External Binaries
+~~~~~~~~~~~~~~~~~
+
+There are a few binary files that can't be downloaded automatically that are needed for various things.  Each binary what
+is is for and how to get it follow.  If you don't need it just skip it.  Make sure they all end up in external.  The external
+directory is not cleared during `make clan` nor `make dist-clean`
+
+SUM
+...
+
+Supermicro Update Manager, this is required for configuring the BIOS on Supermicro boards, so far this is supported X9, X10, X11
+based boards.  You can get it at https://www.supermicro.com/SwDownload/UserInfo.aspx?sw=0&cat=SUM .  It does require you
+to give the site some basic info.  After that you will get a page that lists a few versions of SUM.  Click "Accept EULA"
+for the Linux version.  That will turn the link to "Download File per EULA acceptance", click the link again and it will
+download a .tar.gz file.  Put that .tar.gz file in the `external` directory.
+
+SysCfg
+------
+
+Save and Restore System Configuration Utility, this is required for configuring the BIOS on some Intel White box servers.
+The list of supported servers and the link to download is at https://downloadcenter.intel.com/download/29452/Save-and-Restore-System-Configuration-Utility-SYSCFG-
+There is a link to download a *AllOS.zip file.  Click Download, Accept the terms, and put the .zip in the `external`
+directory.
+
+AFULUX
+------
+
+AMI's BIOS configuration utility....
+
+
 PXE
----
+~~~
 
 Build the PXE files::
 
@@ -36,7 +65,7 @@ For a list of avilable PXE targets::
   make pxe-targets
 
 Disk images
------------
+~~~~~~~~~~~
 
 To build disk images you will need to install::
 
@@ -53,7 +82,7 @@ For a list of avilable Disk Images targets::
   make img-targets
 
 ISO images
-----------
+~~~~~~~~~~
 
 To build disk images you will need to install::
 
