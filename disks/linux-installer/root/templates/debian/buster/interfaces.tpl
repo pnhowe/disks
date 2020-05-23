@@ -19,7 +19,7 @@ iface {{ ifname }} inet static
   address {{ address.address }}
   netmask {{ address.netmask }}
 {% if address.subnet %}  network {{ address.subnet }}{% endif %}
-  mtu {{ address.mtu }}
+{% if interface.mtu %}  mtu {{ interface.mtu }}{% endif %}
 {% if address.vlan and address.tagged and address_primary.gateway %}{% if address.gateway %}  up ip rule add from {{ address.address }} table {{ address.vlan }}
   up ip rule add from {{ address.address }} to {{ address.subnet }}/{{ address.prefix }} table main
   up ip route add default via {{ address.gateway }} table {{ address.vlan }}

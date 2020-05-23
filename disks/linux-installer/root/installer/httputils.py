@@ -20,7 +20,7 @@ def http_getfile( url, proxy=None ):
     else:
       opener = request.build_opener( HTTPErrorProcessorPassthrough, request.ProxyHandler( { 'http': proxy, 'https': proxy } ) )
   else:
-    opener = request.build_opener( HTTPErrorProcessorPassthrough, request.ProxyHandler( { 'http': None, 'https': None } ) )  # use environ
+    opener = request.build_opener( HTTPErrorProcessorPassthrough, request.ProxyHandler( request.getproxies() ) )  # use environ
 
   opener.addheaders = [ ( 'User-agent', 't3ktondisks-linux-installer' ) ]
 

@@ -101,6 +101,11 @@ class HTTPClient( Client ):
       _backOffDelay( retry )
 
   def getConfig( self, config_uuid=None, foundation_locator=None ):
+    if config_uuid is None:
+      config_uuid = os.environ.get( 'config_uuid', None )
+      if not config_uuid:
+        config_uuid = None
+
     if config_uuid is not None:
       return self.request( 'raw get', '/config/config/c/{0}'.format( config_uuid ), timeout=10, retry_count=2 )
     elif foundation_locator is not None:
