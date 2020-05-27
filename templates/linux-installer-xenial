@@ -21,9 +21,9 @@ CONFIG='{
   "http_proxy": "__PROXY__",
   "partition_scheme": "__PART_SCHEME__",
   "repo_list": [
-    { "distribution": "xenial", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__" },
-    { "distribution": "xenial-updates", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__" },
-    { "distribution": "xenial-security", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": ["main"], "proxy": "__PROXY__" }
+    { "distribution": "xenial", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": [ "main", "universe", "multiverse" ], "proxy": "__PROXY__" },
+    { "distribution": "xenial-updates", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": [ "main", "universe", "multiverse" ], "proxy": "__PROXY__" },
+    { "distribution": "xenial-security", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": [ "main", "universe", "multiverse" ], "proxy": "__PROXY__" }
   ],
   "id": 0,
   "uuid": "00000000-0000-0000-0000-000000000000",
@@ -33,10 +33,9 @@ CONFIG='{
         {
           "address": "dhcp",
           "primary": true,
-          "sub_interface": null,
-          "tagged": false,
-          "vlan": 0,
-          "mtu": 1500,
+          "alias_index": null,
+          "vlan": null,
+          "mtu": null,
           "auto": true
         }
       ],

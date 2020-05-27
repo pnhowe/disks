@@ -33,10 +33,9 @@ CONFIG='{
         {
           "address": "dhcp",
           "primary": true,
-          "sub_interface": null,
-          "tagged": false,
-          "vlan": 0,
-          "mtu": 1500,
+          "alias_index": null,
+          "vlan": null,
+          "mtu": null,
           "auto": true
         }
       ],

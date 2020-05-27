@@ -37,8 +37,9 @@ selection_11=grub-pc         grub-pc/timeout                  string 5
 selection_12=grub-pc        grub2/linux_cmdline_default      string
 selection_13=grub-pc        grub-pc/hidden_timeout           boolean false
 prebase_cmd_1=/usr/sbin/dpkg-reconfigure -f noninteractive tzdata
-# can't find a "debian-standard" package, here are some of the packages from tasksel --task-packages standard  TODO: mabey at some point we do tasksel instead of the base package
+# can't find the "standard" package, must of been deprocated at some point, here are some of the packages from tasksel --task-packages standard  TODO: mabey at some point we do tasksel instead of the base package
 base=python pciutils hdparm file
+#base=standard
 packages=resolvconf console-setup
 source_templates=sources,apt
 divert_1=/sbin/initctl:/bin/true

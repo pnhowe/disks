@@ -9,18 +9,17 @@ network:
       match:
         macaddress: {{ interface.mac }}
 #      set-name: {{ interface_name }}  # when https://bugs.launchpad.net/netplan/+bug/1768827 is resolved we should be able to re-enable this line
-{% for address in interface.address_list %}{% if address.primary %}
 {% if interface.mtu %}      mtu: {{ interface.mtu }}{% endif %}
+{% set address = interface.address_list[0] %}
 {% if address.address == 'dhcp' %}      dhcp4: yes
       dhcp6: no
 {% else %}      dhcp4: no
       dhcp6: no
-      addresses: [ {{ address.address }}/{{ address.prefix }} ]
+      addresses: [ {% for tmpaddr in interface.address_list %}{{ tmpaddr.address }}/{{ tmpaddr.prefix }} {% endfor %} ]
 {% if address.gateway %}      gateway4: {{ address.gateway }}{% endif %}
 {% if address.primary %}      nameservers:
         search: [{{ dns_search|join( ', ' ) }}]
         addresses: [{{ dns_servers|join( ', ' ) }}] {% endif %}
 {% endif %}
-{% endif %}{% endfor %}
 {% endif %}{% endif %}{% endfor %}
 {% endtarget %}

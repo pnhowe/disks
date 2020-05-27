@@ -5,12 +5,12 @@
 {% if address.vlan %}
 {% set filename = filename + '.' + address.vlan|string %}
 {% endif %}
-{% if address.sub_interface %}
-{% set filename = filename + ':' + address.sub_interface|string %}
+{% if address.alias_index alias_index
+{% set filename = filename + ':' + address.alias_index|string %}
 {% endif %}
 {% target '/etc/sysconfig/network-scripts/' + filename %}# Auto Generated During Install
 
-{% if interface.master_interface and not address.vlan and not address.sub_interface %}
+{% if interface.master_interface and not address.vlan and not address.alias_index %}
 BONDING_MASTER=yes
 BONDING_MODULE_OPTS='{% if interface.bonding_paramaters.mode %}mode={{ interface.bonding_paramaters.mode }}{% endif %}{% if interface.bonding_paramaters.miimon %} miimon={{ interface.bonding_paramaters.miimon }}{% endif %}{% if interface.bonding_paramaters.downdelay %} downdelay={{ interface.bonding_paramaters.downdelay }}{% endif %}{% if interface.bonding_paramaters.updelay %} updelay={{ interface.bonding_paramaters.updelay }}{% endif %}'
 BONDING_SLAVE0={{ name_map[interface.master_interface] }}

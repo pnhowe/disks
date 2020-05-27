@@ -10,7 +10,7 @@ iface lo inet loopback
 {% set ifname = interface_name %}
 {% for address in interface.address_list %}
 {% if address.vlan and address.tagged %}{% set ifname = ifname + "." + address.vlan|string %}{% endif %}
-{% if address.sub_interface %}{% set ifname = ifname + ":" + address.sub_interface %}{% endif %}
+{% if address.alias_index %}{% set ifname = ifname + ":" + address.alias_index %}{% endif %}
 {% if address.auto %}auto {{ ifname }}{% endif %}
 {% if address.address == 'dhcp' %}
 iface {{ ifname }} inet dhcp
@@ -37,7 +37,7 @@ iface {{ ifname }} inet static
 {% if address.primary %}  dns-nameservers {{ dns_servers|join( ' ' ) }}
   dns-search {{ dns_search|join( ' ' ) }}{% endif %}
 {% endif %}
-{% if interface.master_interface and not address.tagged and not address.sub_interface %}
+{% if interface.master_interface and not address.tagged and not address.alias_index %}
 {% do _hide_interfaces.append( interface.master_interface ) %}{% for tmp in interface.slave_interfaces %}{% do _hide_interfaces.append( tmp ) %}{% endfor %}
   bond-slaves {{ interface.master_interface }} {{ interface.slave_interfaces|join( ' ' ) }}
 {% if interface.bonding_paramaters.mode %}  bond-mode {{ interface.bonding_paramaters.mode }}{% endif %}
