@@ -5,10 +5,9 @@ set -x
 # $1 - output filename
 # $2 - path to kernel
 # $3 - path to initrd
-# $4 - path to boot config
+# $4 - path to cmdline
 # $5 - path config-init (optional)
 # $6 - path config.json (optional)
-# $7 - path to boot menu (optional)
 
 WORK_DIR="build.images/isotmp"
 
@@ -18,6 +17,7 @@ then
 fi
 
 ISO_BIN="/usr/lib/ISOLINUX/isolinux.bin"
+ISO_BOOT="/usr/lib/ISOLINUX/isohdpfx.bin"
 LD32="/usr/lib/syslinux/modules/bios/ldlinux.c32"
 
 if [ ! -f "$ISO_BIN"  ];
@@ -32,22 +32,18 @@ then
   exit 1
 fi
 
-if [ ! -f "/usr/bin/isohybrid"  ];
+if [ ! -f "/usr/bin/xorriso"  ];
 then
-  echo "isohybrid not found install syslinux-utils"
+  echo "xorriso not found install xorriso"
   exit 1
 fi
 
 rm -f $1
 
-mkdir -p $WORK_DIR/isolinux
-
-echo "Copying in boot files..."
-cp $ISO_BIN $WORK_DIR/isolinux
-cp $LD32 $WORK_DIR/isolinux
+mkdir -p $WORK_DIR
 
 echo "Copying in kernel and image..."
-cp $2 $WORK_DIR/vmlinuz.img
+cp $2 $WORK_DIR/vmlinuz
 
 if [ "x$5" != "x" ] || [ "x$6" != "x" ]
 then
@@ -70,19 +66,41 @@ else
   cp $3 $WORK_DIR/initrd.img
 fi
 
-echo "Copying in boot config..."
-cp -f $4 $WORK_DIR/isolinux.cfg
+CMDLINE=$(cat $4)
 
-if [ "x$7" != "x" ] && [ -r "$7" ]
-then
-  echo "Injecting custom menu..."
-  cp -f $7 $WORK_DIR/isolinux.mnu
-fi
+echo "Setting up Legacy Boot..."
+mkdir -p $WORK_DIR/isolinux
+cp $ISO_BIN $WORK_DIR/isolinux
+cp $LD32 $WORK_DIR/isolinux
+echo "PROMPT 1
+TIMEOUT 10
+DEFAULT normal
+
+LABEL normal
+KERNEL /vmlinuz
+APPEND initrd=/initrd.img $CMDLINE
+" > $WORK_DIR/isolinux.cfg
+
+echo 'NAME="T3kton Disks"
+VERSION="0.0.0.0"
+ID=t3kton
+PRETTY_NAME="T3kton Disks"
+VERSION_ID="18.04"
+' > $WORK_DIR/os-release
 
 echo "Building efiboot.img..."
-sudo scripts/makeefiboot $WORK_DIR/isolinux/efiboot.img $2 $WORK_DIR/initrd.img $WORK_DIR/isolinux.cfg $7
+sudo scripts/makeefiboot $WORK_DIR/isolinux/efiboot.img $2 $WORK_DIR/initrd.img $4 $WORK_DIR/os-release
 
-genisoimage -o $1 -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -eltorito-alt-boot -e isolinux/efiboot.img -no-emul-boot -V $( basename $1 .iso ) -v $WORK_DIR
-isohybrid --uefi $1
+xorriso -as mkisofs \
+  -o $1 \
+  -isohybrid-mbr $ISO_BOOT \
+  -c isolinux/boot.cat \
+  -b isolinux/isolinux.bin \
+   -no-emul-boot -boot-load-size 4 -boot-info-table \
+  -eltorito-alt-boot \
+  -e isolinux/efiboot.img \
+   -no-emul-boot \
+   -isohybrid-gpt-basdat \
+  $WORK_DIR
 
 echo "Done!"

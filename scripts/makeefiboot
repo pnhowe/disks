@@ -5,11 +5,11 @@ set -x
 # $1 - output filename
 # $2 - path to kernel
 # $3 - path to initrd
-# $4 - path to boot config
-# $5 - path to boot menu (optional)
+# $4 - path to cmdline
+# $5 - os release file
 
 # size in 1k blocks, default is 60k ie 60meg disk
-DISK_SIZE="68k"
+DISK_SIZE="70k"
 
 MOUNT_POINT="build.images/mnt"
 
@@ -30,12 +30,12 @@ then
   exit 1
 fi
 
-EFI_LD64="/usr/lib/syslinux/modules/efi64/ldlinux.e64"
-EFI_BIN64="/usr/lib/SYSLINUX.EFI/efi64/syslinux.efi"
+EFI_BIN64="/usr/lib/systemd/boot/efi/systemd-bootx64.efi"
+EFI_STUB64="/usr/lib/systemd/boot/efi/linuxx64.efi.stub"
 
-if [ ! -f "$EFI_BIN64"  ];
+if [ ! -f "$EFI_BIN64" ] || [ ! -f "$EFI_STUB64" ];
 then
-  echo "syslinux.efi not found install syslinux-efi"
+  echo "systemd-bootx64.efi not found install systemd"
   exit 1
 fi
 
@@ -49,40 +49,40 @@ rm -f $1
 
 echo "Creating image..."
 dd if=/dev/zero of=$1 bs=1k count=$DISK_SIZE
-drive_loop=$(losetup -f --show $1)
-echo "Using loop device '$drive_loop' for image..."
+DRIVE_LOOP=$(losetup -f --show $1)
+echo "Using loop device '$DRIVE_LOOP' for image..."
 
 echo "Formatting partition..."
-mkfs.fat -F 12 -S 512 -r 512 -n "T3DISKS_EFI" $drive_loop
+mkfs.fat -F 32 $DRIVE_LOOP
 
 echo "Mounting partition..."
-mount $drive_loop $MOUNT_POINT
+mount -n $DRIVE_LOOP $MOUNT_POINT
 
 echo "Copying files..."
-mkdir -p $MOUNT_POINT/efi/boot/syslinux
+mkdir -p $MOUNT_POINT/efi/boot/
+mkdir -p $MOUNT_POINT/loader/
+mkdir -p $MOUNT_POINT/efi/Linux/
+
 cp $EFI_BIN64 $MOUNT_POINT/efi/boot/bootx64.efi
-cp $EFI_LD64 $MOUNT_POINT/efi/boot/syslinux/ldlinux.e64
-#cp /usr/lib/syslinux/modules/efi64/* $MOUNT_POINT/efi/boot/syslinux/
-#cp /usr/lib/syslinux/modules/efi64/* $MOUNT_POINT/efi/boot/
 
-# cp /home/peter/Projects/t3kton/disks/build.deps/syslinux/syslinux-6.03/efi64/com32/elflink/ldlinux/ldlinux.e64 $MOUNT_POINT/efi/boot/
-# cp /home/peter/Projects/t3kton/disks/build.deps/syslinux/syslinux-6.03/efi64/efi/syslinux.efi $MOUNT_POINT/efi/boot/bootx64.efi
+echo "timeout 2
+auto-entries 0
+auto-firmware 0
+" > $MOUNT_POINT/loader/loader.conf
 
-# cp /home/peter/Projects/t3kton/disks/build.deps/syslinux/syslinux/efi64/efi/syslinux.efi $MOUNT_POINT/efi/boot/bootx64.efi
-# cp /home/peter/Projects/t3kton/disks/build.deps/syslinux/syslinux/efi64/com32/elflink/ldlinux/ldlinux.e64 $MOUNT_POINT/efi/boot/
+#    --add-section .splash="/usr/share/systemd/bootctl/splash-arch.bmp" --change-section-vma .splash=0x40000 \
+objcopy \
+    --add-section .osrel="$5" --change-section-vma .osrel=0x20000 \
+    --add-section .cmdline="$4" --change-section-vma .cmdline=0x30000 \
+    --add-section .linux="$2" --change-section-vma .linux=0x2000000 \
+    --add-section .initrd="$3" --change-section-vma .initrd=0x3000000 \
+    $EFI_STUB64 $MOUNT_POINT/efi/Linux/linux.efi
 
-cp $2 $MOUNT_POINT/efi/boot/syslinux/vmlinuz.img
-cp $3 $MOUNT_POINT/efi/boot/syslinux/initrd.img
-cp $4 $MOUNT_POINT/efi/boot/syslinux/syslinux.cfg
-
-if [ "x$5" != "x" ] && [ -r "$5" ]
-then
-  cp -f $5 $MOUNT_POINT/EFI/BOOT/SYSLINUX/syslinux.mnu
-fi
+# and then sign linux.efi
 
 sleep 1
 sync
 
 echo "Unmounting..."
 umount $MOUNT_POINT
-losetup -d $drive_loop
+losetup -d $DRIVE_LOOP

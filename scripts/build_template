@@ -4,7 +4,6 @@
 # $2 - output config-init filename
 # $3 - output for config.json filename
 # $3 - output boot config filename
-# $4 - output boot menu filename
 
 set -e
 #set -x
@@ -75,8 +74,7 @@ do
   VAR=${VAR_NAMES[$i]}
   INIT="${INIT//__${VAR}__/$(eval echo '$'${VAR})}"
   CONFIG="${CONFIG//__${VAR}__/$(eval echo '$'${VAR})}"
-  EXTLINUX="${EXTLINUX//__${VAR}__/$(eval echo '$'${VAR})}"
-  EXTMENU="${EXTMENU//__${VAR}__/$(eval echo '$'${VAR})}"
+  CMDLINE="${CMDLINE//__${VAR}__/$(eval echo '$'${VAR})}"
 done
 
 if [ ! -z "$INIT" ]
@@ -90,9 +88,4 @@ then
   echo "$CONFIG" > "$3"
 fi
 
-echo "$EXTLINUX" > "$4"
-
-if [ ! -z "$EXTMENU" ]
-then
-  echo "$EXTMENU" > "$5"
-fi
+echo "$CMDLINE" > "$4"

@@ -10,3 +10,4 @@ DEP_LIST="ssh lldp mdadm lvm2 parted e2fsprogs xfsprogs dosfstools gpgv squashfs
 SRC_LIST="libdrive"
 
 install
+# add EFI tools

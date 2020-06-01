@@ -4,10 +4,9 @@ set -e
 # $1 - output filename
 # $2 - path to kernel
 # $3 - path to initrd
-# $4 - path to boot config
+# $4 - path to kernel command line
 # $5 - path config-init (optional)
 # $6 - path config.json (optional)
-# $7 - path to boot menu (optional)
 
 
 # size in 1k blocks, default is 60k ie 60meg disk
@@ -100,14 +99,8 @@ else
   cp $3 $MOUNT_POINT/initrd.img
 fi
 
-echo "Copying in boot config..."
-cp -f $4 $MOUNT_POINT/extlinux.conf
-
-if [ "x$7" != "x" ] && [ -r "$7" ]
-then
-  echo "Injecting custom menu..."
-  cp -f $7 $MOUNT_POINT/extlinux.menu
-fi
+echo "Copying command line..."
+cp -f $4 $MOUNT_POINT/cmdline
 
 echo "Installing bootloader..."
 extlinux -i $MOUNT_POINT
