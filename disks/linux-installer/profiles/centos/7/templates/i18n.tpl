@@ -1,0 +1,1 @@
+../../6/templates/i18n.tpl

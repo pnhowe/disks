@@ -4,6 +4,7 @@ build.deps
 build.images
 images
 
+contractor/linux-installer-profiles
 respkg
 *.respkg
 contractor/resources/var

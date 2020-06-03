@@ -4,7 +4,6 @@ linux-installer
 teamplate values
 ----------------
 
-  :image_package:
   :resource_location: (optional)
   :distro:
   :distro_version:

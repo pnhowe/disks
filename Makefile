@@ -183,17 +183,24 @@ dist-clean: clean-deps clean-images clean-src clean-downloads pkg-dist-clean
 
 .PHONY:: all all-pxe all-imgs clean clean-src clean-downloads clean-deps clean-images dist-clean pxe-targets templates images/img/% images/iso/%
 
+contractor/linux-installer-profiles: $(shell find disks/linux-installer/profiles -type f -print)
+	mkdir -p  contractor/linux-installer-profiles/var/www/static/disks
+	for DISTRO in trusty xenial bionic; do tar -h -czf contractor/linux-installer-profiles/var/www/static/disks/ubuntu-$$DISTRO-profile.tar.gz -C disks/linux-installer/profiles/ubuntu/$$DISTRO . ; done
+	for DISTRO in buster; do tar -h -czf contractor/linux-installer-profiles/var/www/static/disks/debian-$$DISTRO-profile.tar.gz -C disks/linux-installer/profiles/debian/$$DISTRO . ; done
+	for DISTRO in 6 7; do tar -h -czf contractor/linux-installer-profiles/var/www/static/disks/centos-$$DISTRO-profile.tar.gz -C disks/linux-installer/profiles/centos/$$DISTRO . ; done
+
 respkg-distros:
 	echo ubuntu-bionic
 
 respkg-requires:
 	echo respkg build-essential libelf-dev bc zlib1g-dev libssl-dev gperf libreadline-dev libsqlite3-dev libbz2-dev liblzma-dev uuid-dev libdevmapper-dev libgcrypt-dev libgpg-error-dev libassuan-dev libksba-dev libnpth0-dev python3-dev python3-setuptools pkg-config libblkid-dev gettext python3-pip
 
-respkg: all-pxe
+respkg: all-pxe contractor/linux-installer-profiles
 	mkdir -p contractor/resources/var/www/static/pxe/disks
 	cp images/pxe/*.initrd contractor/resources/var/www/static/pxe/disks
 	cp images/pxe/*.vmlinuz contractor/resources/var/www/static/pxe/disks
-	cd contractor && respkg -b ../disks-contractor_$(VERSION).respkg -n disks-contractor -e $(VERSION) -c "Disks for Contractor" -t load_data.sh -d resources -s contractor-os-base
+	cd contractor && respkg -b ../disks-contractor_$(VERSION).respkg -n disks-contractor -e $(VERSION) -c "Disks for Contractor" -t load_resources.sh -d resources -s contractor-os-base
+	cd contractor && respkg -b ../disks-linux-installer-profiles_$(VERSION).respkg -n disks-linux-installer-profiles -e $(VERSION) -c "Disks Linux Installer Profiles" -t load_linux-installer-profiles.sh -d linux-installer-profiles
 	touch respkg
 
 respkg-file:
@@ -201,6 +208,7 @@ respkg-file:
 
 respkg-clean:
 	$(RM) -fr resources/var/www/disks
+	$(RM) -fr contractor/linux-installer-profiles
 
 .PHONY:: respkg-distros respkg-requires respkg respkg-file respkg-clean
 

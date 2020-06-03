@@ -1,1 +1,0 @@
-../6/selinux.tpl

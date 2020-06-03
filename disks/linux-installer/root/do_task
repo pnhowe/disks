@@ -2,6 +2,16 @@
 
 set -e
 
+if [ -f /config ]
+then
+  /bin/postMessage "Getting Profile..."
+  . /config
+  for url in $PROFILE_URL_LIST
+  do
+    wget -O - $PROFILE_URL  | tar -C / -xz
+  done
+fi
+
 /bin/postMessage "Starting Linux Install..."
 
 ttytee -d /dev/instout /dev/tty4 /tmp/detail.log

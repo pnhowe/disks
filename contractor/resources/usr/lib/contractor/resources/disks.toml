@@ -55,6 +55,7 @@
 [ structure.debian-base.config_values ]
   installer_pxe = 'linux-installer'
   mirror_server = 'ftp.us.debian.org'
+  profile_url = 'http://static/disks/{{ distro }}-{{ distro_version }}.tar.gz'
   config_host = 'http://contractor'
   bootstrap_source = 'http://{{ mirror_server }}/debian'
   distro = 'debian'
@@ -83,6 +84,7 @@
 [ structure.centos-base.config_values ]
   installer_pxe = 'linux-installer'
   mirror_server = 'mirror.centos.org'
+  profile_url = 'http://static/disks/{{ distro }}-{{ distro_version }}.tar.gz'
   config_host = 'http://contractor'
   bootstrap_source = 'http://{{ mirror_server }}/centos/'
   distro = 'centos'
@@ -149,11 +151,12 @@ boot
 [ pxe.linux-installer ]
   description = 'T3kton Disks - Linux Installer'
   boot_script = '''echo Linux Installer
-kernel {{ __pxe_location }}disks/linux-installer.vmlinuz interface_mac={{ _provisioning_interface_mac }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ _hostname }} config_uuid={{ _structure_config_uuid }}{% if _console.startswith("ttyS") %} console={{ _console }},115200 console=tty1{% endif %}
+kernel {{ __pxe_location }}disks/linux-installer.vmlinuz interface_mac={{ _provisioning_interface_mac }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ _hostname }} config_uuid={{ _structure_config_uuid }} config_remote_url={{ __pxe_template_location }}{% if _console.startswith("ttyS") %} console={{ _console }},115200 console=tty1{% endif %}
 initrd {{ __pxe_location }}disks/linux-installer.initrd
 boot
 '''
-  template = '# Linux Installer'
+  template = '# Linux Installer
+PROFILE_URL_LIST="{{ profile_url }} {{ extra_template_list|join( ' ' ) }}"'
 
 [ pxe.disk-wipe ]
   description = 'T3kton Disks - Disk Wipe'

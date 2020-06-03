@@ -3,6 +3,7 @@
 DEBUG=0
 NET_DEBUG=0
 CONFIG_SRC="remote"
+CONFIG_REMOTE_URL="http://contractor/config/pxe_template"
 HTTP_PROXY=
 INTERFACE="any"
 INTERFACE_MAC=
@@ -96,6 +97,9 @@ do
       ;;
     local_config)
       CONFIG_SRC="local"
+      ;;
+    config_remote_url=*)
+      CONFIG_REMOTE_URL="${x#config_remote_url=}"
       ;;
     config_uuid=*)
       CONFIG_UUID="${x#config_uuid=}"
@@ -432,6 +436,8 @@ then
     echo "No IP to get config with!"
     error_happened
   fi
+
+  wget $CONFIG_REMOTE_URL -o config
 
   export contractor_host=$CONTRACTOR_HOST
   export config_uuid=$CONFIG_UUID
