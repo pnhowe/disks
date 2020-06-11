@@ -17,11 +17,9 @@ IMAGE_ROOT = $(foreach disk,$(DISKS),build.images/$(disk).root)
 PXES = $(foreach disk,$(DISKS),$(patsubst images/pxe/%.pxe,images/pxe/$(disk)_%,$(patsubst images/pxe/_default.pxe,images/pxe/$(disk),$(patsubst disks/$(disk)/%,images/pxe/%,$(wildcard disks/$(disk)/*.pxe)))))
 PXE_FILES = $(foreach disk,$(DISKS),images/pxe/$(disk).vmlinuz images/pxe/$(disk).initrd)
 
-# see PXES, but append .img
-IMGS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/img/%.img,images/img/$(disk)_%,$(patsubst images/img/_default.img,images/img/$(disk),$(patsubst disks/$(disk)/%,images/img/%,$(wildcard disks/$(disk)/*.img))))), $(item).img)
-
-# see PXES, but append .iso
-ISOS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/iso/%.iso,images/iso/$(disk)_%,$(patsubst images/iso/_default.iso,images/iso/$(disk),$(patsubst disks/$(disk)/%,images/iso/%,$(wildcard disks/$(disk)/*.iso))))), $(item).iso)
+# see PXES, but append .img/.iso - uses _default.boot
+IMGS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/img/%.img,images/img/$(disk)_%,$(patsubst images/img/_default.boot,images/img/$(disk),$(patsubst disks/$(disk)/%,images/img/%,$(wildcard disks/$(disk)/*.img))))), $(item).img)
+ISOS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/iso/%.iso,images/iso/$(disk)_%,$(patsubst images/iso/_default.boot,images/iso/$(disk),$(patsubst disks/$(disk)/%,images/iso/%,$(wildcard disks/$(disk)/*.iso))))), $(item).iso)
 
 
 PWD = $(shell pwd)
@@ -98,8 +96,8 @@ all-pxe: $(PXE_FILES) $(PXES)
 pxe-targets:
 	@echo "Aviable PXE Targets: $(PXES)"
 
-# build_root paramaters: $1 - target root fs dir, $2 - source dir, $3 - dep build dir
-build.images/%.root: disks/%/build_root build.deps/build build-src
+.SECONDEXPANSION:
+build.images/%.root: build.deps/build build-src disks/%/build_root $$(shell find disks/$$*/root/* -type f)
 	mkdir -p build.images/$*
 	cp -a rootfs/* build.images/$*
 	cp -a disks/$*/root/* build.images/$*
@@ -115,10 +113,10 @@ ROOTS_1 = $(filter-out $(firstword $(IMAGE_ROOT)), $(IMAGE_ROOT))
 ROOTS_2 = $(filter-out $(lastword $(IMAGE_ROOT)), $(IMAGE_ROOT))
 $(foreach pair, $(join $(ROOTS_2),$(addprefix :,$(ROOTS_1))),$(eval $(pair)))
 
-images/pxe/%.initrd: images build.images/build
+images/pxe/%.initrd: build.images/%.root
 	cd build.images/$* && find ./ | grep -v boot/vmlinuz | cpio --owner=+0:+0 -H newc -o | gzip -9 > $(PWD)/$@
 
-images/pxe/%.vmlinuz: images build.images/build
+images/pxe/%.vmlinuz: build.images/%/boot/vmlinuz
 	cp -f build.images/$*/boot/vmlinuz $@
 
 # the ugly sed mess...
@@ -138,10 +136,10 @@ images/img/%.img : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\
 images/img/%.img: $(PXE_FILES)
 	if [ -f templates/$* ];                                                                                                             \
 	then                                                                                                                                \
-	  mkdir -p build.images/templates/$*/ ;                                                                                             \
+	  mkdir -p build.images/templates/$*/extras ;                                                                                             \
 		DISK=$$( grep -m 1 '#DISK:' templates/$* | sed s/'#DISK: '// );                                                                   \
-	  scripts/build_template $* build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/boot.config && \
-	  sudo scripts/makeimg $@ images/pxe/$$DISK.vmlinuz images/pxe/$$DISK.initrd build.images/templates/$*/boot.config build.images/templates/$*/config-init build.images/templates/$*/config.json; \
+	  scripts/build_template $* build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/boot.config build.images/templates/$*/extras && \
+	  sudo scripts/makeimg $@ images/pxe/$$DISK.vmlinuz images/pxe/$$DISK.initrd build.images/templates/$*/boot.config build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/extras; \
 	elif [ -f $(FILE).config_file ];                                                                                                    \
 	then                                                                                                                                \
 	  sudo scripts/makeimg $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) $(FILE).config_file;                                   \
@@ -159,10 +157,10 @@ images/iso/%.iso : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\
 images/iso/%.iso: $(PXE_FILES)
 	if [ -f templates/$* ];                                                                                                             \
 	then                                                                                                                                \
-	  mkdir -p build.images/templates/$*/ ;                                                                                             \
+	  mkdir -p build.images/templates/$*/extras ;                                                                                             \
 		DISK=$$( grep -m 1 '#DISK:' templates/$* | sed s/'#DISK: '// );                                                                   \
-		scripts/build_template $* build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/boot.config && \
-	  scripts/makeiso $@ images/pxe/$$DISK.vmlinuz images/pxe/$$DISK.initrd build.images/templates/$*/boot.config build.images/templates/$*/config-init build.images/templates/$*/config.json; \
+		scripts/build_template $* build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/boot.config build.images/templates/$*/extras && \
+	  scripts/makeiso $@ images/pxe/$$DISK.vmlinuz images/pxe/$$DISK.initrd build.images/templates/$*/boot.config build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/extras; \
 	elif [ -f $(FILE).config_file ];                                                                                                    \
 	then                                                                                                                                \
 	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) $(FILE).config_file;                                        \

@@ -1,7 +1,7 @@
 #!/bin/sh
 
 set -e
-set -x
+#set -x
 
 # $1 - target root fs dir
 # $2 - source dir

@@ -3,7 +3,8 @@
 # $1 - template
 # $2 - output config-init filename
 # $3 - output for config.json filename
-# $3 - output boot config filename
+# $4 - output for kernel command line filename
+# $5 - output directory name for extras
 
 set -e
 #set -x
@@ -53,7 +54,7 @@ do
   fi
 done
 
-clear
+#clear
 
 echo "Shortcut env exports:"
 echo "---------------------------------------------------------------------"
@@ -89,3 +90,23 @@ then
 fi
 
 echo "$CMDLINE" > "$4"
+
+if [ ! -d "$5" ]
+then
+  echo "extra directory '$5' not a directory"
+  exit 1
+fi
+
+for item in $EXTRA_LIST
+do
+  type=${item#*.}
+  case $type in
+    tar.gz)
+      tar -xzf $item -C $5
+      ;;
+    *)
+      cp $item $5
+      ;;
+  esac
+
+done

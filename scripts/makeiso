@@ -1,4 +1,5 @@
 #!/bin/bash
+
 set -e
 set -x
 
@@ -8,6 +9,7 @@ set -x
 # $4 - path to cmdline
 # $5 - path config-init (optional)
 # $6 - path config.json (optional)
+# $7 - path to extras dir (optional)
 
 WORK_DIR="build.images/isotmp"
 
@@ -45,26 +47,7 @@ mkdir -p $WORK_DIR
 echo "Copying in kernel and image..."
 cp $2 $WORK_DIR/vmlinuz
 
-if [ "x$5" != "x" ] || [ "x$6" != "x" ]
-then
-  echo "Injecting custom config..."
-  cat $3 | gunzip > /tmp/initrd.img
-  if [ "x$5" != "x" ] && [ -x "$5" ]
-  then
-    cp -f $5 ./config-init
-    echo "./config-init" | cpio -H newc -o -A -F /tmp/initrd.img
-    rm ./config-init
-  fi
-  if [ "x$6" != "x" ] && [ -r "$6" ]
-  then
-    cp -f $6 ./config.json
-    echo "./config.json" | cpio -H newc -o -A -F /tmp/initrd.img
-    rm ./config.json
-  fi
-  cat /tmp/initrd.img | gzip -9 > $WORK_DIR/initrd.img
-else
-  cp $3 $WORK_DIR/initrd.img
-fi
+scripts/inject_initrd $3 $WORK_DIR/initrd.img $5 $6 $7
 
 CMDLINE=$(cat $4)
 

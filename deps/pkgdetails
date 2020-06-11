@@ -4,7 +4,7 @@
 #HASH: de416aa945313666e9fe160bee0705f1f8da75bd
 
 set -e
-set -x
+# set -x
 
 build()
 {
@@ -20,5 +20,5 @@ install()
 
 binaries()
 {
-  :
+  ls $1/usr/lib/debootstrap/pkgdetails
 }

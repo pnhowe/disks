@@ -1,0 +1,67 @@
+#!/bin/bash
+
+set -e
+#set -x
+
+# $1 - source initrd
+# $2 - output
+# $3 - path to config-init
+# $4 - path to config.json
+# $5 - path to directory of extras
+
+
+if [ "x$3" == "x" ] && [ "x$4" == "x" ] && [ "x$5" == "x" ]
+then
+  cp $1 $2
+  exit 0
+fi
+
+echo "Injecting custom config..."
+cat $1 | gunzip > /tmp/initrd.img
+
+if [ "x$3" != "x" ]
+then
+  if [ ! -x "$3" ]
+  then
+    echo "config-init '$3' not executable"
+    exit 1
+  fi
+  cp -f $3 /tmp/config-init
+  pushd . > /dev/null
+  cd /tmp
+  echo "./config-init" | cpio -H newc -o -A -F /tmp/initrd.img
+  rm ./config-init
+  popd > /dev/null
+fi
+
+if [ "x$4" != "x" ]
+then
+  if [ ! -r "$4" ]
+  then
+    echo "config.json '$4' not readable"
+    exit 1
+  fi
+  cp -f $4 /tmp/config.json
+  pushd . > /dev/null
+  cd /tmp
+  echo "./config.json" | cpio -H newc -o -A -F /tmp/initrd.img
+  rm ./config.json
+  popd > /dev/null
+fi
+
+if [ "x$5" != "x" ]
+then
+  if [ ! -d "$5" ]
+  then
+    echo "extra directory '$5' not a directory"
+    exit 1
+  fi
+
+  pushd . > /dev/null
+  cd $5
+  find ./ | cpio -H newc -o -A -F /tmp/initrd.img
+  popd > /dev/null
+fi
+
+echo "Recompressing initrd..."
+cat /tmp/initrd.img | gzip -9 > $2

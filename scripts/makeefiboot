@@ -1,6 +1,7 @@
 #!/bin/bash
+
 set -e
-set -x
+#set -x
 
 # $1 - output filename
 # $2 - path to kernel

@@ -4,7 +4,7 @@
 #HASH: d22d7ef6355b4b01bf45fdf1300491f83a3b1a66
 
 set -e
-set -x
+#set -x
 
 build()
 {
@@ -26,5 +26,5 @@ install()
 
 binaries()
 {
-  :
+  exit 0
 }

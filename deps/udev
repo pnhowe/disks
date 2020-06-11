@@ -4,7 +4,7 @@
 #HASH: 33449020554d184cddd8d751e3a74e7afdf82951
 
 set -e
-set -x
+#set -x
 
 # hopfully kmod is built first, may need to pin an order in the Makefile
 build()

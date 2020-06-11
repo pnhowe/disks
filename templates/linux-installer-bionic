@@ -5,7 +5,7 @@
 QUESTION_LIST=( "MIRROR_SERVER" "HOSTNAME" "SWAP_SIZE" "USE_PROXY" "PROXY" "IS_VM" "RAID_TYPE"  )
 DESC_LIST=( "Mirror Server" "Hostname" "Swap Size" "Use HTTP Proxy" "HTTP Proxy (ignored if use proxy is n)" "Is VM" "RAID Type (ignored if VM)" )
 TYPE_LIST=( "inputbox" "inputbox" "inputbox" "yesno" "inputbox" "yesno" "menu:single_Single Disk_mirror_Mirror Two Disks_raid10_All disks into RAID 10_raid6_All disks into RAID 6_single-lvm_Single Disk LVM_dual-lvm_Two Disk LVM" )
-DEFAULT_LIST=( "us.archive.ubuntu.com" "xenial" "2048" "yes" "http://proxy:3128/" "no" "single"  )
+DEFAULT_LIST=( "us.archive.ubuntu.com" "bionic" "2048" "yes" "http://proxy:3128/" "no" "single"  )
 
 INIT='#!/bin/sh
 
@@ -13,7 +13,7 @@ sed s/--MAC--/$( cat /sys/class/net/eth0/address )/ -i /config.json'
 
 CONFIG='{
   "distro": "ubuntu",
-  "distro_version": "xenial",
+  "distro_version": "bionic",
   "bootstrap_source": "http://__MIRROR_SERVER__/ubuntu",
   "_hostname": "__HOSTNAME__",
   "_console": "__CONFIG_CONSOLE__",
@@ -22,9 +22,9 @@ CONFIG='{
   "http_proxy": "__PROXY__",
   "partition_scheme": "__PART_SCHEME__",
   "repo_list": [
-    { "distribution": "xenial", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": [ "main", "universe", "multiverse" ], "proxy": "__PROXY__" },
-    { "distribution": "xenial-updates", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": [ "main", "universe", "multiverse" ], "proxy": "__PROXY__" },
-    { "distribution": "xenial-security", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": [ "main", "universe", "multiverse" ], "proxy": "__PROXY__" }
+    { "distribution": "bionic", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": [ "main", "universe", "multiverse" ], "proxy": "__PROXY__" },
+    { "distribution": "bionic-updates", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": [ "main", "universe", "multiverse" ], "proxy": "__PROXY__" },
+    { "distribution": "bionic-security", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": [ "main", "universe", "multiverse" ], "proxy": "__PROXY__" }
   ],
   "id": 0,
   "uuid": "00000000-0000-0000-0000-000000000000",
@@ -46,9 +46,9 @@ CONFIG='{
   }
 }'
 
-CMDLINE='local_config __BOOT_PROXY__ hostname=__HOSTNAME__ local_config interface=any'
+CMDLINE_LIST='install	Install Ubunti Bionic - Static IP	local_config __BOOT_PROXY__ hostname=__HOSTNAME__ local_config interface=any'
 
-EXTRA_LIST='contractor/linux-installer-profiles/var/www/static/disks/ubuntu-xenial-profile.tar.gz'
+EXTRA_LIST='contractor/linux-installer-profiles/var/www/static/disks/ubuntu-bionic-profile.tar.gz'
 
 post_process()
 {

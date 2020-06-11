@@ -4,7 +4,7 @@
 #HASH: 0886a47e8109f86160e45896ca6dc445fdeee710
 
 set -e
-set -x
+#set -x
 
 # sed is to fix a error introduced in gcc 7.1
 build()

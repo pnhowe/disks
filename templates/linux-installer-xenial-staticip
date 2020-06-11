@@ -16,6 +16,7 @@ CONFIG='{
   "distro_version": "xenial",
   "bootstrap_source": "http://__MIRROR_SERVER__/ubuntu",
   "_hostname": "__HOSTNAME__",
+  "_console": "__CONFIG_CONSOLE__",
   "package_list": [ "openssh-server", "openssh-client" __PACKAGES__ ],
   "swap_size": "__SWAP_SIZE__",
   "http_proxy": "__PROXY__",
@@ -51,14 +52,9 @@ CONFIG='{
   }
 }'
 
-EXTLINUX='PROMPT 1
-TIMEOUT 10
-DEFAULT normal
+CMDLINE='local_config __BOOT_PROXY__ ip_address=__IP_ADDRESS__ netmask=__NETMASK__ gateway=__GATEWAY__ dns_server=__DNS_SERVER__ hostname=__HOSTNAME__ dns_search_zone=__DOMAIN__ interface=eth0 __KERNEL_CONSOLE__'
 
-LABEL normal
-KERNEL /vmlinuz.img
-APPEND initrd=/initrd.img local_config __BOOT_PROXY__ ip_address=__IP_ADDRESS__ netmask=__NETMASK__ gateway=__GATEWAY__ dns_server=__DNS_SERVER__ hostname=__HOSTNAME__ dns_search_zone=__DOMAIN__ interface=eth0
-'
+EXTRA_LIST='contractor/linux-installer-profiles/var/www/static/disks/ubuntu-bionic-profile.tar.gz'
 
 post_process()
 {
@@ -72,12 +68,12 @@ post_process()
 
   if [ "x$IS_VM" == "xyes" ];
   then
-    CONSOLE=""
-    CONSOLE_BAUD=""
+    KERNEL_CONSOLE=""
+    CONFIG_CONSOLE="console"
     PACKAGES=""
   else
-    CONSOLE="ttyS1"
-    CONSOLE_BAUD="115200"
+    KERNEL_CONSOLE="console=tty1 console=ttyS1,115200n8"
+    CONFIG_CONSOLE="/dev/ttyS1"
     PACKAGES=""
   fi
 

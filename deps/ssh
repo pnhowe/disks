@@ -4,7 +4,7 @@
 #HASH: 993aceedea8ecabb1d0dd7293508a361891c4eaa
 
 set -e
-set -x
+#set -x
 
 build()
 {
