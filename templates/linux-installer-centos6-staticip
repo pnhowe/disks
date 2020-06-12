@@ -52,7 +52,7 @@ CONFIG='{
   }
 }'
 
-CMDLINE='local_config __BOOT_PROXY__ ip_address=__IP_ADDRESS__ netmask=__NETMASK__ gateway=__GATEWAY__ dns_server=__DNS_SERVER__ hostname=__HOSTNAME__ dns_search_zone=__DOMAIN__ interface=eth0 __KERNEL_CONSOLE__'
+CMDLINE="install	Install Centos 6 - Static Network __HOSTNAME__	local_config __BOOT_PROXY__ ip_address=__IP_ADDRESS__ netmask=__NETMASK__ gateway=__GATEWAY__ dns_server=__DNS_SERVER__ hostname=__HOSTNAME__ dns_search_zone=__DOMAIN__ interface=eth0 __KERNEL_CONSOLE__"
 
 EXTRA_LIST='contractor/linux-installer-profiles/var/www/static/disks/centos-6-profile.tar.gz'
 

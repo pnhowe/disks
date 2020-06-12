@@ -1,7 +1,0 @@
-PROMPT 1
-TIMEOUT 10
-DEFAULT linux-installer
-
-LABEL linux-installer
-KERNEL /vmlinuz.img
-APPEND initrd=/initrd.img

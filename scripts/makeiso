@@ -1,37 +1,29 @@
 #!/bin/bash
 
 set -e
-set -x
+#set -x
 
 # $1 - output filename
 # $2 - path to kernel
 # $3 - path to initrd
-# $4 - path to cmdline
+# $4 - path to boot config file
 # $5 - path config-init (optional)
 # $6 - path config.json (optional)
 # $7 - path to extras dir (optional)
+
+ISO_BOOT="/usr/lib/ISOLINUX/isohdpfx.bin"
+
+if [ ! -f "$ISO_BOOT"  ];
+then
+  echo "isolinux.bin not found install isolinux"
+  exit 1
+fi
 
 WORK_DIR="build.images/isotmp"
 
 if [ -d $WORK_DIR ]
 then
   rm -ifr ./${WORK_DIR}/
-fi
-
-ISO_BIN="/usr/lib/ISOLINUX/isolinux.bin"
-ISO_BOOT="/usr/lib/ISOLINUX/isohdpfx.bin"
-LD32="/usr/lib/syslinux/modules/bios/ldlinux.c32"
-
-if [ ! -f "$ISO_BIN"  ];
-then
-  echo "isolinux.bin not found install isolinux"
-  exit 1
-fi
-
-if [ ! -f "$LD32"  ];
-then
-  echo "ldlinux.c32 not found install syslinux-common"
-  exit 1
 fi
 
 if [ ! -f "/usr/bin/xorriso"  ];
@@ -45,34 +37,14 @@ rm -f $1
 mkdir -p $WORK_DIR
 
 echo "Copying in kernel and image..."
-cp $2 $WORK_DIR/vmlinuz
-
+cp $2 $WORK_DIR/vmlinuz.img
 scripts/inject_initrd $3 $WORK_DIR/initrd.img $5 $6 $7
 
-CMDLINE=$(cat $4)
-
 echo "Setting up Legacy Boot..."
-mkdir -p $WORK_DIR/isolinux
-cp $ISO_BIN $WORK_DIR/isolinux
-cp $LD32 $WORK_DIR/isolinux
-echo "PROMPT 1
-TIMEOUT 10
-DEFAULT normal
-
-LABEL normal
-KERNEL /vmlinuz
-APPEND initrd=/initrd.img $CMDLINE
-" > $WORK_DIR/isolinux.cfg
-
-echo 'NAME="T3kton Disks"
-VERSION="0.0.0.0"
-ID=t3kton
-PRETTY_NAME="T3kton Disks"
-VERSION_ID="18.04"
-' > $WORK_DIR/os-release
+scripts/makelegacyboot $WORK_DIR "iso" $4
 
 echo "Building efiboot.img..."
-sudo scripts/makeefiboot $WORK_DIR/isolinux/efiboot.img $2 $WORK_DIR/initrd.img $4 $WORK_DIR/os-release
+sudo scripts/makeefiboot $WORK_DIR/isolinux/efiboot.img $2 $WORK_DIR/initrd.img $4
 
 xorriso -as mkisofs \
   -o $1 \

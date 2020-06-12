@@ -6,11 +6,9 @@ set -e
 # $1 - output filename
 # $2 - path to kernel
 # $3 - path to initrd
-# $4 - path to cmdline
-# $5 - os release file
+# $4 - oath to boot config
 
-# size in 1k blocks, default is 60k ie 60meg disk
-DISK_SIZE="70k"
+. $4
 
 MOUNT_POINT="build.images/mnt"
 
@@ -48,8 +46,24 @@ fi
 
 rm -f $1
 
+let ENTRY_SIZE=$(stat -c%s $2)
+let ENTRY_SIZE+=$(stat -c%s $3)
+let ENTRY_SIZE+=$(stat -c%s $EFI_STUB64)
+let ENTRY_SIZE/=4096 # this / + * thing is to round up to next sector, plus 1
+let ENTRY_SIZE+=2
+let ENTRY_SIZE*=4096
+let PAYLOAD_SIZE="${#CMDLINE_LIST[@]}"
+let PAYLOAD_SIZE*=$ENTRY_SIZE
+let PAYLOAD_SIZE+=$(stat -c%s $EFI_BIN64)
+let PAYLOAD_SIZE/=4096
+let PAYLOAD_SIZE+=500
+
+echo "entry size: $ENTRY_SIZE"
+echo "entry count: ${#CMDLINE_LIST[@]}"
+echo "payload size: $PAYLOAD_SIZE * 4k"
+
 echo "Creating image..."
-dd if=/dev/zero of=$1 bs=1k count=$DISK_SIZE
+dd if=/dev/zero of=$1 bs=4k count=$PAYLOAD_SIZE
 DRIVE_LOOP=$(losetup -f --show $1)
 echo "Using loop device '$DRIVE_LOOP' for image..."
 
@@ -66,20 +80,40 @@ mkdir -p $MOUNT_POINT/efi/Linux/
 
 cp $EFI_BIN64 $MOUNT_POINT/efi/boot/bootx64.efi
 
-echo "timeout 2
-auto-entries 0
-auto-firmware 0
+DEFAULT=$( echo "${CMDLINE_LIST[0]}" | cut -f1 )
+
+echo "timeout 5
+auto-entries no
+auto-firmware no
+editor no
+default ${DEFAULT}-0.0
 " > $MOUNT_POINT/loader/loader.conf
 
-#    --add-section .splash="/usr/share/systemd/bootctl/splash-arch.bmp" --change-section-vma .splash=0x40000 \
-objcopy \
-    --add-section .osrel="$5" --change-section-vma .osrel=0x20000 \
-    --add-section .cmdline="$4" --change-section-vma .cmdline=0x30000 \
-    --add-section .linux="$2" --change-section-vma .linux=0x2000000 \
-    --add-section .initrd="$3" --change-section-vma .initrd=0x3000000 \
-    $EFI_STUB64 $MOUNT_POINT/efi/Linux/linux.efi
+for item in "${CMDLINE_LIST[@]}"
+do
+  NAME=$( echo "$item" | cut -f1 )
+  DESC=$( echo "$item" | cut -f2 )
+  CMDLINE=$( echo "$item" | cut -f3 )
 
-# and then sign linux.efi
+  echo "$CMDLINE" > /tmp/t3kton-cmdline
+
+  echo "NAME=\"$NAME\"
+VERSION=\"0.0.0.0\"
+ID=$NAME
+PRETTY_NAME=\"$DESC\"
+VERSION_ID=\"0.0\"
+" > /tmp/t3kton-os-release
+
+  #    --add-section .splash="/usr/share/systemd/bootctl/splash-arch.bmp" --change-section-vma .splash=0x40000 \
+  objcopy \
+      --add-section .osrel="/tmp/t3kton-os-release" --change-section-vma .osrel=0x20000 \
+      --add-section .cmdline="/tmp/t3kton-cmdline" --change-section-vma .cmdline=0x30000 \
+      --add-section .linux="$2" --change-section-vma .linux=0x2000000 \
+      --add-section .initrd="$3" --change-section-vma .initrd=0x3000000 \
+      $EFI_STUB64 $MOUNT_POINT/efi/Linux/$NAME.efi
+
+  # and then sign linux.efi
+done
 
 sleep 1
 sync

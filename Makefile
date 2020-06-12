@@ -7,20 +7,19 @@ DEP_DOWNLOADS = $(foreach dep,$(DEPS),build.deps/$(dep).download)
 DEP_BUILDS = $(foreach dep,$(DEPS),build.deps/$(dep).build)
 IMAGE_ROOT = $(foreach disk,$(DISKS),build.images/$(disk).root)
 
+# now that we are embracing contractor fully, we don't need all the _default.pxe/*.pxe sutff, that is all in the contractor resource, just get a list of the disks, and that is our list of PXEs
+PXES = $(foreach disk,$(DISKS),build.images/pxe/$(disk))
+PXE_FILES = $(foreach disk,$(DISKS),images/pxe/$(disk).vmlinuz images/pxe/$(disk).initrd)
+
 # for thoes following along...
 #  for each disk
 #    wildcard /disks/<disk>.pxe
-#    move to /images/pxe
-#    replace images/pxe/_default.pxe with images/pxe/<disk>
-#    replace images/pxe/<other>.pxe with imagex/pxe/<disk>-<other>
-# that should give us a images/pxe/<disk> for every _default and a <disk>_<other> for every other .pxe file
-PXES = $(foreach disk,$(DISKS),$(patsubst images/pxe/%.pxe,images/pxe/$(disk)_%,$(patsubst images/pxe/_default.pxe,images/pxe/$(disk),$(patsubst disks/$(disk)/%,images/pxe/%,$(wildcard disks/$(disk)/*.pxe)))))
-PXE_FILES = $(foreach disk,$(DISKS),images/pxe/$(disk).vmlinuz images/pxe/$(disk).initrd)
-
-# see PXES, but append .img/.iso - uses _default.boot
+#    move to /images/img
+#    replace images/img/_default.boot with images/img/<disk>.img
+#    replace images/img/<other>.boot with imagex/img/<disk>-<other>.img
+# same thing for the .iso
 IMGS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/img/%.img,images/img/$(disk)_%,$(patsubst images/img/_default.boot,images/img/$(disk),$(patsubst disks/$(disk)/%,images/img/%,$(wildcard disks/$(disk)/*.img))))), $(item).img)
 ISOS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/iso/%.iso,images/iso/$(disk)_%,$(patsubst images/iso/_default.boot,images/iso/$(disk),$(patsubst disks/$(disk)/%,images/iso/%,$(wildcard disks/$(disk)/*.iso))))), $(item).iso)
-
 
 PWD = $(shell pwd)
 
@@ -91,7 +90,7 @@ clean-images:
 
 # pxe targets
 
-all-pxe: $(PXE_FILES) $(PXES)
+all-pxe: $(PXE_FILES)
 
 pxe-targets:
 	@echo "Aviable PXE Targets: $(PXES)"
@@ -119,27 +118,27 @@ images/pxe/%.initrd: build.images/%.root
 images/pxe/%.vmlinuz: build.images/%/boot/vmlinuz
 	cp -f build.images/$*/boot/vmlinuz $@
 
-# the ugly sed mess...
-#    <disk>_<other> -> disks/<images>/<other>.pxe
-#    <disk> (ie no `_`) -> disks/<images>/_default.pxe
-images/pxe/% : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2.pxe'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.pxe'/)
-images/pxe/%: $(FILE) $(PXE_FILES)
-	cp -f $(FILE) $@
+images/pxe/%: images/pxe/%.initrd images/pxe/%.vmlinuz
+
+.PHONY:: $(PXES)
 
 # img targets
 
 img-targets:
 	@echo "Aviable Disk Image Targets: $(IMGS)"
 
-# for the sed see images/pxe/%
-images/img/%.img : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2.img'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.img'/)
-images/img/%.img: $(PXE_FILES)
+# the ugly sed mess...
+#    <disk>_<other> -> disks/<images>/<other>.img
+#    <disk> (ie no `_`) -> disks/<images>/_default.img
+images/img/%.img : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2.img'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.boot'/)
+SECONDEXPANSION:
+images/img/%.img: $$(shell scripts/img_iso_deps $$*)
 	if [ -f templates/$* ];                                                                                                             \
 	then                                                                                                                                \
-	  mkdir -p build.images/templates/$*/extras ;                                                                                             \
+	  mkdir -p build.images/templates/$*/extras ;                                                                                       \
 		DISK=$$( grep -m 1 '#DISK:' templates/$* | sed s/'#DISK: '// );                                                                   \
-	  scripts/build_template $* build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/boot.config build.images/templates/$*/extras && \
-	  sudo scripts/makeimg $@ images/pxe/$$DISK.vmlinuz images/pxe/$$DISK.initrd build.images/templates/$*/boot.config build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/extras; \
+	  scripts/build_template $* build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/config.boot build.images/templates/$*/extras && \
+	  sudo scripts/makeimg $@ images/pxe/$$DISK.vmlinuz images/pxe/$$DISK.initrd build.images/templates/$*/config.boot build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/extras; \
 	elif [ -f $(FILE).config_file ];                                                                                                    \
 	then                                                                                                                                \
 	  sudo scripts/makeimg $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) $(FILE).config_file;                                   \
@@ -152,15 +151,18 @@ images/img/%.img: $(PXE_FILES)
 iso-targets:
 	@echo "Aviable ISO Targets: $(ISOS)"
 
-# for the sed see images/pxe/%
-images/iso/%.iso : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2.img'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.img'/)
-images/iso/%.iso: $(PXE_FILES)
+# the ugly sed mess...
+#    <disk>_<other> -> disks/<images>/<other>.iso
+#    <disk> (ie no `_`) -> disks/<images>/_default.iso
+images/iso/%.iso : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2.img'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.boot'/)
+.SECONDEXPANSION:
+images/iso/%.iso: $$(shell scripts/img_iso_deps $$*)
 	if [ -f templates/$* ];                                                                                                             \
 	then                                                                                                                                \
-	  mkdir -p build.images/templates/$*/extras ;                                                                                             \
+	  mkdir -p build.images/templates/$*/extras ;                                                                                       \
 		DISK=$$( grep -m 1 '#DISK:' templates/$* | sed s/'#DISK: '// );                                                                   \
-		scripts/build_template $* build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/boot.config build.images/templates/$*/extras && \
-	  scripts/makeiso $@ images/pxe/$$DISK.vmlinuz images/pxe/$$DISK.initrd build.images/templates/$*/boot.config build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/extras; \
+		scripts/build_template $* build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/config.boot build.images/templates/$*/extras && \
+	  scripts/makeiso $@ images/pxe/$$DISK.vmlinuz images/pxe/$$DISK.initrd build.images/templates/$*/config.boot build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/extras; \
 	elif [ -f $(FILE).config_file ];                                                                                                    \
 	then                                                                                                                                \
 	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) $(FILE).config_file;                                        \

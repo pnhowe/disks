@@ -3,7 +3,7 @@
 # $1 - template
 # $2 - output config-init filename
 # $3 - output for config.json filename
-# $4 - output for kernel command line filename
+# $4 - output for boot config file
 # $5 - output directory name for extras
 
 set -e
@@ -54,7 +54,7 @@ do
   fi
 done
 
-#clear
+clear
 
 echo "Shortcut env exports:"
 echo "---------------------------------------------------------------------"
@@ -89,7 +89,8 @@ then
   echo "$CONFIG" > "$3"
 fi
 
-echo "$CMDLINE" > "$4"
+echo "#!/bin/bash" > "$4"
+echo "CMDLINE_LIST=(\"$CMDLINE\")" >> "$4"
 
 if [ ! -d "$5" ]
 then

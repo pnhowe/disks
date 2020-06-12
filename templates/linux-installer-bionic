@@ -46,7 +46,7 @@ CONFIG='{
   }
 }'
 
-CMDLINE_LIST='install	Install Ubunti Bionic - Static IP	local_config __BOOT_PROXY__ hostname=__HOSTNAME__ local_config interface=any'
+CMDLINE="install	Install Ubuntu Bionic	local_config __BOOT_PROXY__ hostname=__HOSTNAME__ local_config interface=any"
 
 EXTRA_LIST='contractor/linux-installer-profiles/var/www/static/disks/ubuntu-bionic-profile.tar.gz'
 

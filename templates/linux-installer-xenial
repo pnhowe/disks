@@ -46,7 +46,7 @@ CONFIG='{
   }
 }'
 
-CMDLINE='local_config __BOOT_PROXY__ hostname=__HOSTNAME__ local_config interface=any'
+CMDLINE="install	Install Ubuntu Xenial	local_config __BOOT_PROXY__ hostname=__HOSTNAME__ local_config interface=any"
 
 EXTRA_LIST='contractor/linux-installer-profiles/var/www/static/disks/ubuntu-xenial-profile.tar.gz'
 

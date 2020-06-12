@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [ -d "disks/$1" ]
+then
+  echo images/pxe/$1.initrd images/pxe/$1.vmlinuz
+fi
+
+if [ -r "templates/$1" ]
+then
+  DISK=$( grep -m 1 '#DISK:' templates/$1 | sed s/'#DISK: '// )
+  echo images/pxe/$DISK.initrd images/pxe/$DISK.vmlinuz templates/$1
+fi
