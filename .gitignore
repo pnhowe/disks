@@ -5,6 +5,7 @@ build.images
 images
 
 contractor/linux-installer-profiles
+linux-installer-profiles.touch
 respkg
 *.respkg
 contractor/resources/var

@@ -936,17 +936,16 @@ def getMegaUnitStatus():
 
 # SAS
 class SASPort( Port ):
-  def __init__( self, sas_address, scsi_id, slot, slot_name, *args, **kwargs  ):
+  def __init__( self, scsi_id, slot, slot_name, *args, **kwargs  ):
     super( SASPort, self ).__init__( *args, **kwargs )
-    self.sas_address = sas_address
+    self.host = int( scsi_id.split( ':' )[0] )
     self.scsi_id = scsi_id
     self.slot = slot
     self.slot_name = slot_name
-    self.host = int( scsi_id.split( ':' )[0] )
 
   @property
   def location( self ):
-    return 'SAS {0}:{1}'.format( self.sas_address, self.slot )
+    return 'SAS {0}:{1}'.format( self.host, self.slot )
 
   @property
   def type( self ):
@@ -957,11 +956,11 @@ class SASPort( Port ):
       setSASFault( self.scsi_id, self.slot_name, value )
 
   def __hash__( self ):
-    return ( 'SAS {0} {1}'.format( self.sas_address, self.slot ) ).__hash__()
+    return ( 'SAS {0} {1}'.format( self.host, self.slot ) ).__hash__()
 
 
 def getSASEnclosureList():
-  enclosure_list = {}
+  enclosure_list = []
 
   if not os.access( '/sys/class/sas_expander/', os.F_OK ) or not os.access( '/sys/class/enclosure/', os.F_OK ):
     return enclosure_list
@@ -971,10 +970,7 @@ def getSASEnclosureList():
     if len( tmp_list ) < 1:
       continue
 
-    if not os.access( '/sys/class/sas_device/{0}/sas_address'.format( name ), os.F_OK ):
-      continue
-
-    enclosure_list[ tmp_list[0].split( '/' )[-2] ] = open( '/sys/class/sas_device/{0}/sas_address'.format( name ), 'r' ).read().strip()
+    enclosure_list.append( tmp_list[0].split( '/' )[-2] )
 
   return enclosure_list
 
@@ -1011,12 +1007,12 @@ def _getEnclosurePortMap( enclosure ):  # TODO: Cache this? save some globbing?
   raise Exception( 'Unknown Port Naming System' )
 
 
-def getSASEnclosurePorts( enclosure, sas_address ):
+def getSASEnclosurePorts( enclosure ):
   port_map = _getEnclosurePortMap( enclosure )
 
   ports = {}
   for i in port_map:
-    port = SASPort( sas_address, enclosure, i, port_map[ i ] )
+    port = SASPort( enclosure, i, port_map[ i ] )
     block_list = glob.glob( '/sys/class/enclosure/{0}/{1}/device/block/sd*'.format( enclosure, port_map[ i ] ) )
     if len( block_list ) > 0:
       ports[ port ] = block_list[0].split( '/' )[-1]
@@ -1052,7 +1048,7 @@ def getSASDirectPorts():
     block_parts = block.split( '/' )
     phy = '{0}/sas_phy/{1}'.format( '/'.join( block_parts[ 0:7 ] ), block_parts[6] )
 
-    port = SASPort( open( '{0}/sas_address'.format( phy ), 'r' ).read().strip(), block_parts[-3], block_parts[6].split( ':' )[-1], None )
+    port = SASPort( block_parts[-3], block_parts[6].split( ':' )[-1], None )
 
     ports[ port ] = block_parts[-1]
 
@@ -1127,7 +1123,15 @@ class DriveManager( object ):
   def drive_map( self ):
     tmp = {}
     for drive in self.drive_list:
-      tmp[ '{0}'.format( drive.libdrive_name ) ] = drive.port
+      tmp[ drive.libdrive_name ] = drive.port
+    return tmp
+
+  @property
+  def block_map( self ):
+    tmp = {}
+    for drive in self.drive_list:
+      if drive.block_name is not None:
+        tmp[ os.path.join( '/dev', drive.block_name ) ] = drive.port
     return tmp
 
   @property
@@ -1208,7 +1212,7 @@ class DriveManager( object ):
 
       enclosure_list = getSASEnclosureList()
       for enclosure in enclosure_list:
-        port_list = getSASEnclosurePorts( enclosure, enclosure_list[enclosure] )
+        port_list = getSASEnclosurePorts( enclosure )
         for port in port_list:
           block = port_list[ port ]
           self._port_list.append( port )

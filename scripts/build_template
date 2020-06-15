@@ -18,6 +18,8 @@ WIDTH=60
 
 DIALOG_TITLE="Questions for template $2"
 
+NEED_CLEAR=
+
 for i in `seq 0 $(( ${#QUESTION_LIST[@]} - 1 ))`;
 do
   eval ENV_CHECK="\$TD_${QUESTION_LIST[$i]}" # prepending TD_ to not actidently catch things like HOSTNAME from existing env
@@ -51,10 +53,15 @@ do
     fi
 
     eval "${QUESTION_LIST[$i]}=\"$TMP\""
+
+    NEED_CLEAR=y
   fi
 done
 
-clear
+if [ "x$NEED_CLEAR" == "xy" ]
+then
+  clear
+fi
 
 echo "Shortcut env exports:"
 echo "---------------------------------------------------------------------"

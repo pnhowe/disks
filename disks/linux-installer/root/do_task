@@ -6,9 +6,9 @@ if [ -f /config ]
 then
   /bin/postMessage "Getting Profile..."
   . /config
-  for url in $PROFILE_URL_LIST
+  for URL in $PROFILE_URL_LIST
   do
-    wget -O - $PROFILE_URL  | tar -C / -xz
+    wget -O - $URL | tar -C / -xz
   done
 fi
 

@@ -60,8 +60,10 @@ after_cmd_1=sed s/"#PermitRootLogin [A-Za-z\-]*"/"PermitRootLogin yes"/ -i /etc/
 after_cmd_2=rm -f /etc/resolvconf/resolv.conf.d/original
 
 [packages]
-bootloader_package=grub-pc
+bootloader_package_bios=grub-pc
+bootloader_package_efi=grub-efi-amd64
 kernel_package=linux-image-amd64
 mdadm_package=mdadm
+bcache_package=bcache-tools
 lvm_package=lvm2
 filesystem_xfs_package=xfsprogs

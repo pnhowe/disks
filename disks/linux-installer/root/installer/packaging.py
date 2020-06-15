@@ -32,14 +32,15 @@ def configSources( install_root, profile, value_map ):
 
         tmp = http_getfile( uri, proxy=proxy )
 
-        if manager_type == 'apt':
-          chroot_execute( '/usr/bin/apt-key add -', tmp.decode() )
-
         if 'key_file' in repo:
           key_file_path = '{0}/{1}'.format( install_root, repo[ 'key_file' ] )
           if not os.path.isdir( os.path.dirname( key_file_path ) ):
             os.makedirs( os.path.dirname( key_file_path ) )
+
           open( key_file_path, 'wb' ).write( tmp )
+
+        elif manager_type == 'apt':  # for binary keys, write it to a file ^
+          chroot_execute( '/usr/bin/apt-key add -', tmp.decode() )
 
         key_uris.append( uri )
 

@@ -53,8 +53,8 @@ fi
 
 echo "Creating Devices..."
 [ -d /run/udev ] || mkdir /run/udev
-/sbin/udevd --daemon --resolve-names=never --debug
-/sbin/udevadm trigger
+/sbin/udevd --daemon --resolve-names=never
+/sbin/udevadm trigger --action=add
 /sbin/udevadm settle
 
 echo "Setting Clock..."

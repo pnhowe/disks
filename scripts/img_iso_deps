@@ -8,5 +8,10 @@ fi
 if [ -r "templates/$1" ]
 then
   DISK=$( grep -m 1 '#DISK:' templates/$1 | sed s/'#DISK: '// )
-  echo images/pxe/$DISK.initrd images/pxe/$DISK.vmlinuz templates/$1
+  if [ "x$DISK" == "xlinux-installer" ]
+  then
+    echo images/pxe/$DISK.initrd images/pxe/$DISK.vmlinuz templates/$1 linux-installer-profiles.touch
+  else
+    echo images/pxe/$DISK.initrd images/pxe/$DISK.vmlinuz templates/$1
+  fi
 fi

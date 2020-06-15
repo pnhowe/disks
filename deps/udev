@@ -1,7 +1,7 @@
 #!/bin/sh
-#SOURCE: http://dev.gentoo.org/~blueness/eudev/eudev-3.2.5.tar.gz
-#FILE: eudev-3.2.5.tar.gz
-#HASH: 33449020554d184cddd8d751e3a74e7afdf82951
+#SOURCE: http://dev.gentoo.org/~blueness/eudev/eudev-3.2.9.tar.gz
+#FILE: eudev-3.2.9.tar.gz
+#HASH: f30e768bfa6a57a782fcef5456495cade79e2197
 
 set -e
 #set -x
@@ -12,7 +12,7 @@ build()
   tar --strip-components=1 -xzf $1
   sed s/have_kmod=no/have_kmod=yes/ -i configure
 
-  KMOD_CFLAGS=-I`pwd`/../kmod/libkmod KMOD_LIBS="-L`pwd`/../kmod/libkmod/.libs/ -lkmod" PKG_CONFIG_PATH=`pwd`/../kmod/libkmod ./configure --prefix= --bindir=/sbin --sbindir=/sbin --with-rootprefix= --with-rootlibdir=/lib --enable-kmod
+  KMOD_CFLAGS=-I`pwd`/../kmod/libkmod KMOD_LIBS="-L`pwd`/../kmod/libkmod/.libs/ -lkmod" PKG_CONFIG_PATH=`pwd`/../kmod/libkmod ./configure --prefix= --bindir=/sbin --sbindir=/sbin --with-rootprefix= --with-rootlibdir=/lib --sysconfdir=/etc --disable-manpages --enable-kmod
   make
 }
 
@@ -20,13 +20,14 @@ install()
 {
   DESTDIR=$1 make -C $3 install
   $1/sbin/udevadm hwdb --update --root=$1
-  sed s/#udev_log=\"info\"/udev_log=\"info\"/ -i $1/etc/udev/udev.conf
-  #rm -fr $1/etc/udev/hwdb.d
+  sed s/#udev_log=\"info\"/udev_log=\"debug\"/ -i $1/etc/udev/udev.conf
 
   # for now we are going to stick with the old network Interaface names
   rm $1/lib/udev/rules.d/80-net-name-slot.rules
 
   rm -fr $1/lib/pkgconfig
+  rm -fr $1/share/pkgconfig
+  rm -fr $1/include
 }
 
 binaries()

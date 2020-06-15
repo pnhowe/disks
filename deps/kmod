@@ -1,7 +1,7 @@
 #!/bin/sh
-#SOURCE: https://www.kernel.org/pub/linux/utils/kernel/kmod/kmod-25.tar.xz
-#FILE: kmod-25.tar.xz
-#HASH: 761ee76bc31f5db10d470dad607a5f9d68acef68
+#SOURCE: https://www.kernel.org/pub/linux/utils/kernel/kmod/kmod-27.tar.xz
+#FILE: kmod-27.tar.xz
+#HASH: 2c5d55ffe3a83e9de70bb3419fb1a2887489a65f
 
 set -e
 #set -x

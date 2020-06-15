@@ -46,4 +46,5 @@ after_cmd_3=ln -s ../usr/share/zoneinfo/UTC /etc/localtime
 [packages]
 bootloader_package=grub
 mdadm_package=mdadm
+bcache_package=bcache-tools
 lvm_package=lvm2

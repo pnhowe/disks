@@ -112,10 +112,13 @@ ROOTS_1 = $(filter-out $(firstword $(IMAGE_ROOT)), $(IMAGE_ROOT))
 ROOTS_2 = $(filter-out $(lastword $(IMAGE_ROOT)), $(IMAGE_ROOT))
 $(foreach pair, $(join $(ROOTS_2),$(addprefix :,$(ROOTS_1))),$(eval $(pair)))
 
-images/pxe/%.initrd: build.images/%.root
+images/pxe:
+	mkdir -p images/pxe
+
+images/pxe/%.initrd: images/pxe build.images/%.root
 	cd build.images/$* && find ./ | grep -v boot/vmlinuz | cpio --owner=+0:+0 -H newc -o | gzip -9 > $(PWD)/$@
 
-images/pxe/%.vmlinuz: build.images/%/boot/vmlinuz
+images/pxe/%.vmlinuz: images/pxe build.images/%/boot/vmlinuz
 	cp -f build.images/$*/boot/vmlinuz $@
 
 images/pxe/%: images/pxe/%.initrd images/pxe/%.vmlinuz
@@ -127,12 +130,15 @@ images/pxe/%: images/pxe/%.initrd images/pxe/%.vmlinuz
 img-targets:
 	@echo "Aviable Disk Image Targets: $(IMGS)"
 
+images/img:
+	mkdir -p images/img
+
 # the ugly sed mess...
 #    <disk>_<other> -> disks/<images>/<other>.img
 #    <disk> (ie no `_`) -> disks/<images>/_default.img
 images/img/%.img : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2.img'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.boot'/)
 SECONDEXPANSION:
-images/img/%.img: $$(shell scripts/img_iso_deps $$*)
+images/img/%.img: images/img $$(shell scripts/img_iso_deps $$*)
 	if [ -f templates/$* ];                                                                                                             \
 	then                                                                                                                                \
 	  mkdir -p build.images/templates/$*/extras ;                                                                                       \
@@ -151,12 +157,15 @@ images/img/%.img: $$(shell scripts/img_iso_deps $$*)
 iso-targets:
 	@echo "Aviable ISO Targets: $(ISOS)"
 
+images/iso:
+	mkdir -p images/iso
+
 # the ugly sed mess...
 #    <disk>_<other> -> disks/<images>/<other>.iso
 #    <disk> (ie no `_`) -> disks/<images>/_default.iso
 images/iso/%.iso : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2.img'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.boot'/)
 .SECONDEXPANSION:
-images/iso/%.iso: $$(shell scripts/img_iso_deps $$*)
+images/iso/%.iso: images/iso $$(shell scripts/img_iso_deps $$*)
 	if [ -f templates/$* ];                                                                                                             \
 	then                                                                                                                                \
 	  mkdir -p build.images/templates/$*/extras ;                                                                                       \
@@ -183,11 +192,12 @@ dist-clean: clean-deps clean-images clean-src clean-downloads pkg-dist-clean
 
 .PHONY:: all all-pxe all-imgs clean clean-src clean-downloads clean-deps clean-images dist-clean pxe-targets templates images/img/% images/iso/%
 
-contractor/linux-installer-profiles: $(shell find disks/linux-installer/profiles -type f -print)
+linux-installer-profiles.touch: $(shell find disks/linux-installer/profiles -type f -print)
 	mkdir -p  contractor/linux-installer-profiles/var/www/static/disks
 	for DISTRO in trusty xenial bionic; do tar -h -czf contractor/linux-installer-profiles/var/www/static/disks/ubuntu-$$DISTRO-profile.tar.gz -C disks/linux-installer/profiles/ubuntu/$$DISTRO . ; done
 	for DISTRO in buster; do tar -h -czf contractor/linux-installer-profiles/var/www/static/disks/debian-$$DISTRO-profile.tar.gz -C disks/linux-installer/profiles/debian/$$DISTRO . ; done
 	for DISTRO in 6 7; do tar -h -czf contractor/linux-installer-profiles/var/www/static/disks/centos-$$DISTRO-profile.tar.gz -C disks/linux-installer/profiles/centos/$$DISTRO . ; done
+	touch linux-installer-profiles.touch
 
 respkg-distros:
 	echo ubuntu-bionic
@@ -207,6 +217,7 @@ respkg-file:
 	echo $(shell ls *.respkg)
 
 respkg-clean:
+	$(RM) linux-installer-profiles.touch
 	$(RM) -fr resources/var/www/disks
 	$(RM) -fr contractor/linux-installer-profiles
 

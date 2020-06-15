@@ -51,4 +51,5 @@ after_cmd_7=systemctl enable systemd-journald
 [packages]
 bootloader_package=grub2
 mdadm_package=mdadm
+bcache_package=bcache-tools
 lvm_package=lvm2

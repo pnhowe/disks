@@ -1,7 +1,7 @@
 #!/bin/sh
-#SOURCE: https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.15.18.tar.xz
-#FILE: linux-4.15.18.tar.xz
-#HASH: 3d9caaa4abc3fa1522976b37edb193dac42df501
+#SOURCE: https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.19.128.tar.xz
+#FILE: linux-4.19.128.tar.xz
+#HASH: a96add8134be86baa5c91f9bcca505bd4d647f22
 
 set -e
 #set -x
