@@ -73,7 +73,7 @@ post_process()
     PACKAGES=""
   else
     KERNEL_CONSOLE="console=tty1 console=ttyS1,115200n8"
-    CONFIG_CONSOLE="/dev/ttyS1"
+    CONFIG_CONSOLE="ttyS1"
     PACKAGES=""
   fi
 

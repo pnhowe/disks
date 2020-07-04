@@ -46,23 +46,33 @@ class TargetWriter( Extension ):
     return nodes.CallBlock( self.call_method( '_write', args ), [], [], body ).set_lineno( lineno )
 
   def _write( self, filename, owner, mode, caller ):
+    file_mode = int( mode, 8 )
+    ( user, group ) = owner.split( '.' )
+    try:
+      file_owner = int( user )
+    except ValueError:
+      file_owner = pwd.getpwnam( user ).pw_uid
+
+    try:
+      file_group = int( group )
+    except ValueError:
+      file_group = pwd.getpwnam( group ).pw_uid
+
     self.environment.globals[ '_target_list' ].append( str( filename ) )
     if not self.environment.globals[ '_dry_run' ]:
       target_file = os.path.join( self.environment.globals[ '_root_dir' ], *( filename.split( '/' ) ) )
 
       if not os.path.exists( os.path.dirname( target_file ) ):
-        os.makedirs( os.path.dirname( target_file ) )
+        os.makedirs( os.path.dirname( target_file ), mode=( file_mode | ( ( file_mode & 0o444 ) >> 2 ) ) )  # copy the read bits and shift them over to exec
 
       fd = open( target_file, 'w' )
       fd.write( caller() )
       fd.close()
 
       if os.getuid() == 0:
-        ( user, group ) = owner.split( '.' )
+        os.chown( target_file, file_owner, file_group )
 
-        os.chown( target_file, pwd.getpwnam( user ).pw_uid, grp.getgrnam( group ).gr_gid )
-
-        os.chmod( target_file, int( mode, 8 ) )
+        os.chmod( target_file, file_mode )
       else:
         print( 'WARNING: not running as root, unable to set owner nor mode of target file' )
 

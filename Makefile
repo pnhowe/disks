@@ -23,7 +23,7 @@ ISOS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/iso/%.iso,images
 
 PWD = $(shell pwd)
 
-all: all-pxe
+all: build.images/build
 
 version:
 	echo $(VERSION)
@@ -37,6 +37,7 @@ clean-src:
 	$(MAKE) -C src clean
 	$(RM) build-src
 
+.PHONY:: all version build-src clean-src
 
 # external dependancy targets
 build.deps:
@@ -87,6 +88,8 @@ images:
 clean-images:
 	$(RM) -r build.images
 	$(RM) -r images
+
+.PHONY:: clean-downloads clean-deps clean-images
 
 # pxe targets
 
@@ -203,7 +206,7 @@ respkg-distros:
 	echo ubuntu-bionic
 
 respkg-requires:
-	echo respkg build-essential libelf-dev bc zlib1g-dev libssl-dev gperf libreadline-dev libsqlite3-dev libbz2-dev liblzma-dev uuid-dev libdevmapper-dev libgcrypt-dev libgpg-error-dev libassuan-dev libksba-dev libnpth0-dev python3-dev python3-setuptools pkg-config libblkid-dev gettext python3-pip
+	echo respkg build-essential libelf-dev bc zlib1g-dev libssl-dev gperf libreadline-dev libsqlite3-dev libbz2-dev liblzma-dev uuid-dev libdevmapper-dev libgcrypt-dev libgpg-error-dev libassuan-dev libksba-dev libnpth0-dev python3-dev python3-setuptools pkg-config libblkid-dev gettext python3-pip bison flex
 
 respkg: all-pxe contractor/linux-installer-profiles
 	mkdir -p contractor/resources/var/www/static/pxe/disks

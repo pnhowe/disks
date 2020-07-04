@@ -101,10 +101,21 @@ partition_recipes[ 'bcache-var' ] = [
                                       { 'target': 0, 'mount_point': '/boot', 'size': 'boot' },
                                       { 'target': 0, 'mount_point': '/', 'size': '- swap' },
                                       { 'target': 0, 'type': 'swap', 'size': 'end' },
-                                      { 'target': 1, 'type': 'bcache', 'group': 0, 'size': 'end' },
-                                      { 'target': 2, 'type': 'empty', 'size': 'end' },
-                                      { 'bcache': 0, 'backing': '/dev/sdb1', 'mount_point': '/var', 'type': 'ext4', 'mode': 'writeback' }  # need a better way to refere to backing
+                                      { 'target': 1, 'type': 'bcache', 'group': 0, 'as': 'cache', 'size': 'end' },
+                                      { 'target': 2, 'type': 'bcache', 'group': 0, 'as': 'backing', 'size': 'end' },
+                                      { 'bcache': 0, 'mount_point': '/var', 'type': 'ext4', 'mode': 'writeback' }  # need a better way to refere to backing
                                   ]
+"""
+    { "target": 1, "type": "md", "group": 0, "size": "end" },
+    { "target": 2, "type": "md", "group": 0, "size": "end" },
+    { "target": 3, "type": "md", "group": 1, "size": "end" },
+    { "target": 4, "type": "md", "group": 1, "size": "end" },
+    { "target": 5, "type": "md", "group": 1, "size": "end" },
+    { "target": 6, "type": "md", "group": 1, "size": "end" },
+    { "md": 0, "level": 0, "type": "bcache", "group": 0, "as": "cache" },
+    { "md": 1, "level": 10, "type": "bcache", "group": 0, "as": "backing" },
+    { "bcache": 0, "mount_point": "/var/lib/vz", "type": "xfs", "mode": "writeback" }
+"""
 
 
 class FileSystemException( Exception ):
@@ -193,20 +204,20 @@ def _addRAID( id, member_list, md_type, meta_version ):
   return dev_name
 
 
-def _addBCache( id, backing_dev, cache_dev_list, mode ):  # until we find a way to get the device name from make-bcache, we hope that the ids start at 0 and incrament by one
-  if len( cache_dev_list ) < 1:
-    raise Exception( 'Cache device list is empty' )
+def _addBCache( id, backing_dev, cache_dev, mode ):  # until we find a way to get the device name from make-bcache, we hope that the ids start at 0 and incrament by one
+  dev_name = '/dev/bcache{0}'.format( id )
 
-  dev_name = 'bcache{0}'.format( id )
+  if not os.path.exists( '/sys/fs/bcache' ):
+    execute( '/sbin/modprobe bcache' )
 
-  execute( '/sbin/make-bcache --wipe-bcache {0} -B {1} -C {2}'.format( ( '--writeback' if mode == 'writeback' else '' ), backing_dev, ' '.join( cache_dev_list ) ) )
+  print( 'Creating bcache "{0}" with backing "{1}" and cache "{2}"...'.format( dev_name, backing_dev, cache_dev ) )
+
+  execute( '/sbin/make-bcache --wipe-bcache {0} -B {1} -C {2}'.format( ( '--writeback' if mode == 'writeback' else '' ), backing_dev, cache_dev ) )
 
   open( '/sys/fs/bcache/register', 'w' ).write( backing_dev )
+  open( '/sys/fs/bcache/register', 'w' ).write( cache_dev )
 
-  for cache_dev in cache_dev_list:
-    open( '/sys/fs/bcache/register', 'w' ).write( cache_dev )
-
-  return '/dev/' + dev_name
+  return dev_name
 
 
 def _mdSyncPercentange():
@@ -413,8 +424,9 @@ def partition( profile, value_map ):
     raise Exception( 'Not Enough Target Drives, need "{0}" found "{1}"'.format( max( targets ) + 1, len( target_drives ) ) )
 
   md_list = {}
-  bcache_list = {}
   pv_list = {}
+  bcache_cache_list = {}
+  bcache_backing_list = {}
 
   try:
     swap_size = swap_size / sum( [ 1 for i in recipe if 'type' in i and i[ 'type' ] == 'swap' ] )
@@ -528,10 +540,10 @@ def partition( profile, value_map ):
         md_list[ int( item[ 'group' ] ) ] = [ ( block_device, drive_map[ target_drive ] ) ]
 
     elif part_type == 'bcache':
-      try:
-        bcache_list[ int( item[ 'group' ] ) ].append( block_device )
-      except KeyError:
-        bcache_list[ int( item[ 'group' ] ) ] = [ ( block_device ) ]
+      if item[ 'as' ] == 'cache':
+        bcache_cache_list[ int( item[ 'group' ] ) ] = ( block_device )
+      elif item[ 'as' ] == 'backing':
+        bcache_backing_list[ int( item[ 'group' ] ) ] = ( block_device )
 
     elif part_type == 'pv':
       try:
@@ -584,6 +596,12 @@ def partition( profile, value_map ):
     if part_type == 'swap':
         filesystem_list.append( { 'type': 'swap', 'priority': priority, 'block_device': block_device } )
 
+    elif part_type == 'bcache':
+      if item[ 'as' ] == 'cache':
+        bcache_cache_list[ int( item[ 'group' ] ) ] = ( block_device )
+      elif item[ 'as' ] == 'backing':
+        bcache_backing_list[ int( item[ 'group' ] ) ] = ( block_device )
+
     elif 'mount_point' in item:
       if supportsTrim and part_type in FS_WITH_TRIM:
         options.append( 'discard' )
@@ -603,9 +621,7 @@ def partition( profile, value_map ):
     except KeyError:
       options = list( mounting_options )
 
-    block_list = bcache_list[ int( item[ 'bcache' ] ) ]
-
-    block_device = _addBCache( int( item[ 'bcache' ] ), item[ 'backing' ], block_list, item.get( 'mode', None ) )
+    block_device = _addBCache( int( item[ 'bcache' ] ), bcache_backing_list[ int( item[ 'bcache' ] ) ], bcache_cache_list[ int( item[ 'bcache' ] ) ], item.get( 'mode', None ) )
 
     if part_type == 'swap':
       filesystem_list.append( { 'type': 'swap', 'priority': priority, 'block_device': block_device } )
