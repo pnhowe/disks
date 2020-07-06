@@ -1,10 +1,10 @@
-build-src
+build-src.touch
 downloads
 build.deps
 build.images
 images
 
-contractor/linux-installer-profiles
+contractor/linux-installer-profiles.touch
 linux-installer-profiles.touch
 respkg
 *.respkg

@@ -12,9 +12,9 @@ install:
 	install -m 644 templates/config-curator/* $(DESTDIR)/var/lib/config-curator/templates/config-curator/
 
 ifeq (ubuntu, $(DISTRO))
-	./setup.py install --root $(DESTDIR) --install-purelib=/usr/lib/python3/dist-packages/ --prefix=/usr --no-compile -O0
+	./setup.py install --root=$(DESTDIR) --install-purelib=/usr/lib/python3/dist-packages/ --prefix=/usr --no-compile -O0
 else
-	./setup.py install --root $(DESTDIR) --prefix=/usr --no-compile -O0
+	./setup.py install --root=$(DESTDIR) --prefix=/usr --no-compile -O0
 endif
 
 ifeq (centos, $(DISTRO))

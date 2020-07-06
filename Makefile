@@ -29,15 +29,15 @@ version:
 	echo $(VERSION)
 
 # included source
-build-src:
+build-src.touch: $(shell find src -type f)
 	$(MAKE) -C src all
-	touch build-src
+	touch build-src.touch
 
 clean-src:
 	$(MAKE) -C src clean
-	$(RM) build-src
+	$(RM) build-src.touch
 
-.PHONY:: all version build-src clean-src
+.PHONY:: all version clean-src
 
 # external dependancy targets
 build.deps:
@@ -99,7 +99,7 @@ pxe-targets:
 	@echo "Aviable PXE Targets: $(PXES)"
 
 .SECONDEXPANSION:
-build.images/%.root: build.deps/build build-src disks/%/build_root $$(shell find disks/$$*/root/* -type f)
+build.images/%.root: build.deps/build build-src.touch disks/%/build_root $$(shell find disks/$$*/root -type f)
 	mkdir -p build.images/$*
 	cp -a rootfs/* build.images/$*
 	cp -a disks/$*/root/* build.images/$*
@@ -195,7 +195,7 @@ dist-clean: clean-deps clean-images clean-src clean-downloads pkg-dist-clean
 
 .PHONY:: all all-pxe all-imgs clean clean-src clean-downloads clean-deps clean-images dist-clean pxe-targets templates images/img/% images/iso/%
 
-linux-installer-profiles.touch: $(shell find disks/linux-installer/profiles -type f -print)
+contractor/linux-installer-profiles.touch: $(shell find disks/linux-installer/profiles -type f -print)
 	mkdir -p  contractor/linux-installer-profiles/var/www/static/disks
 	for DISTRO in trusty xenial bionic; do tar -h -czf contractor/linux-installer-profiles/var/www/static/disks/ubuntu-$$DISTRO-profile.tar.gz -C disks/linux-installer/profiles/ubuntu/$$DISTRO . ; done
 	for DISTRO in buster; do tar -h -czf contractor/linux-installer-profiles/var/www/static/disks/debian-$$DISTRO-profile.tar.gz -C disks/linux-installer/profiles/debian/$$DISTRO . ; done
@@ -208,7 +208,7 @@ respkg-distros:
 respkg-requires:
 	echo respkg build-essential libelf-dev bc zlib1g-dev libssl-dev gperf libreadline-dev libsqlite3-dev libbz2-dev liblzma-dev uuid-dev libdevmapper-dev libgcrypt-dev libgpg-error-dev libassuan-dev libksba-dev libnpth0-dev python3-dev python3-setuptools pkg-config libblkid-dev gettext python3-pip bison flex
 
-respkg: all-pxe contractor/linux-installer-profiles
+respkg: all-pxe contractor/linux-installer-profiles.touch
 	mkdir -p contractor/resources/var/www/static/pxe/disks
 	cp images/pxe/*.initrd contractor/resources/var/www/static/pxe/disks
 	cp images/pxe/*.vmlinuz contractor/resources/var/www/static/pxe/disks
