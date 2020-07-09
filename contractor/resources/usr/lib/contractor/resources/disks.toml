@@ -10,6 +10,7 @@
 [ structure.ubuntu-base.config_values ]
   installer_pxe = 'linux-installer'
   mirror_server = 'us.archive.ubuntu.com'
+  profile_url = 'http://static/disks/{{ distro }}-{{ distro_version }}-profile.tar.gz'
   config_host = 'http://contractor'
   bootstrap_source = 'http://{{ mirror_server }}/ubuntu'
   distro = 'ubuntu'
@@ -55,7 +56,7 @@
 [ structure.debian-base.config_values ]
   installer_pxe = 'linux-installer'
   mirror_server = 'ftp.us.debian.org'
-  profile_url = 'http://static/disks/{{ distro }}-{{ distro_version }}.tar.gz'
+  profile_url = 'http://static/disks/{{ distro }}-{{ distro_version }}-profile.tar.gz'
   config_host = 'http://contractor'
   bootstrap_source = 'http://{{ mirror_server }}/debian'
   distro = 'debian'
@@ -84,7 +85,7 @@
 [ structure.centos-base.config_values ]
   installer_pxe = 'linux-installer'
   mirror_server = 'mirror.centos.org'
-  profile_url = 'http://static/disks/{{ distro }}-{{ distro_version }}.tar.gz'
+  profile_url = 'http://static/disks/{{ distro }}-{{ distro_version }}-profile.tar.gz'
   config_host = 'http://contractor'
   bootstrap_source = 'http://{{ mirror_server }}/centos/'
   distro = 'centos'
@@ -124,7 +125,6 @@ kernel {{ __pxe_location }}disks/utility.vmlinuz interface_mac={{ _provisioning_
 initrd {{ __pxe_location }}disks/utility.initrd
 boot
 '''
-
   template = '# Utility'
 
 [ pxe.bootstrap ]
@@ -135,7 +135,6 @@ kernel {{ __pxe_location }}disks/bootstrap.vmlinuz {% if _provisioning_interface
 initrd {{ __pxe_location }}disks/bootstrap.initrd
 boot
 '''
-
   template = '# Bootstrap'
 
 [ pxe.set-rtc ]
@@ -145,7 +144,6 @@ kernel {{ __pxe_location }}disks/set-rtc.vmlinuz interface_mac={{ _provisioning_
 initrd {{ __pxe_location }}disks/set-rtc.initrd
 boot
 '''
-
   template = '# Set RTC'
 
 [ pxe.linux-installer ]
@@ -155,8 +153,9 @@ kernel {{ __pxe_location }}disks/linux-installer.vmlinuz interface_mac={{ _provi
 initrd {{ __pxe_location }}disks/linux-installer.initrd
 boot
 '''
-  template = '# Linux Installer
-PROFILE_URL_LIST="{{ profile_url }} {{ extra_template_list|join( ' ' ) }}"'
+  template = '''# Linux Installer
+PROFILE_URL_LIST="{{ profile_url }} {{ extra_template_list|join( ' ' ) }}"
+'''
 
 [ pxe.disk-wipe ]
   description = 'T3kton Disks - Disk Wipe'

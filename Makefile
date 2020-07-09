@@ -206,14 +206,14 @@ respkg-distros:
 	echo ubuntu-bionic
 
 respkg-requires:
-	echo respkg build-essential libelf-dev bc zlib1g-dev libssl-dev gperf libreadline-dev libsqlite3-dev libbz2-dev liblzma-dev uuid-dev libdevmapper-dev libgcrypt-dev libgpg-error-dev libassuan-dev libksba-dev libnpth0-dev python3-dev python3-setuptools pkg-config libblkid-dev gettext python3-pip bison flex
+	echo respkg fakeroot build-essential libelf-dev bc zlib1g-dev libssl-dev gperf libreadline-dev libsqlite3-dev libbz2-dev liblzma-dev uuid-dev libdevmapper-dev libgcrypt-dev libgpg-error-dev libassuan-dev libksba-dev libnpth0-dev python3-dev python3-setuptools pkg-config libblkid-dev gettext python3-pip bison flex libkmod-dev
 
 respkg: all-pxe contractor/linux-installer-profiles.touch
 	mkdir -p contractor/resources/var/www/static/pxe/disks
 	cp images/pxe/*.initrd contractor/resources/var/www/static/pxe/disks
 	cp images/pxe/*.vmlinuz contractor/resources/var/www/static/pxe/disks
-	cd contractor && respkg -b ../disks-contractor_$(VERSION).respkg -n disks-contractor -e $(VERSION) -c "Disks for Contractor" -t load_resources.sh -d resources -s contractor-os-base
-	cd contractor && respkg -b ../disks-linux-installer-profiles_$(VERSION).respkg -n disks-linux-installer-profiles -e $(VERSION) -c "Disks Linux Installer Profiles" -t load_linux-installer-profiles.sh -d linux-installer-profiles
+	cd contractor && fakeroot respkg -b ../disks-contractor_$(VERSION).respkg -n disks-contractor -e $(VERSION) -c "Disks for Contractor" -t load_resources.sh -d resources -s contractor-os-base
+	cd contractor && fakeroot respkg -b ../disks-linux-installer-profiles_$(VERSION).respkg -n disks-linux-installer-profiles -e $(VERSION) -c "Disks Linux Installer Profiles" -t load_linux-installer-profiles.sh -d linux-installer-profiles
 	touch respkg
 
 respkg-file:

@@ -380,6 +380,7 @@ fi
 
 if [ "x$MEDIA_UUID" != "x" ]
 then
+  echo "Mounting '$MEDIA_UUID' to /media..."
   mkdir /media
   modprobe ext2 ext3 ext4 vfat
   /sbin/udevadm trigger
@@ -392,6 +393,7 @@ then
   fi
 elif [ "x$MEDIA_LABEL" != "x" ]
 then
+  echo "Mounting '$MEDIA_LABEL' to /media..."
   mkdir /media
   modprobe ext2 ext3 ext4 vfat
   /sbin/udevadm trigger
@@ -418,6 +420,7 @@ fi
 
 if [ "x$CONFIG_SRC" == "xlocal" ]
 then
+  echo "Using Local Config..."
   if [ -r /media/config.json ]
   then
     export contractor_host="file://media/config.json"
@@ -429,15 +432,21 @@ then
     error_happened
   fi
 
+  if [ -r /media/config ]
+  then
+    cp /media/config /config
+  fi
+
 elif [ "x$CONFIG_SRC" == "xremote" ]
 then
+  echo "Getting Remote Config from '$CONFIG_REMOTE_URL'..."
   if [ "$NO_IP" == "1" ]
   then
     echo "No IP to get config with!"
     error_happened
   fi
 
-  wget $CONFIG_REMOTE_URL -o config
+  wget -q -O /config $CONFIG_REMOTE_URL
 
   export contractor_host=$CONTRACTOR_HOST
   export config_uuid=$CONFIG_UUID

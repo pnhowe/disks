@@ -9,6 +9,7 @@ linux-installer-profiles.touch
 respkg
 *.respkg
 contractor/resources/var
+contractor/linux-installer-profiles
 
 *.pyc
 __pycache__

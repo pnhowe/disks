@@ -8,7 +8,7 @@ then
   . /config
   for URL in $PROFILE_URL_LIST
   do
-    wget -O - $URL | tar -C / -xz
+    wget -q -O- $URL | tar -C / -xz
   done
 fi
 
