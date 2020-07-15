@@ -48,6 +48,13 @@
   distro_version = 'bionic'
   azure_image = { 'publisher' = 'Canonical', 'offer' = 'UbuntuServer', 'sku' = '18.04-LTS', 'version' = 'latest' }
 
+[ structure.ubuntu-focal-base ]
+  description = 'Base Ubuntu Focal Fossa (20.04 LTS)'
+  parents = [ 'ubuntu-base' ]
+[ structure.ubuntu-focal-base.config_values ]
+  distro_version = 'focal'
+  azure_image = { 'publisher' = 'Canonical', 'offer' = 'UbuntuServer', 'sku' = '20.04-LTS', 'version' = 'latest' }
+
 # Debian
 [ structure.debian-base ]
   description = 'Base Debian'
