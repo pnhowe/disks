@@ -19,6 +19,7 @@ prefix_2=proc  /proc  proc  defaults  0  0
 [bootstrap]
 type=debbootstrap
 distro=buster
+packages=gnupg
 
 [packaging]
 manager_type=apt
@@ -32,13 +33,13 @@ selection_6=console-setup   console-setup/fontsize-text47    select 16
 selection_7=console-setup   console-setup/charmap47          select UTF-8
 selection_8=grub-pc         grub-pc/install_devices          multiselect {{ _installer.filesystem.boot_drives|join( ' ' ) }}
 selection_9=grub-pc         grub-pc/install_devices_disks_changed multiselect {{ _installer.filesystem.boot_drives|join( ' ' ) }}
-selection_10=grub-pc         grub-pc/install_devices_empty    boolean true
-selection_11=grub-pc         grub-pc/timeout                  string 5
+selection_10=grub-pc        grub-pc/install_devices_empty    boolean true
+selection_11=grub-pc        grub-pc/timeout                  string 5
 selection_12=grub-pc        grub2/linux_cmdline_default      string
 selection_13=grub-pc        grub-pc/hidden_timeout           boolean false
 prebase_cmd_1=/usr/sbin/dpkg-reconfigure -f noninteractive tzdata
 # can't find the "standard" package, must of been deprocated at some point, here are some of the packages from tasksel --task-packages standard  TODO: mabey at some point we do tasksel instead of the base package
-base=python pciutils hdparm file locale
+base=python pciutils hdparm file locales
 #base=standard
 packages=resolvconf console-setup
 source_templates=sources,apt

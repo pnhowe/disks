@@ -1,25 +1,99 @@
-{% target '/etc/netplan/20-installer.yaml' %}# Auto Generated During Install
+{% set global_ns = namespace( table_id=100 ) %}
+{% set pre_process_ns = namespace( gw_count=0 ) %}
+{% for interface_name in _interface_map %}
+  {% if interface_name != 'ipmi' %}
+    {% set interface = _interface_map[ interface_name ] %}
+    {% for tmpaddr in interface.address_list %}
+      {% if tmpaddr.gateway %}{% set pre_process_ns.gw_count = pre_process_ns.gw_count + 1 %}{% endif %}
+    {% endfor %}
+  {% endif %}
+{% endfor %}
+{% if pre_process_ns.gw_count > 1 %}
+  {% set do_pbr = true %}
+{% else %}
+  {% set do_pbr = false %}
+{% endif %}
+
+
+{%- target '/etc/netplan/20-installer.yaml' -%}
+# Auto Generated During Install
 
 network:
   version: 2
   renderer: networkd
   ethernets:
-{% for interface_name in _interface_map %}{% if interface_name != 'ipmi' %}{% set interface = _interface_map[ interface_name ] %}{% if interface.address_list %}
+{%- for interface_name in _interface_map -%}
+  {%- if interface_name != 'ipmi' -%}
+    {%- set interface = _interface_map[ interface_name ] %}
+
     {{ interface_name }}:
       match:
         macaddress: {{ interface.mac }}
-#      set-name: {{ interface_name }}  # when https://bugs.launchpad.net/netplan/+bug/1768827 is resolved we should be able to re-enable this line
-{% if interface.mtu %}      mtu: {{ interface.mtu }}{% endif %}
-{% set address = interface.address_list[0] %}
-{% if address.address == 'dhcp' %}      dhcp4: yes
+      #set-name: {{ interface_name }}  # need netplay 0.96 or better, see https://bugs.launchpad.net/netplan/+bug/1770082
+    {%- if interface.mtu %}
+      mtu: {{ interface.mtu }}
+    {%- endif -%}
+    {%- if interface.address_list %}
+      {%- if interface.address_list[0].address == 'dhcp' %}
+      dhcp4: yes
       dhcp6: no
-{% else %}      dhcp4: no
+      {%- else -%}
+        {%- set addr_loop_ns = namespace( has_primary=false ) -%}
+        {%- set route_list = [] -%}
+        {%- set gateway_list = [] -%}
+        {%- for tmpaddr in interface.address_list -%}
+          {%- for route in tmpaddr.route_list %}{% do route_list.append( route ) %}{% endfor -%}
+          {%- if tmpaddr.primary %}{% set addr_loop_ns.has_primary = true %}{% endif -%}
+          {%- do gateway_list.append( tmpaddr.gateway ) -%}
+        {%- endfor -%}
+        {%- if gateway_list|length == 1 -%}
+          {% set default_gateway = gateway_list[0] -%}
+        {%- else -%}
+          {%- for gateway in gateway_list -%}
+            {%- set route = dict( route='0.0.0.0/0', gateway=gateway ) -%}
+            {%- do route_list.append( route ) -%}
+          {%- endfor -%}
+        {%- endif -%}
+        {%- set has_primary = addr_loop_ns.has_primary %}
+      dhcp4: no
       dhcp6: no
       addresses: [ {% for tmpaddr in interface.address_list %}{{ tmpaddr.address }}/{{ tmpaddr.prefix }} {% endfor %} ]
-{% if address.gateway %}      gateway4: {{ address.gateway }}{% endif %}
-{% if address.primary %}      nameservers:
-        search: [{{ dns_search|join( ', ' ) }}]
-        addresses: [{{ dns_servers|join( ', ' ) }}] {% endif %}
-{% endif %}
-{% endif %}{% endif %}{% endfor %}
+        {%- if has_primary -%}
+          {%- if default_gateway %}
+      gateway4: {{ default_gateway }}
+          {%- endif -%}
+        {%- endif -%}
+        {%- if do_pbr -%}
+          {%- if gateway_list %}
+      routing-policy:
+          {%- for tmpaddr in interface.address_list -%}
+            {%- set global_ns.table_id = global_ns.table_id + 1 -%}
+            {%- if tmpaddr.gateway %}
+            {%- set route = dict( route=tmpaddr.subnet + '/' ~ tmpaddr.prefix, gateway=tmpaddr.gateway, table=global_ns.table_id ) -%}
+            {%- do route_list.append( route ) %}
+        - from: {{ tmpaddr.subnet }}/{{ tmpaddr.prefix }}
+          table: {{ global_ns.table_id }}
+              {%- endif -%}
+            {%- endfor -%}
+          {%- endif -%}
+        {%- endif -%}
+        {% if route_list %}
+      routes:
+          {%- for route in route_list %}
+        - to: {{ route.route }}
+          via: {{ route.gateway }}
+            {%- if route.table %}
+          table: {{ route.table }}
+            {%- endif -%}
+          {%- endfor -%}
+        {%- endif %}
+        {%- if has_primary %}
+      nameservers:
+        search: [ {{ dns_search|join( ', ' ) }} ]
+        addresses: [ {{ dns_servers|join( ', ' ) }} ]
+        {%- endif -%}
+      {%- endif -%}
+    {%- endif -%}
+  {%- endif -%}
+{%- endfor %}
 {% endtarget %}
