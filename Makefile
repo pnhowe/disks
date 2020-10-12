@@ -189,7 +189,7 @@ templates:
 
 # clean up
 
-clean: clean-deps clean-images clean-src respkg-clean pkg-clean
+clean: clean-deps clean-images clean-src respkg-clean pkg-clean resource-clean
 
 dist-clean: clean-deps clean-images clean-src clean-downloads pkg-dist-clean
 
@@ -225,6 +225,27 @@ respkg-clean:
 	$(RM) -fr contractor/linux-installer-profiles
 
 .PHONY:: respkg-distros respkg-requires respkg respkg-file respkg-clean
+
+resource-distros:
+	echo ubuntu-bionic
+
+resource-requires:
+	echo build-essential AppImage
+
+resource:
+	# make an AppImage of the linux-installer, this will run on the host os that is close to the target os
+  # this should take a profile and a path, and make a cpio of the installed OS
+	# do the bootstrap, config, packag install and update
+	# output a profile that installs the image finishes the config and installs the bootloader
+	touch resource
+
+resource-file:
+	echo $(shell ls *.appimage)
+
+resource-clean:
+
+
+.PHONY:: resource-distros resource-requires resource resource-file resource-clean
 
 # MCP targets
 

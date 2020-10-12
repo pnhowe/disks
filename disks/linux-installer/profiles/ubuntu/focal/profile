@@ -53,6 +53,7 @@ base_cmd=/usr/sbin/netplan apply
 
 [booting]
 bootloader_templates=grub
+bootloader_config=/usr/sbin/update-grub
 bootloader_install=/usr/sbin/grub-install {0}
 
 [general]

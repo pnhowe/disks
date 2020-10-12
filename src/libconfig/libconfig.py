@@ -6,7 +6,7 @@ import hashlib
 import pwd
 import grp
 from datetime import datetime
-from libconfig.jinja2 import FileSystemLoader, Environment, nodes
+from libconfig.jinja2 import FileSystemLoader, Environment, nodes, TemplateSyntaxError
 from libconfig.jinja2.ext import Extension, do as do_ext
 
 
@@ -234,7 +234,10 @@ class Config():
     eng = Environment( loader=FileSystemLoader( os.path.join( self.template_dir, package ) ), extensions=[ TargetWriter, do_ext ] )
     eng.filters[ 'unique_list' ] = unique_list
     eng.globals.update( _dry_run=True )
-    tmpl = eng.get_template( '{0}.tpl'.format( template ) )
+    try:
+      tmpl = eng.get_template( '{0}.tpl'.format( template ) )
+    except TemplateSyntaxError as e:
+      raise ValueError( 'Error paring template: "{0}" on line {1} in "{2}"'.format( e.message, e.lineno, e.filename ) )
     tmpl.render( value_map )
     return eng.globals[ '_target_list' ]
 
