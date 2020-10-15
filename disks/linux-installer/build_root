@@ -5,7 +5,6 @@ set -e
 . scripts/disk_functions
 
 ROOT_FS="linux-installer"
-MOD_MODE="yes"
 DEP_LIST="mdadm lvm2 parted e2fsprogs xfsprogs dosfstools gpgv debootstrap pkgdetails squashfs bcache-tools"
 SRC_LIST="libconfig libdrive"
 

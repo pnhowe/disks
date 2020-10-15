@@ -382,7 +382,6 @@ if [ "x$MEDIA_UUID" != "x" ]
 then
   echo "Mounting '$MEDIA_UUID' to /media..."
   mkdir /media
-  modprobe ext2 ext3 ext4 vfat
   /sbin/udevadm trigger
   /sbin/udevadm settle
   mount UUID=$MEDIA_UUID /media
@@ -395,7 +394,6 @@ elif [ "x$MEDIA_LABEL" != "x" ]
 then
   echo "Mounting '$MEDIA_LABEL' to /media..."
   mkdir /media
-  modprobe ext2 ext3 ext4 vfat
   /sbin/udevadm trigger
   /sbin/udevadm settle
   mount LABEL=$MEDIA_LABEL /media

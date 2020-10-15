@@ -6,10 +6,8 @@ PWD=$(pwd)
 
 install_base()
 {
-  #  $1 - "mod" if need module kernel
-
   $PWD/scripts/setup_base "$PWD/build.images/$ROOT_FS" "$PWD/src" "$PWD/build.deps"
-  $PWD/scripts/install_kernel "$PWD/build.images/$ROOT_FS" "$PWD/src" "$PWD/build.deps" $1
+  $PWD/scripts/install_kernel "$PWD/build.images/$ROOT_FS" "$PWD/src" "$PWD/build.deps"
 }
 
 install_dep()
@@ -60,12 +58,7 @@ get_binaries()
 
 install()
 {
-  if [ "x$MOD_MODE" = "xyes" ]
-  then
-    install_base "mod"
-  else
-    install_base
-  fi
+  install_base
 
   lib_list=""
 

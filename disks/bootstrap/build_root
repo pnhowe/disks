@@ -5,7 +5,6 @@ set -e
 . scripts/disk_functions
 
 ROOT_FS="bootstrap"
-MOD_MODE=""
 DEP_LIST="lldp ipmitool"
 SRC_LIST="libdrive libhardware"
 

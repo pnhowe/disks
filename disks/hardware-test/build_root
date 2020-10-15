@@ -5,7 +5,6 @@ set -e
 . scripts/disk_functions
 
 ROOT_FS="hardware-test"
-MOD_MODE=""
 DEP_LIST=""
 SRC_LIST=""
 
