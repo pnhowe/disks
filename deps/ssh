@@ -9,7 +9,16 @@ set -e
 build()
 {
   tar --strip-components=1 -xzf $1
-  ./configure --prefix= --sysconfdir=/etc/ssh --with-md5-passwords --with-privsep-path=/var/empty
+  if [ "x$2" = "xx86_64" ]
+  then
+    ./configure --prefix= --sysconfdir=/etc/ssh --with-md5-passwords --with-privsep-path=/var/empty
+  elif [ "x$2" = "xarm" ]
+  then
+    ./configure --prefix= --sysconfdir=/etc/ssh --with-md5-passwords --with-privsep-path=/var/empty --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
+  elif [ "x$2" = "xarm64" ]
+  then
+    ./configure --prefix= --sysconfdir=/etc/ssh --with-md5-passwords --with-privsep-path=/var/empty --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+  fi
   make
 }
 

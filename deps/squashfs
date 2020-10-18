@@ -10,7 +10,16 @@ build()
 {
   tar --strip-components=1 -xzf $1
   sed s/'#XZ_SUPPORT = 1'/'XZ_SUPPORT = 1'/ -i squashfs-tools/Makefile
-  make -C squashfs-tools
+  if [ "x$2" = "xx86_64" ]
+  then
+    make -C squashfs-tools
+  elif [ "x$2" = "xarm" ]
+  then
+    make CC=arm-linux-gnueabihf-gcc -C squashfs-tools
+  elif [ "x$2" = "xarm64" ]
+  then
+    make CC=aarch64-linux-gnu-gcc -C squashfs-tools
+  fi
 }
 
 install()

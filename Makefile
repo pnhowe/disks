@@ -1,10 +1,13 @@
-VERSION := 0.5
+VERSION := 0.6
+
+# other arches: arm arm64
+ARCH = x86_64
 
 DEPS = $(shell ls deps)
 DISKS = $(shell ls disks)
 TEMPLATES = $(shell ls templates)
 DEP_DOWNLOADS = $(foreach dep,$(DEPS),build.deps/$(dep).download)
-DEP_BUILDS = $(foreach dep,$(DEPS),build.deps/$(dep).build)
+DEP_BUILDS = $(foreach dep,$(DEPS),build.deps/$(dep)-$(ARCH).build)
 IMAGE_ROOT = $(foreach disk,$(DISKS),build.images/$(disk).root)
 
 # now that we are embracing contractor fully, we don't need all the _default.pxe/*.pxe sutff, that is all in the contractor resource, just get a list of the disks, and that is our list of PXEs
@@ -65,9 +68,9 @@ build.deps/%.download: deps/%
 	fi
 	touch $@
 
-build.deps/%.build: deps/% build.deps/%.download
-	mkdir -p build.deps/$*
-	scripts/build_dep $* downloads/$(shell grep -m 1 '#FILE:' $< | sed s/'#FILE: '// )
+build.deps/%-$(ARCH).build: deps/% build.deps/%.download
+	mkdir -p build.deps/$*-$(ARCH)
+	scripts/build_dep $* build.deps/$*-$(ARCH) downloads/$(shell grep -m 1 '#FILE:' $< | sed s/'#FILE: '// ) $(ARCH)
 	touch $@
 
 clean-downloads:
@@ -205,8 +208,22 @@ contractor/linux-installer-profiles.touch: $(shell find disks/linux-installer/pr
 respkg-distros:
 	echo ubuntu-bionic
 
+#  sudo dpkg --add-architecture arm64 armhf
+# deb http://ports.ubuntu.com/ubuntu-ports bionic main universe multiverse
+# qemu-user-static
 respkg-requires:
-	echo respkg fakeroot build-essential libelf-dev bc zlib1g-dev libssl-dev gperf libreadline-dev libsqlite3-dev libbz2-dev liblzma-dev uuid-dev libdevmapper-dev libgcrypt-dev libgpg-error-dev libassuan-dev libksba-dev libnpth0-dev python3-dev python3-setuptools pkg-config libblkid-dev gettext python3-pip bison flex libkmod-dev
+	echo respkg fake-root bc gperf python3-dev python3-setuptools pkg-config libblkid-dev gettext python3-pip bison flex
+ifeq ($(ARCH),"x86_64")
+libelf-dev libreadline-dev libsqlite3-dev libbz2-dev libgcrypt-dev libassuan-dev libksba-dev libnpth0-dev
+
+	echo build-essential uuid-dev libblkid-dev libudev-dev libgpg-error-dev liblzma-dev zlib1g-dev libxml2-dev libdevmapper-dev libssl-dev
+endif
+ifeq ($(ARCH),"arm")
+	echo crossbuild-essential-armhf uuid-dev libblkid-dev libudev-dev libgpg-error-dev liblzma-dev zlib1g-dev libxml2-dev libdevmapper-dev libssl-dev
+endif
+ifeq ($(ARCH),"arm64")
+	echo crossbuild-essential-arm64
+endif
 
 respkg: all-pxe contractor/linux-installer-profiles.touch
 	mkdir -p contractor/resources/var/www/static/pxe/disks

@@ -7,11 +7,21 @@ set -e
 #set -x
 
 # sed is to fix a error introduced in gcc 7.1
+# would be nice to do the CROSS_COMPILE=arm-linux-gnueabihf- instad of CC=arm-linux-gnueabihf-gcc
 build()
 {
   tar --strip-components=1 -xJf $1
   sed 's@-Werror@@' -i Makefile
-  make
+  if [ "x$2" = "xx86_64" ]
+  then
+    make
+  elif [ "x$2" = "xarm" ]
+  then
+    make CC=arm-linux-gnueabihf-gcc
+  elif [ "x$2" = "xarm64" ]
+  then
+    make CC=aarch64-linux-gnu-gcc
+  fi
 }
 
 install()

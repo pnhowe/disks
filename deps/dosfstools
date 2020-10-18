@@ -4,12 +4,21 @@
 #HASH: 814e2d5842c62e328dfc8947178a0a4e45a1c028
 
 set -e
-#set -x
+set -x
 
 build()
 {
   tar --strip-components=1 -xJf $1
-  ./configure --prefix=
+  if [ "x$2" = "xx86_64" ]
+  then
+    ./configure --prefix=
+  elif [ "x$2" = "xarm" ]
+  then
+    ./configure --prefix= --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
+  elif [ "x$2" = "xarm64" ]
+  then
+    ./configure --prefix= --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+  fi
   make
 }
 

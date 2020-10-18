@@ -7,13 +7,26 @@ set -e
 #set -x
 
 # we don't need everything, so only these subdirs
-# lib2to3 is there b/c the install will not work with out it, going to remove that later
+# lib2to3 is there b/c the install will not work with out it, going to remove that during the install function
 SUBDIRS="encodings serial json config ctypes logging sqlite3 collections urllib email http asyncio concurrent concurrent/futures multiprocessing importlib lib2to3 time"
 
 build()
 {
   tar --strip-components=1 -xJf $1
-  ./configure --prefix=/ --enable-ipv6
+  # site is techinically only for arm/arm64
+  echo "ac_cv_file__dev_ptmx=yes
+ac_cv_file__dev_ptc=yes" > config.site
+  export CONFIG_SITE=config.site
+  if [ "x$2" = "xx86_64" ]
+  then
+    ./configure --prefix=/ --enable-ipv6
+  elif [ "x$2" = "xarm" ]
+  then
+     ./configure --prefix=/ --enable-ipv6 --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
+  elif [ "x$2" = "xarm64" ]
+  then
+    ./configure --prefix=/ --enable-ipv6 --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+  fi
   make python
   LIBSUBDIRS=$SUBDIRS make -e build_all
 }

@@ -36,7 +36,19 @@ build()
 
  	memset(&sb, 0, sizeof(struct cache_sb));
 PATCH_END
-  make
+  if [ "x$2" = "xx86_64" ]
+  then
+    make
+  elif [ "x$2" = "xarm" ]
+  then
+    export CC=arm-linux-gnueabihf-gcc
+
+
+    make
+  elif [ "x$2" = "xarm64" ]
+  then
+    make CROSS_COMPILE=aarch64-linux-gnu-
+  fi
 }
 
 install()

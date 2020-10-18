@@ -9,7 +9,20 @@ set -e
 build()
 {
   tar --strip-components=1 -xJf $1
-  cp ../../configs/linux .config
-  make
-  make modules
+  if [ "x$2" = "xx86_64" ]
+  then
+    cp ../../configs/linux.x86_64 .config
+    make
+    make modules
+  elif [ "x$2" = "xarm" ]
+  then
+    cp ../../configs/linux.arm .config
+    make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf-
+    make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- modules
+  elif [ "x$2" = "xarm64" ]
+  then
+    cp ../../configs/linux.arm64 .config
+    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
+    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- modules
+  fi
 }

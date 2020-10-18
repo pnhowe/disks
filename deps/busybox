@@ -10,5 +10,15 @@ build()
 {
   tar --strip-components=1 -xjf $1
   cp ../../configs/busybox .config
-  make
+  if [ "x$2" = "xx86_64" ]
+  then
+    make
+  elif [ "x$2" = "xarm" ]
+  then
+    make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf-
+  elif [ "x$2" = "xarm64" ]
+  then
+    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
+  fi
+  echo $2
 }

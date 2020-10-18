@@ -9,7 +9,16 @@ set -e
 build()
 {
   cp $1 .
-  gcc -O3 -Wall -o pkgdetails pkgdetails.c
+  if [ "x$2" = "xx86_64" ]
+  then
+    gcc -O3 -Wall -o pkgdetails pkgdetails.c
+  elif [ "x$2" = "xarm" ]
+  then
+    arm-linux-gnueabihf-gcc -O3 -Wall -o pkgdetails pkgdetails.c
+  elif [ "x$2" = "xarm64" ]
+  then
+    aarch64-linux-gnu-gcc -O3 -Wall -o pkgdetails pkgdetails.c
+  fi
 }
 
 install()

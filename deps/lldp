@@ -9,7 +9,16 @@ set -e
 build()
 {
   tar --strip-components=1 -xzf $1
-  ./configure --with-json --with-privsep-user=root --with-privsep-group=root --with-privsep-chroot=/ --prefix=/
+  if [ "x$2" = "xx86_64" ]
+  then
+    ./configure --with-json --with-privsep-user=root --with-privsep-group=root --with-privsep-chroot=/ --prefix=/
+  elif [ "x$2" = "xarm" ]
+  then
+    ./configure --with-json --with-privsep-user=root --with-privsep-group=root --with-privsep-chroot=/ --prefix=/ --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
+  elif [ "x$2" = "xarm64" ]
+  then
+    ./configure --with-json --with-privsep-user=root --with-privsep-group=root --with-privsep-chroot=/ --prefix=/ --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+  fi
   make
 }
 
