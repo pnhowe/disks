@@ -19,7 +19,7 @@ build()
   then
     ./configure --prefix= --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
-  make
+  make $3
 }
 
 install()

@@ -7,9 +7,10 @@ set -e
 # $2 - build dir
 # $3 - path to the downloaded source archive
 # $4 - arch
+# $5 - make paramater
 
-. deps/$1
+. deps/*_$1
 
 cd $2
 
-build ../../$3 $4
+build ../../$3 $4 "$5"

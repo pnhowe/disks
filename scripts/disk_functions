@@ -14,7 +14,7 @@ install_dep()
 {
   #  $1 - name of dep
 
-  . $PWD/deps/$1
+  . $PWD/deps/*_$1
 
   install "$PWD/build.images/$ROOT_FS" "$PWD/src" "$PWD/build.deps/$1"
 
@@ -51,7 +51,7 @@ get_binaries()
 {
   #  $1 - name of dep
 
-  . $PWD/deps/$1
+  . $PWD/deps/*_$1
 
   binaries "$PWD/build.images/$ROOT_FS"
 }

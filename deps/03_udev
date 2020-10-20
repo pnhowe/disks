@@ -6,7 +6,6 @@
 set -e
 #set -x
 
-# hopfully kmod is built first, may need to pin an order in the Makefile
 build()
 {
   tar --strip-components=1 -xzf $1
@@ -30,7 +29,7 @@ build()
     export PKG_CONFIG_PATH=`pwd`/../kmod-arm64/libkmod
     ./configure --prefix= --bindir=/sbin --sbindir=/sbin --with-rootprefix= --with-rootlibdir=/lib --sysconfdir=/etc --disable-manpages --enable-kmod --disable-selinux --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
-  make
+  make $3
 }
 
 install()

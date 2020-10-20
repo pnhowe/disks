@@ -12,13 +12,12 @@ build()
   cp ../../configs/busybox .config
   if [ "x$2" = "xx86_64" ]
   then
-    make
+    make $3
   elif [ "x$2" = "xarm" ]
   then
-    make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf-
+    make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- $3
   elif [ "x$2" = "xarm64" ]
   then
-    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
+    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- $3
   fi
-  echo $2
 }

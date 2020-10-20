@@ -19,5 +19,5 @@ build()
   then
     ./configure --prefix=/ --with-xz --with-zlib --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
-  make
+  make $3
 }

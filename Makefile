@@ -3,7 +3,7 @@ VERSION := 0.6
 # other arches: arm arm64
 ARCH = x86_64
 
-DEPS = $(shell ls deps)
+DEPS = $(foreach item,$(sort $(shell ls deps)),$(lastword $(subst _, ,$(item))))
 DISKS = $(shell ls disks)
 TEMPLATES = $(shell ls templates)
 DEP_DOWNLOADS = $(foreach dep,$(DEPS),build.deps/$(dep).download)
@@ -25,6 +25,11 @@ IMGS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/img/%.img,images
 ISOS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/iso/%.iso,images/iso/$(disk)_%,$(patsubst images/iso/_default.boot,images/iso/$(disk),$(patsubst disks/$(disk)/%,images/iso/%,$(wildcard disks/$(disk)/*.iso))))), $(item).iso)
 
 PWD = $(shell pwd)
+
+JOBS := $(or $(shell cat /proc/$$PPID/cmdline | sed -n 's/.*\(-j\|--jobs=\).\?\([0-9]\+\).*/\2/p'),1)
+
+debug:
+	echo $(JOBS)
 
 all: build.images/build
 
@@ -52,11 +57,11 @@ downloads:
 build.deps/download: build.deps downloads $(DEP_DOWNLOADS)
 	touch $@
 
-build.deps/build: build.deps/download $(DEP_BUILDS)
+build.deps/$(ARCH)-build: build.deps/download | $(DEP_BUILDS)
 	touch $@
 
 build.deps/%.download : FILE = $(shell grep -m 1 '#FILE:' $< | sed s/'#FILE: '// )
-build.deps/%.download: deps/%
+build.deps/%.download: deps/*_%
 	@if test "$$( sha1sum downloads/$(FILE) 2> /dev/null | cut -d ' ' -f 1 )" != "$(shell grep -m 1 '#HASH:' $< | sed s/'#HASH: '// )";  \
 	then                                                                                                                                 \
 	  wget $(shell grep -m 1 '#SOURCE:' $< | sed s/'#SOURCE: '// ) -O downloads/$(FILE) --progress=bar:force:noscroll --show-progress;   \
@@ -68,9 +73,9 @@ build.deps/%.download: deps/%
 	fi
 	touch $@
 
-build.deps/%-$(ARCH).build: deps/% build.deps/%.download
+build.deps/%-$(ARCH).build: deps/*_% build.deps/%.download
 	mkdir -p build.deps/$*-$(ARCH)
-	scripts/build_dep $* build.deps/$*-$(ARCH) downloads/$(shell grep -m 1 '#FILE:' $< | sed s/'#FILE: '// ) $(ARCH)
+	scripts/build_dep $* build.deps/$*-$(ARCH) downloads/$(shell grep -m 1 '#FILE:' $< | sed s/'#FILE: '// ) $(ARCH) "-j$(JOBS)"
 	touch $@
 
 clean-downloads:
@@ -102,7 +107,7 @@ pxe-targets:
 	@echo "Aviable PXE Targets: $(PXES)"
 
 .SECONDEXPANSION:
-build.images/%.root: build.deps/build build-src.touch disks/%/build_root $$(shell find disks/$$*/root -type f)
+build.images/%.root: build.deps/$(ARCH)-build build-src.touch disks/%/build_root $$(shell find disks/$$*/root -type f)
 	mkdir -p build.images/$*
 	cp -a rootfs/* build.images/$*
 	cp -a disks/$*/root/* build.images/$*

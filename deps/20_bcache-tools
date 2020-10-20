@@ -38,16 +38,13 @@ build()
 PATCH_END
   if [ "x$2" = "xx86_64" ]
   then
-    make
+    make $3
   elif [ "x$2" = "xarm" ]
   then
-    export CC=arm-linux-gnueabihf-gcc
-
-
-    make
+    make CC=arm-linux-gnueabihf-gcc $3
   elif [ "x$2" = "xarm64" ]
   then
-    make CROSS_COMPILE=aarch64-linux-gnu-
+    make CC=aarch64-linux-gnu-gcc $3
   fi
 }
 

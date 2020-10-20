@@ -9,7 +9,7 @@ set -e
 build()
 {
   tar --strip-components=1 -xzf $1
-  make
+  make $3
   # these two are so we don't have to sudo to install, the ownership get's washed out later anyway
   sed s/"install -o root -g root -m 0644"/"install -m 0644"/ -i Makefile
   sed s/"chown root:root"/"#chown root:root"/ -i Makefile

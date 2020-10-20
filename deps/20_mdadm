@@ -14,13 +14,13 @@ build()
   sed 's@-Werror@@' -i Makefile
   if [ "x$2" = "xx86_64" ]
   then
-    make
+    make $3
   elif [ "x$2" = "xarm" ]
   then
-    make CC=arm-linux-gnueabihf-gcc
+    make CC=arm-linux-gnueabihf-gcc $3
   elif [ "x$2" = "xarm64" ]
   then
-    make CC=aarch64-linux-gnu-gcc
+    make CC=aarch64-linux-gnu-gcc $3
   fi
 }
 

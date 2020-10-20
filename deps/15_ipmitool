@@ -150,7 +150,7 @@ build()
  }
 +
 PATCH_END
-  make
+  make $3
 }
 
 install()

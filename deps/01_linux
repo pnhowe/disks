@@ -12,17 +12,17 @@ build()
   if [ "x$2" = "xx86_64" ]
   then
     cp ../../configs/linux.x86_64 .config
-    make
-    make modules
+    make $3
+    make modules $3
   elif [ "x$2" = "xarm" ]
   then
     cp ../../configs/linux.arm .config
-    make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf-
-    make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- modules
+    make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- $3
+    make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- modules $3
   elif [ "x$2" = "xarm64" ]
   then
     cp ../../configs/linux.arm64 .config
-    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
-    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- modules
+    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- $3
+    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- modules $3
   fi
 }

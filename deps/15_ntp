@@ -21,7 +21,7 @@ build()
   fi
   # we really don't need nor want the dns_sd aka the zeroconfig/bonjour auto config stuff
   sed 's%#define HAVE_DNSREGISTRATION 1%//#define HAVE_DNSREGISTRATION 1%' -i config.h
-  make
+  make $3
 }
 
 install()

@@ -12,13 +12,13 @@ build()
   sed s/'#XZ_SUPPORT = 1'/'XZ_SUPPORT = 1'/ -i squashfs-tools/Makefile
   if [ "x$2" = "xx86_64" ]
   then
-    make -C squashfs-tools
+    make -C squashfs-tools $3
   elif [ "x$2" = "xarm" ]
   then
-    make CC=arm-linux-gnueabihf-gcc -C squashfs-tools
+    make CC=arm-linux-gnueabihf-gcc -C squashfs-tools $3
   elif [ "x$2" = "xarm64" ]
   then
-    make CC=aarch64-linux-gnu-gcc -C squashfs-tools
+    make CC=aarch64-linux-gnu-gcc -C squashfs-tools $3
   fi
 }
 
