@@ -6,17 +6,27 @@ set -e
 # $1 - target root fs dir
 # $2 - source dir
 # $3 - dep build dir
+# $4 - arch
 
 mkdir -p $1/boot
 
-cp "$3/linux/arch/x86_64/boot/bzImage" $1/boot/vmlinuz
+if [ "x$4" = "xx86_64" ]
+then
+  cp "$3/linux-x86_64/arch/x86_64/boot/bzImage" $1/boot/vmlinuz
+elif [ "x$4" = "xarm" ]
+then
+  cp "$3/linux-arm/arch/arm/boot/gzImage" $1/boot/vmlinuz
+elif [ "x$4" = "xarm64" ]
+then
+  cp "$3/linux-arm64/arch/arm64/boot/gzImage" $1/boot/vmlinuz
+fi
 
-cp -f $( realpath $3/kmod/libkmod/.libs/libkmod.so ) $1/lib
+cp -f $( realpath $3/kmod-$4/libkmod/.libs/libkmod.so ) $1/lib
 
-cd $3/linux/ && INSTALL_MOD_PATH=$1 make modules_install
+cd $3/linux-$4/ && INSTALL_MOD_PATH=$1 make modules_install
 rm $1/lib/modules/*/build
 rm $1/lib/modules/*/source
-cp -f $3/kmod/tools/kmod $1/sbin
+cp -f $3/kmod-$4/tools/kmod $1/sbin
 ln -sf kmod $1/sbin/lsmod
 ln -sf kmod $1/sbin/rmmod
 ln -sf kmod $1/sbin/insmod

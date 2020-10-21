@@ -1,14 +1,15 @@
 #!/bin/sh
 
 set -e
-#set -x
+set -x
 
 # $1 - target root fs dir
 # $2 - source dir
 # $3 - dep build dir
+# $4 - arch
 
 # install busybox
-cp $3/busybox/busybox $1/bin
+cp $3/busybox-$4/busybox $1/bin
 mkdir -p $1/usr/bin
 ln -sf /bin/env $1/usr/bin/env
 

@@ -2,11 +2,7 @@
 
 set -e
 
-. scripts/disk_functions
-
-ROOT_FS="utility"
 DEP_LIST="ssh lldp mdadm lvm2 parted e2fsprogs xfsprogs dosfstools gpgv squashfs ipmitool ntp bcache-tools"
 SRC_LIST="libdrive"
 
-install
 # add EFI tools

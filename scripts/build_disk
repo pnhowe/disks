@@ -1,0 +1,94 @@
+#!/bin/sh
+
+set -e
+set -x
+
+PWD=$(pwd)
+
+install_dep()
+{
+  #  $1 - target root fs dir
+  #  $2 - name of dep
+  #  $3 - arch
+
+  . $PWD/deps/*_$2
+
+  install $1 "$PWD/src" "$PWD/build.deps/$2-$3"
+
+  # install's paramaters
+  #  $1 - target root fs dir
+  #  $2 - source dir
+  #  $3 - dep build dir
+}
+
+install_src()
+{
+  #  $1 - target root fs dir
+  #  $2 - name of src
+  #  $3 - arch
+
+  # for now we will do a big if statement, not all the src is "install" able
+  if [ "x$2" = "xcontractor" ]
+  then
+    DESTDIR="$1" make -C "$PWD/src/contractor" install
+  elif [ "x$2" = "xlibconfig" ]
+  then
+    DESTDIR="$1" make -C "$PWD/src/libconfig" install
+  elif [ "x$2" = "xlibdrive" ]
+  then
+    DESTDIR="$1" make -C "$PWD/src/libdrive" install
+  elif [ "x$2" = "xlibhardware" ]
+  then
+    DESTDIR="$1" make -C "$PWD/src/libhardware" install
+  else
+    echo "Unknown src target '$2'"
+    exit 1
+  fi
+}
+
+get_binaries()
+{
+  #  $1 - target root fs dir
+  #  $2 - name of dep
+
+  . $PWD/deps/*_$2
+
+  binaries $1
+}
+
+#  $1 - name of disk
+#  $2 - target root fs dir
+#  $3 - arch
+
+. disks/$1/info
+
+mkdir -p $2
+cp -a rootfs/* $2
+cp -a disks/$1/root/* $2
+
+scripts/setup_base $2 "$PWD/src" "$PWD/build.deps" $3
+scripts/install_kernel $2 "$PWD/src" "$PWD/build.deps" $3
+
+lib_list=""
+
+for item in udev python $DEP_LIST
+do
+  install_dep $2 $item $3
+  binary_list="$(get_binaries $2 $item)"
+  temp_libs="$(ldd $binary_list | grep -v 'not found' | grep -v 'not a dynamic executable' | awk '{print $3}')"
+  lib_list="$(echo "$lib_list $temp_libs" | sort -u)"
+done
+
+for item in contractor $SRC_LIST
+do
+  install_src $2 $item $3
+done
+
+# these are allready installed by setup_base, as a part of libc
+lib_list="$(echo $lib_list | sed -r 's/[^ ]*(libcrypt|libutil|libc|libm|libdl|libpthread|libnsl|libnss_compat|libnss_files|libnss_dns|libresolv|librt|libcrypt)\.so[^ ]* //g')"
+lib_list="$(readlink -f $lib_list | sort -u)"
+
+for LIB in $lib_list
+do
+  cp -L $LIB "$2/lib"
+done

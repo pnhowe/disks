@@ -8,30 +8,27 @@ DISKS = $(shell ls disks)
 TEMPLATES = $(shell ls templates)
 DEP_DOWNLOADS = $(foreach dep,$(DEPS),build.deps/$(dep).download)
 DEP_BUILDS = $(foreach dep,$(DEPS),build.deps/$(dep)-$(ARCH).build)
-IMAGE_ROOT = $(foreach disk,$(DISKS),build.images/$(disk).root)
+IMAGE_ROOT = $(foreach disk,$(DISKS),build.images/$(disk)-$(ARCH).root)
 
 # now that we are embracing contractor fully, we don't need all the _default.pxe/*.pxe sutff, that is all in the contractor resource, just get a list of the disks, and that is our list of PXEs
-PXES = $(foreach disk,$(DISKS),build.images/pxe/$(disk))
-PXE_FILES = $(foreach disk,$(DISKS),images/pxe/$(disk).vmlinuz images/pxe/$(disk).initrd)
+PXES = $(foreach disk,$(DISKS),images/pxe-$(ARCH)/$(disk))
+PXE_FILES = $(foreach disk,$(DISKS),images/pxe-$(ARCH)/$(disk).vmlinuz images/pxe-$(ARCH)/$(disk).initrd)
 
 # for thoes following along...
 #  for each disk
 #    wildcard /disks/<disk>.pxe
-#    move to /images/img
-#    replace images/img/_default.boot with images/img/<disk>.img
-#    replace images/img/<other>.boot with imagex/img/<disk>-<other>.img
+#    move to /images/img-$(ARCH)
+#    replace images/img-$(ARCH)/_default.boot with images/img-$(ARCH)/<disk>.img
+#    replace images/img-$(ARCH)/<other>.boot with imagex/img-$(ARCH)/<disk>-<other>.img
 # same thing for the .iso
-IMGS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/img/%.img,images/img/$(disk)_%,$(patsubst images/img/_default.boot,images/img/$(disk),$(patsubst disks/$(disk)/%,images/img/%,$(wildcard disks/$(disk)/*.img))))), $(item).img)
-ISOS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/iso/%.iso,images/iso/$(disk)_%,$(patsubst images/iso/_default.boot,images/iso/$(disk),$(patsubst disks/$(disk)/%,images/iso/%,$(wildcard disks/$(disk)/*.iso))))), $(item).iso)
+IMGS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/img-$(ARCH)/%.img,images/img-$(ARCH)/$(disk)_%,$(patsubst images/img-$(ARCH)/_default.boot,images/img-$(ARCH)/$(disk),$(patsubst disks/$(disk)/%,images/img-$(ARCH)/%,$(wildcard disks/$(disk)/*.img))))), $(item).img)
+ISOS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/iso-$(ARCH)/%.iso,images/iso-$(ARCH)/$(disk)_%,$(patsubst images/iso-$(ARCH)/_default.boot,images/iso-$(ARCH)/$(disk),$(patsubst disks/$(disk)/%,images/iso-$(ARCH)/%,$(wildcard disks/$(disk)/*.iso))))), $(item).iso)
 
 PWD = $(shell pwd)
 
 JOBS := $(or $(shell cat /proc/$$PPID/cmdline | sed -n 's/.*\(-j\|--jobs=\).\?\([0-9]\+\).*/\2/p'),1)
 
-debug:
-	echo $(JOBS)
-
-all: build.images/build
+all: build.images/build-$(ARCH)
 
 version:
 	echo $(VERSION)
@@ -57,7 +54,7 @@ downloads:
 build.deps/download: build.deps downloads $(DEP_DOWNLOADS)
 	touch $@
 
-build.deps/$(ARCH)-build: build.deps/download | $(DEP_BUILDS)
+build.deps/build-$(ARCH): build.deps/download $(DEP_BUILDS)
 	touch $@
 
 build.deps/%.download : FILE = $(shell grep -m 1 '#FILE:' $< | sed s/'#FILE: '// )
@@ -73,6 +70,12 @@ build.deps/%.download: deps/*_%
 	fi
 	touch $@
 
+# to make sure dependancies are in order
+# this will make a target for each root, depending on one before it
+DEPS_1 = $(filter-out $(firstword $(DEP_BUILDS)), $(DEP_BUILDS))
+DEPS_2 = $(filter-out $(lastword $(DEP_BUILDS)), $(DEP_BUILDS))
+$(foreach pair, $(join $(DEPS_1),$(addprefix :,$(DEPS_2))),$(eval $(pair)))
+
 build.deps/%-$(ARCH).build: deps/*_% build.deps/%.download
 	mkdir -p build.deps/$*-$(ARCH)
 	scripts/build_dep $* build.deps/$*-$(ARCH) downloads/$(shell grep -m 1 '#FILE:' $< | sed s/'#FILE: '// ) $(ARCH) "-j$(JOBS)"
@@ -84,20 +87,35 @@ clean-downloads:
 clean-deps:
 	$(RM) -r build.deps
 
-
 # global image targets
-
-images:
-	mkdir images
-	mkdir images/pxe
-	mkdir images/img
-	mkdir images/iso
 
 clean-images:
 	$(RM) -r build.images
-	$(RM) -r images
+	$(RM) -r images-$(ARCH)
 
 .PHONY:: clean-downloads clean-deps clean-images
+
+# disk file systems
+
+all-disks: $(IMAGE_ROOT)
+
+# we can't build more than one root at a time, the python installer (mabey others) do work in the build.deps dir during install
+# this will make a target for each root, depending on one before it
+ROOTS_1 = $(filter-out $(firstword $(IMAGE_ROOT)), $(IMAGE_ROOT))
+ROOTS_2 = $(filter-out $(lastword $(IMAGE_ROOT)), $(IMAGE_ROOT))
+$(foreach pair, $(join $(ROOTS_2),$(addprefix :,$(ROOTS_1))),$(eval $(pair)))
+
+debug:
+	echo $(IMAGE_ROOT)
+	$(foreach pair, $(join $(ROOTS_2),$(addprefix :,$(ROOTS_1))),$(shell echo $(pair)))
+
+.SECONDEXPANSION:
+build.images/%-$(ARCH).root: build.deps/build-$(ARCH) build-src.touch disks/%/info $$(shell find disks/$$*/root -type f)
+	scripts/build_disk $* $(abspath build.images/$*-$(ARCH)) $(ARCH)
+	touch $@
+
+build.images/build-$(ARCH): $(IMAGE_ROOT)
+	touch $@
 
 # pxe targets
 
@@ -106,33 +124,16 @@ all-pxe: $(PXE_FILES)
 pxe-targets:
 	@echo "Aviable PXE Targets: $(PXES)"
 
-.SECONDEXPANSION:
-build.images/%.root: build.deps/$(ARCH)-build build-src.touch disks/%/build_root $$(shell find disks/$$*/root -type f)
-	mkdir -p build.images/$*
-	cp -a rootfs/* build.images/$*
-	cp -a disks/$*/root/* build.images/$*
-	./disks/$*/build_root
-	touch $@
+images/pxe-$(ARCH):
+	mkdir -p images/pxe-$(ARCH)
 
-build.images/build: $(IMAGE_ROOT)
-	touch $@
+images/pxe-$(ARCH)/%.initrd: images/pxe-$(ARCH) build.images/%-$(ARCH).root
+	cd build.images/$*-$(ARCH) && find ./ | grep -v boot/vmlinuz | cpio --owner=+0:+0 -H newc -o | gzip -9 > $(PWD)/$@
 
-# we can't build more than one root at a time, the python installer (mabey others) do work in the build.deps dir during install
-# this will make a target for each root, depending on one before it
-ROOTS_1 = $(filter-out $(firstword $(IMAGE_ROOT)), $(IMAGE_ROOT))
-ROOTS_2 = $(filter-out $(lastword $(IMAGE_ROOT)), $(IMAGE_ROOT))
-$(foreach pair, $(join $(ROOTS_2),$(addprefix :,$(ROOTS_1))),$(eval $(pair)))
+images/pxe-$(ARCH)/%.vmlinuz: images/pxe-$(ARCH) build.images/%-$(ARCH)/boot/vmlinuz
+	cp -f build.images/$*-$(ARCH)/boot/vmlinuz $@
 
-images/pxe:
-	mkdir -p images/pxe
-
-images/pxe/%.initrd: images/pxe build.images/%.root
-	cd build.images/$* && find ./ | grep -v boot/vmlinuz | cpio --owner=+0:+0 -H newc -o | gzip -9 > $(PWD)/$@
-
-images/pxe/%.vmlinuz: images/pxe build.images/%/boot/vmlinuz
-	cp -f build.images/$*/boot/vmlinuz $@
-
-images/pxe/%: images/pxe/%.initrd images/pxe/%.vmlinuz
+images/pxe-$(ARCH)/%: images/pxe-$(ARCH)/%.initrd images/pxe-$(ARCH)/%.vmlinuz
 
 .PHONY:: $(PXES)
 
@@ -141,26 +142,26 @@ images/pxe/%: images/pxe/%.initrd images/pxe/%.vmlinuz
 img-targets:
 	@echo "Aviable Disk Image Targets: $(IMGS)"
 
-images/img:
-	mkdir -p images/img
+images/img-$(ARCH):
+	mkdir -p images/img-$(ARCH)
 
 # the ugly sed mess...
 #    <disk>_<other> -> disks/<images>/<other>.img
 #    <disk> (ie no `_`) -> disks/<images>/_default.img
-images/img/%.img : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2.img'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.boot'/)
+images/img-$(ARCH)/%.img : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2.img'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.boot'/)
 SECONDEXPANSION:
-images/img/%.img: images/img $$(shell scripts/img_iso_deps $$*)
+images/img-$(ARCH)/%.img: images/img-$(ARCH) $$(shell scripts/img_iso_deps $$*)
 	if [ -f templates/$* ];                                                                                                             \
 	then                                                                                                                                \
 	  mkdir -p build.images/templates/$*/extras ;                                                                                       \
 		DISK=$$( grep -m 1 '#DISK:' templates/$* | sed s/'#DISK: '// );                                                                   \
 	  scripts/build_template $* build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/config.boot build.images/templates/$*/extras && \
-	  sudo scripts/makeimg $@ images/pxe/$$DISK.vmlinuz images/pxe/$$DISK.initrd build.images/templates/$*/config.boot build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/extras; \
+	  sudo scripts/makeimg $@ images/pxe-$(ARCH)/$$DISK.vmlinuz images/pxe-$(ARCH)/$$DISK.initrd build.images/templates/$*/config.boot build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/extras; \
 	elif [ -f $(FILE).config_file ];                                                                                                    \
 	then                                                                                                                                \
-	  sudo scripts/makeimg $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) $(FILE).config_file;                                   \
+	  sudo scripts/makeimg $@ images/pxe-$(ARCH)/$*.vmlinuz images/pxe-$(ARCH)/$*.initrd $(FILE) $(FILE).config_file;                                   \
 	else                                                                                                                                \
-	  sudo scripts/makeimg $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE);                                                       \
+	  sudo scripts/makeimg $@ images/pxe-$(ARCH)/$*.vmlinuz images/pxe-$(ARCH)/$*.initrd $(FILE);                                                       \
 	fi
 
 # iso targets
@@ -168,26 +169,26 @@ images/img/%.img: images/img $$(shell scripts/img_iso_deps $$*)
 iso-targets:
 	@echo "Aviable ISO Targets: $(ISOS)"
 
-images/iso:
-	mkdir -p images/iso
+images/iso-$(ARCH):
+	mkdir -p images/iso-$(ARCH)
 
 # the ugly sed mess...
 #    <disk>_<other> -> disks/<images>/<other>.iso
 #    <disk> (ie no `_`) -> disks/<images>/_default.iso
-images/iso/%.iso : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2.img'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.boot'/)
+images/iso-$(ARCH)/%.iso : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2-$(ARCH).img'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.boot'/)
 .SECONDEXPANSION:
-images/iso/%.iso: images/iso $$(shell scripts/img_iso_deps $$*)
+images/iso-$(ARCH)/%.iso: images/iso-$(ARCH) $$(shell scripts/img_iso_deps $$*)
 	if [ -f templates/$* ];                                                                                                             \
 	then                                                                                                                                \
 	  mkdir -p build.images/templates/$*/extras ;                                                                                       \
 		DISK=$$( grep -m 1 '#DISK:' templates/$* | sed s/'#DISK: '// );                                                                   \
 		scripts/build_template $* build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/config.boot build.images/templates/$*/extras && \
-	  scripts/makeiso $@ images/pxe/$$DISK.vmlinuz images/pxe/$$DISK.initrd build.images/templates/$*/config.boot build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/extras; \
+	  scripts/makeiso $@ images/pxe-$(ARCH)/$$DISK.vmlinuz images/pxe-$(ARCH)/$$DISK.initrd build.images/templates/$*/config.boot build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/extras; \
 	elif [ -f $(FILE).config_file ];                                                                                                    \
 	then                                                                                                                                \
-	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) $(FILE).config_file;                                        \
+	  scripts/makeiso $@ images/pxe-$(ARCH)/$*.vmlinuz images/pxe-$(ARCH)/$*.initrd $(FILE) $(FILE).config_file;                                        \
 	else                                                                                                                                \
-	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE);                                                            \
+	  scripts/makeiso $@ images/pxe-$(ARCH)/$*.vmlinuz images/pxe-$(ARCH)/$*.initrd $(FILE);                                                            \
 	fi
 
 # templates
@@ -217,14 +218,13 @@ respkg-distros:
 # deb http://ports.ubuntu.com/ubuntu-ports bionic main universe multiverse
 # qemu-user-static
 respkg-requires:
-	echo respkg fake-root bc gperf python3-dev python3-setuptools pkg-config libblkid-dev gettext python3-pip bison flex
+	echo respkg fake-root bc gperf python3-dev python3-setuptools pkg-config gettext python3-pip bison flex
+	# echo still need?  libelf-dev  libassuan-dev libksba-dev libnpth0-dev
 ifeq ($(ARCH),"x86_64")
-libelf-dev libreadline-dev libsqlite3-dev libbz2-dev libgcrypt-dev libassuan-dev libksba-dev libnpth0-dev
-
-	echo build-essential uuid-dev libblkid-dev libudev-dev libgpg-error-dev liblzma-dev zlib1g-dev libxml2-dev libdevmapper-dev libssl-dev
+	echo build-essential uuid-dev libblkid-dev libudev-dev libgpg-error-dev liblzma-dev zlib1g-dev libxml2-dev libdevmapper-dev libssl-dev libreadline-dev libsqlite3-dev libbz2-dev libgcrypt-dev
 endif
 ifeq ($(ARCH),"arm")
-	echo crossbuild-essential-armhf uuid-dev libblkid-dev libudev-dev libgpg-error-dev liblzma-dev zlib1g-dev libxml2-dev libdevmapper-dev libssl-dev
+	echo crossbuild-essential-armhf uuid-dev libblkid-dev libudev-dev libgpg-error-dev liblzma-dev zlib1g-dev libxml2-dev libdevmapper-dev libssl-dev libreadline-dev libsqlite3-dev libbz2-dev libgcrypt-dev
 endif
 ifeq ($(ARCH),"arm64")
 	echo crossbuild-essential-arm64
