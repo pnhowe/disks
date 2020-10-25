@@ -48,7 +48,7 @@ def configSources( install_root, profile, value_map ):
 
   print( 'Updating Repo Data...' )
   if manager_type == 'apt':
-    chroot_execute( '/usr/bin/apt-get update' )
+    chroot_execute( '/usr/bin/apt-get update', retry_rc_list=[ 100 ] )
 
   # yum dosen't need a repo update
 
@@ -99,7 +99,7 @@ def installPackages( packages ):
 
 def updatePackages():
   if manager_type == 'apt':
-    chroot_execute( '/usr/bin/apt-get update' )
+    chroot_execute( '/usr/bin/apt-get update', retry_rc_list=[ 100 ] )
     chroot_execute( '/usr/bin/apt-get upgrade -q -y' )
   elif manager_type == 'yum':
     chroot_execute( '/usr/bin/yum -y update' )
