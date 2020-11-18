@@ -792,7 +792,7 @@ def mount( mount_point, profile ):
   for point in mount_order:
     _mount( '{0}{1}'.format( mount_point, point ), *mount_points[ point ] )
 
-  if not os.path.isdir( os.path.join( mount_point, 'etc' ) ):
+  if not os.path.isdir( os.path.join( mount_point, 'etc' ) ):  # for copying /etc/hostname and /etc/resolve.conf
     os.makedirs( os.path.join( mount_point, 'etc' ) )
 
   execute( 'ln -s /proc/self/mounts {0}'.format( os.path.join( mount_point, 'etc', 'mtab' ) ) )

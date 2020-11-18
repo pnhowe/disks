@@ -5,7 +5,7 @@
 {% if address.vlan %}
 {% set filename = filename + '.' + address.vlan|string %}
 {% endif %}
-{% if address.alias_index alias_index
+{% if address.alias_index %}
 {% set filename = filename + ':' + address.alias_index|string %}
 {% endif %}
 {% target '/etc/sysconfig/network-scripts/' + filename %}# Auto Generated During Install
@@ -29,6 +29,10 @@ NETMASK="{{ address.netmask }}"
 NETWORK="{{ address.subnet }}"
 GATEWAY="{{ address.gateway }}"
 {% endif %}
+{% for server in dns_servers %}
+DNS{{ loop.index }}="{{ server }}"
+{% endfor %}
+DOMAIN="{{ dns_search|join( ' ' ) }}"
 {% if address.vlan %}VLAN="yes"{% endif %}
 {% if interface.mtu %}MTU="{{ interface.mtu }}"{% endif %}
 {% endtarget %}

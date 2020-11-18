@@ -7,6 +7,8 @@ from datetime import datetime
 debug_stdout = None
 chroot_path = None
 
+EXEC_RETRY_COUNT = 10
+
 global_env = os.environ
 global_env[ 'DEBIAN_PRIORITY' ] = 'critical'
 global_env[ 'DEBIAN_FRONTEND' ] = 'noninteractive'
@@ -38,7 +40,7 @@ def _execute( cmd, stdout, stderr, stdin, env, retry_rc_list=None ):
   debug_stdout.write( 'Executing:\n' )
   debug_stdout.write( cmd )
 
-  retry = 10
+  retry = EXEC_RETRY_COUNT
   while retry:
     if stdin:
       debug_stdout.write( '\nstdin:\n' )
@@ -68,7 +70,7 @@ def _execute( cmd, stdout, stderr, stdin, env, retry_rc_list=None ):
     if retry_rc_list is None or proc.returncode not in retry_rc_list:
       raise Exception( 'Error Executing "{0}"'.format( cmd ) )
 
-    debug_stdout.write( 'try "{0}" of "10"'.format( retry ) )
+    debug_stdout.write( 'try "{0}" of "{1}"'.format( EXEC_RETRY_COUNT - retry, EXEC_RETRY_COUNT ) )
     debug_stdout.write( '-------------------------------------------------\n' )
     debug_stdout.flush()
 

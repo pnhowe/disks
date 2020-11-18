@@ -9,10 +9,6 @@ from installer.procutils import execute, execute_lines, chroot_execute
 def bootstrap( mount_point, source, profile ):  # TODO: bootstrap http proxy, also see misc
   bootstrap_type = profile.get( 'bootstrap', 'type' )
 
-  # debians copy over /etc/hostname and /etc/resolv.conf, but cent dosen't (SELS Unknown), and pre_base_cmd is chrooted, so for now we will do these here
-  shutil.copyfile( '/etc/hostname', os.path.join( mount_point, 'etc/hostname' ) )
-  shutil.copyfile( '/etc/resolv.conf', os.path.join( mount_point, 'etc/resolv.conf' ) )
-
   try:
     packages = profile.get( 'bootstrap', 'packages' )
   except NoOptionError:
@@ -24,7 +20,13 @@ def bootstrap( mount_point, source, profile ):  # TODO: bootstrap http proxy, al
     else:
       execute( '/usr/sbin/debootstrap --arch amd64 {0} {1} {2}'.format( profile.get( 'bootstrap', 'distro' ), mount_point, source ) )
 
-  elif bootstrap_type == 'squashimg':  # we should change this to using the squash fs as a intermediat step to do a boot strap from scratch https://wiki.centos.org/HowTos/ManualInstall
+  elif bootstrap_type == 'redhatimg':  # we should change this to using the squash fs as a intermediat step to do a boot strap from scratch https://wiki.centos.org/HowTos/ManualInstall
+
+    # debians copy over /etc/hostname and /etc/resolv.conf, but cent dosen't (SELS Unknown), and pre_base_cmd is chrooted, so for now we will do these here
+
+    shutil.copyfile( '/etc/hostname', os.path.join( mount_point, 'etc/hostname' ) )
+    shutil.copyfile( '/etc/resolv.conf', os.path.join( mount_point, 'etc/resolv.conf' ) )
+
     version = profile.get( 'bootstrap', 'version' )
     repo_root = '{0}{1}/os/x86_64/'.format( source, version )
 
@@ -87,6 +89,23 @@ def bootstrap( mount_point, source, profile ):  # TODO: bootstrap http proxy, al
     print( 'Instaiing Release...' )
     chroot_execute( '/usr/bin/rpm -i --nodeps /tmp.rpm' )
     chroot_execute( 'rm /tmp.rpm' )
+
+  elif bootstrap_type == 'tarxz':
+    image = profile.get( 'bootstrap', 'image' )
+
+    print( 'Downloading image...' )
+    # execute( '/bin/wget -O- {1}{2} | /bin/tar -xJ -C {0}'.format( mount_point, source, image ) )  TODO: stream it to tar, makes less io and less required space
+    execute( '/bin/wget -O {0}/bootstrap.tar.xz {1}{2}'.format( mount_point, source, image ) )
+
+    print( 'Extracting image...' )
+    execute( '/bin/tar -xJf {0}/bootstrap.tar.xz -C {0}'.format( mount_point ) )
+
+    print( 'Cleanup...' )
+    execute( '/bin/rm {0}/bootstrap.tar.xz'.format( mount_point ) )
+
+    shutil.copyfile( '/etc/hostname', os.path.join( mount_point, 'etc/hostname' ) )
+    os.makedirs( os.path.join( mount_point, 'run/systemd/resolve' ) )
+    shutil.copyfile( '/etc/resolv.conf', os.path.join( mount_point, 'run/systemd/resolve/stub-resolv.conf' ) )
 
   else:
     raise Exception( 'Unknown "{0}" type'.format( bootstrap_type ) )

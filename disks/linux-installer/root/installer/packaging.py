@@ -1,4 +1,5 @@
 import os
+from configparser import NoOptionError
 from installer.procutils import chroot_execute, execute, chroot_env
 from installer.httputils import http_getfile
 from installer.config import renderTemplates
@@ -54,17 +55,22 @@ def configSources( install_root, profile, value_map ):
 
 
 def installBase( install_root, profile ):
+  try:
+    base_package = profile.get( 'packaging', 'base' )
+  except NoOptionError:
+    return
+
   if manager_type == 'apt':
-    chroot_execute( '/usr/bin/apt-get install -q -y {0}'.format( profile.get( 'packaging', 'base' ) ) )
+    chroot_execute( '/usr/bin/apt-get install -q -y {0}'.format( base_package ) )
 
   elif manager_type == 'yum':
-    chroot_execute( '/usr/bin/yum -y groupinstall {0}'.format( profile.get( 'packaging', 'base' ) ) )
+    chroot_execute( '/usr/bin/yum -y groupinstall {0}'.format( base_package ) )
     chroot_execute( '/usr/bin/yum -y reinstall yum centos-release' )  # find a better way to figure out what needs to be re-installed
     execute( 'ash -c "rm {0}/etc/yum.repos.d/*"'.format( install_root ) )  # clean up extra repos that some package might have left behind... this is the last time we will do this.... any package after this we will allow to keep their repos, we are really just after the base ones
     renderTemplates( profile.get( 'packaging', 'source_templates' ).split( ',' ) )
 
   elif manager_type == 'zypper':
-    chroot_execute( '/usr/bin/zypper --non-interactive install {0}'.format( profile.get( 'packaging', 'base' ) ) )
+    chroot_execute( '/usr/bin/zypper --non-interactive install {0}'.format( base_package ) )
 
 
 def installOtherPackages( profile, value_map ):

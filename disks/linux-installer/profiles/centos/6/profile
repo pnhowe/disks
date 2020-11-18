@@ -16,7 +16,7 @@ prefix_1=# <file system> <mount point>   <type>  <options>       <dump>  <pass>
 prefix_2=proc  /proc  proc  defaults  0  0
 
 [bootstrap]
-type=squashimg
+type=redhatimg
 version=6
 
 [packaging]
@@ -42,9 +42,12 @@ skel_dir=etc/skel/
 after_cmd_1=touch /.autorelabel
 after_cmd_2=rm /etc/localtime
 after_cmd_3=ln -s ../usr/share/zoneinfo/UTC /etc/localtime
+# /etc/sysconf/network-scripts/ifup-post looks for the "nameserver <DNS1>" and if it finds it, it does not rebuild the file, we add some spaces so that grep fails
+after_cmd_4=sed s/'nameserver '/'nameserver   '/ -i /etc/resolv.conf
 
 [packages]
-bootloader_package=grub
+bootloader_package_bios=grub
+bootloader_package_efi=grub
 mdadm_package=mdadm
 bcache_package=bcache-tools
 lvm_package=lvm2

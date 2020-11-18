@@ -9,7 +9,7 @@ from installer.filesystem import partition, mkfs, mount, remount, unmount, write
 from installer.bootstrap import bootstrap
 from installer.packaging import configSources, installBase, installOtherPackages, updatePackages, divert, undivert, preBaseSetup, cleanPackaging
 from installer.booting import installBoot
-from installer.misc import postInstallScripts
+from installer.misc import postInstall
 from installer.config import getProfile, initConfig, writeShellHelper, baseConfig, fullConfig, updateConfig, getValues
 from installer.users import setupUsers
 
@@ -127,12 +127,8 @@ updateConfig( 'bootloader', grubConfigValues( install_root ) )
 contractor.postMessage( 'Writing Full Config...' )
 fullConfig()
 
-for item in profile.items( 'general' ):
-  if item[0].startswith( 'after_cmd_' ):
-    chroot_execute( item[1] )
-
-contractor.postMessage( 'Post Install Scripts...' )
-postInstallScripts( install_root, value_map )
+contractor.postMessage( 'Post Install...' )
+postInstall( install_root, profile, value_map )
 
 contractor.postMessage( 'Removing Diverts...' )
 undivert( profile )

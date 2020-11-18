@@ -18,7 +18,7 @@ def installBoot( install_root, profile ):
   if os.access( '/sys/fs/bcache', os.R_OK ):
     installPackages( profile.get( 'packages', 'bcache_package' ) )
 
-  if os.path.exists( '/sys/firmware/efi' ):
+  if os.path.exists( '/sys/firmware/efi' ):  # might require efivars.ko to be loaded
     installPackages( profile.get( 'packages', 'bootloader_package_efi' ) )
   else:
     installPackages( profile.get( 'packages', 'bootloader_package_bios' ) )
