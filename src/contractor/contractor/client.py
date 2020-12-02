@@ -83,10 +83,10 @@ class HTTPClient( Client ):
           return self.cinp.call( uri, data, timeout=timeout )
 
         elif method == 'list':
-          return self.cinp.list( uri, filter, data )
+          return self.cinp.list( uri, filter, data, timeout=timeout )
 
         elif method == 'update':
-          return self.cinp.update( uri, data )
+          return self.cinp.update( uri, data, timeout=timeout )
 
         else:
           raise ValueError( 'Unknown method "{0}"'.format( method ) )

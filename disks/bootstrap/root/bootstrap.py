@@ -129,13 +129,11 @@ for drive in dm.drive_list:
 # nothing yet
 
 bootstrap.setMessage( 'Reporting Hardware info...' )
-print( 'Setting new foundation to boot to bootstrap...' )
-bootstrap.setPXEBoot( foundation_locator, 'bootstrap' )  # should happen before the foundation get's it MAC addresses so if it get's rebooted it picks back up
-
 print( 'Reporting Hardware info to contractor...' )
 error = bootstrap.setIdMap( foundation_locator, { 'hardware': hardware, 'network': network, 'disks': disks } )
 if error is not None:
   bootstrap.setMessage( 'Hardware Error: "{0}"'.format( error ) )
+  bootstrap.logout()
   sys.exit( 20 )
 
 bootstrap.setMessage( 'Hardware Profile Verified' )
@@ -150,7 +148,7 @@ if foundation_type == 'IPMI' and 'ipmi_ip_address' in config:  # TODO: when the 
   address = { 'address': config[ 'ipmi_ip_address' ], 'gateway': '.'.join( tmp ), 'netmask': '255.255.255.0', 'vlan': 0, 'tagged': False }
 
   # remove the other users first
-  lib.ipmicommand( 'user disable 5' )
+  # lib.ipmicommand( 'user disable 5' )
   # lib.ipmicommand( 'user set name 5 {0}_'.format( ipmi_username ) )  # some ipmi's don't like you to set the username to the same as it is allready....Intel!!!
   # lib.ipmicommand( 'user set name 5 {0}'.format( ipmi_username ) )
   # lib.ipmicommand( 'user set password 5 {0}'.format( ipmi_password ) )
@@ -167,9 +165,8 @@ if foundation_type == 'IPMI' and 'ipmi_ip_address' in config:  # TODO: when the 
   lib.ipmicommand( 'lan set {0} ipsrc static'.format( config[ 'ipmi_lan_channel' ] ) )
   lib.ipmicommand( 'lan set {0} ipaddr {1}'.format( config[ 'ipmi_lan_channel' ], address[ 'address' ] ) )
   lib.ipmicommand( 'lan set {0} netmask {1}' .format( config[ 'ipmi_lan_channel' ], address[ 'netmask' ] ) )
-  if not address.get( 'gateway', None ):
-    address['gateway'] = '0.0.0.0'
-  lib.ipmicommand( 'lan set {0} defgw ipaddr {1}'.format( config[ 'ipmi_lan_channel' ], address[ 'gateway' ] ) )  # use the address 0.0.0.0 dosen't allways work for disabeling defgw
+  gateway = address.get( 'gateway', '0.0.0.0' )  # use the address 0.0.0.0 dosen't allways work for disabeling defgw
+  lib.ipmicommand( 'lan set {0} defgw ipaddr {1}'.format( config[ 'ipmi_lan_channel' ], gateway ) )
 
   try:
     if address[ 'vlan' ] and address[ 'tagged' ]:
@@ -218,6 +215,7 @@ if config.get( 'bootstrap_wipe_mbr', False ):
 #     proc = Popen( [ '/bin/wget', '-Yoff', '-q', '-O', local_config_file, url ] )
 #     if proc.wait() != 0:
 #       bootstrap.setMessage( 'Error getting bios config' )
+#       bootstrap.logout()
 #       sys.exit( 1 )
 #
 #     cmd = None
@@ -234,7 +232,8 @@ if config.get( 'bootstrap_wipe_mbr', False ):
 #       cmd = [ './sum', '1_5', bios_password, local_config_file ]
 #
 #     if cmd is None:
-#       print 'Motherboard "%s" not supported' % baseboard
+#       bootstrap.setMessage( 'Motherboard "{0}" not supported'.format( baseboard ) )
+#       bootstrap.logout()
 #       sys.exit( 1 )
 #
 #     proc = Popen( cmd )
@@ -246,6 +245,7 @@ if config.get( 'bootstrap_wipe_mbr', False ):
 #
 #   if not success:
 #     bootstrap.setMessage( 'BIOS Config Failed' )
+#     bootstrap.logout()
 #     sys.exit( 1 )
 
 bootstrap.setMessage( 'Cleaning up...' )
@@ -254,5 +254,6 @@ if foundation_type == 'IPMI':
   lib.ipmicommand( 'chassis identify 0', True )
 
 bootstrap.done()
+bootstrap.logout()
 print( 'All Done' )
 sys.exit( 0 )

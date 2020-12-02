@@ -4,6 +4,10 @@ import subprocess
 import re
 
 
+# NOTE: the retry_count is set to -1 in most places here b/c sometimes things get a bit sticky during bootstrap, and we
+#       don't want to have to go through lots of work resetting things.  That being said, the delay after a while get's
+#       pretty long and just as well have a retry count of 20 or something, we will see what comes of this.
+
 _setMessage = None
 
 
@@ -12,27 +16,28 @@ class Bootstrap:
     self.identifier = identifier
     self.request = contractor.request
 
-    self.request( 'call', '/api/v1/Survey/Cartographer(register)', { 'identifier': identifier } )
+    self.token = self.request( 'call', '/api/v1/Auth/User(login)', { 'username': 'bootstrap', 'password': 'bootstrap' }, retry_count=-1 )
+    contractor.cinp.setAuth( 'bootstrap', self.token )
+
+    self.request( 'call', '/api/v1/Survey/Cartographer(register)', { 'identifier': identifier }, retry_count=-1 )
+
+  def logout( self ):
+    try:
+      self.request( 'call', '/api/v1/Auth/User(logout)', { 'token': self.token } )
+    except Exceptino:
+      pass
 
   def lookup( self, info_map ):
-    return self.request( 'call', '/api/v1/Survey/Cartographer:{0}:(lookup)'.format( self.identifier ), { 'info_map': info_map } )
+    return self.request( 'call', '/api/v1/Survey/Cartographer:{0}:(lookup)'.format( self.identifier ), { 'info_map': info_map }, retry_count=-1  )
 
   def setMessage( self, message ):
-    self.request( 'call', '/api/v1/Survey/Cartographer:{0}:(setMessage)'.format( self.identifier ), { 'message': message } )
+    self.request( 'call', '/api/v1/Survey/Cartographer:{0}:(setMessage)'.format( self.identifier ), { 'message': message }, retry_count=-1  )
 
   def done( self ):
-    return self.request( 'call', '/api/v1/Survey/Cartographer:{0}:(done)'.format( self.identifier ), {} )
+    return self.request( 'call', '/api/v1/Survey/Cartographer:{0}:(done)'.format( self.identifier ), {}, retry_count=-1  )
 
   def setIdMap( self, foundation_locator, id_map ):
-    return self.request( 'call', '/api/v1/Building/Foundation:{0}:(setIdMap)'.format( foundation_locator ), { 'id_map': id_map } )
-
-  def setPXEBoot( self, foundation_locator, pxe ):
-    iface_list, info = self.request( 'list', '/api/v1/Utilities/RealNetworkInterface', { 'foundation': '/api/v1/Building/Foundation:{0}:'.format( foundation_locator ) }, filter='foundation' )
-    if info[ 'total' ] != info[ 'count' ]:
-      raise Exception( 'There are more interface than we got' )  # wow, what kind of machine do you have there?
-
-    for iface in iface_list:
-      self.request( 'update', iface, { 'pxe': '/api/v1/BluePrint/PXE:{0}:'.format( pxe ) } )
+    return self.request( 'call', '/api/v1/Building/Foundation:{0}:(setIdMap)'.format( foundation_locator ), { 'id_map': id_map }, retry_count=-1  )
 
 
 def ipmicommand( cmd, ignore_failure=False ):
