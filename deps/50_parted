@@ -9,17 +9,17 @@ set -e
 build()
 {
   tar --strip-components=1 -xJf $1
-  if [ "x$2" = "xx86_64" ]
+  if [ "x$3" = "xx86_64" ]
   then
     ./configure --prefix= --disable-shared
-  elif [ "x$2" = "xarm" ]
+  elif [ "x$3" = "xarm" ]
   then
     ./configure --prefix= --disable-shared --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
-  elif [ "x$2" = "xarm64" ]
+  elif [ "x$3" = "xarm64" ]
   then
     ./configure --prefix= --disable-shared --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
-  make $3
+  make $4
 }
 
 install()

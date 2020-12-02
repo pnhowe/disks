@@ -9,13 +9,13 @@ set -e
 build()
 {
   tar --strip-components=1 -xjf $1
-  if [ "x$2" = "xx86_64" ]
+  if [ "x$3" = "xx86_64" ]
   then
     ./configure --prefix= --enable-intf-lanplus --enable-intf-open --disable-intf-serial --disable-solaris-opt --disable-intf-lan --disable-intf-usb --disable-intf-free --disable-intf-imb --disable-intf-lipmi --disable-intf-bmc --disable-intf-dummy --disable-ipmishell
-  elif [ "x$2" = "xarm" ]
+  elif [ "x$3" = "xarm" ]
   then
     ./configure --prefix= --enable-intf-lanplus --enable-intf-open --disable-intf-serial --disable-solaris-opt --disable-intf-lan --disable-intf-usb --disable-intf-free --disable-intf-imb --disable-intf-lipmi --disable-intf-bmc --disable-intf-dummy --disable-ipmishell --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
-  elif [ "x$2" = "xarm64" ]
+  elif [ "x$3" = "xarm64" ]
   then
     ./configure --prefix= --enable-intf-lanplus --enable-intf-open --disable-intf-serial --disable-solaris-opt --disable-intf-lan --disable-intf-usb --disable-intf-free --disable-intf-imb --disable-intf-lipmi --disable-intf-bmc --disable-intf-dummy --disable-ipmishell --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
@@ -150,7 +150,7 @@ build()
  }
 +
 PATCH_END
-  make $3
+  make $4
 }
 
 install()

@@ -1,0 +1,33 @@
+#!/bin/sh
+#SOURCE: https://ftp.gnu.org/gnu/libc/glibc-2.32.tar.xz
+#FILE: glibc-2.32.tar.xz
+#HASH: 71ff0af28bdf4525d7b91ec5d82d1fc002000e91
+
+set -e
+set -x
+
+build()
+{
+  mkdir -p src
+  mkdir -p build
+  tar -C src --strip-components=1 -xJf $1
+  cd build
+  if [ "x$3" = "xx86_64" ]
+  then
+    ../src/configure --prefix=/ --with-headers=$2/include --enable-kernel=4.19.0 --without-selinux --disable-profile --enable-add-ons --host x86_64-pc-linux-gnu libc_cv_slibdir=/lib
+  elif [ "x$3" = "xarm" ]
+  then
+    ../src/configure --prefix=/ --with-headers=$2/include --enable-kernel=4.19.0 --without-selinux --disable-profile --enable-add-ons --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu libc_cv_slibdir=/lib
+  elif [ "x$3" = "xarm64" ]
+  then
+    ../src/configure --prefix=/ --with-headers=$2/include --enable-kernel=4.19.0 --without-selinux --disable-profile --enable-add-ons --host aarch64-linux-gnu --build x86_64-pc-linux-gnu libc_cv_slibdir=/lib
+  fi
+  make $4
+
+  DESTDIR=$2 make install
+}
+
+install()
+{
+  : # allready installed ;-)
+}

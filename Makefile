@@ -10,19 +10,21 @@ DEP_DOWNLOADS = $(foreach dep,$(DEPS),build.deps/$(dep).download)
 DEP_BUILDS = $(foreach dep,$(DEPS),build.deps/$(dep)-$(ARCH).build)
 IMAGE_ROOT = $(foreach disk,$(DISKS),build.images/$(disk)-$(ARCH).root)
 
-# now that we are embracing contractor fully, we don't need all the _default.pxe/*.pxe sutff, that is all in the contractor resource, just get a list of the disks, and that is our list of PXEs
+# now that we are embracing contractor fully, we don't need the /disks/<disk>*.pxe sutff, that is all in the contractor resource, just get a list of the disks, and that is our list of PXEs
 PXES = $(foreach disk,$(DISKS),images/pxe-$(ARCH)/$(disk))
 PXE_FILES = $(foreach disk,$(DISKS),images/pxe-$(ARCH)/$(disk).vmlinuz images/pxe-$(ARCH)/$(disk).initrd)
 
+# for img and iso targets, create a .boot for both, and a .img or .iso for .img and .iso respectively
+
 # for thoes following along...
 #  for each disk
-#    wildcard /disks/<disk>.pxe
+#    wildcard /disks/<disk>/*.boot /disks/<disk>/*.img
 #    move to /images/img-$(ARCH)
 #    replace images/img-$(ARCH)/_default.boot with images/img-$(ARCH)/<disk>.img
 #    replace images/img-$(ARCH)/<other>.boot with imagex/img-$(ARCH)/<disk>-<other>.img
 # same thing for the .iso
-IMGS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/img-$(ARCH)/%.img,images/img-$(ARCH)/$(disk)_%,$(patsubst images/img-$(ARCH)/_default.boot,images/img-$(ARCH)/$(disk),$(patsubst disks/$(disk)/%,images/img-$(ARCH)/%,$(wildcard disks/$(disk)/*.img))))), $(item).img)
-ISOS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/iso-$(ARCH)/%.iso,images/iso-$(ARCH)/$(disk)_%,$(patsubst images/iso-$(ARCH)/_default.boot,images/iso-$(ARCH)/$(disk),$(patsubst disks/$(disk)/%,images/iso-$(ARCH)/%,$(wildcard disks/$(disk)/*.iso))))), $(item).iso)
+IMGS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/img-$(ARCH)/%.img,images/img-$(ARCH)/$(disk)_%,$(patsubst images/img-$(ARCH)/%.boot,images/img-$(ARCH)/$(disk)_%,$(patsubst images/img-$(ARCH)/_default.boot,images/img-$(ARCH)/$(disk),$(patsubst disks/$(disk)/%,images/img-$(ARCH)/%,$(wildcard disks/$(disk)/*.boot) $(wildcard disks/$(disk)/*.img)))))), $(item).img)
+ISOS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/iso-$(ARCH)/%.iso,images/iso-$(ARCH)/$(disk)_%,$(patsubst images/iso-$(ARCH)/%.boot,images/iso-$(ARCH)/$(disk)_%,$(patsubst images/iso-$(ARCH)/_default.boot,images/iso-$(ARCH)/$(disk),$(patsubst disks/$(disk)/%,images/iso-$(ARCH)/%,$(wildcard disks/$(disk)/*.boot) $(wildcard disks/$(disk)/*.iso)))))), $(item).iso)
 
 PWD = $(shell pwd)
 
@@ -76,9 +78,12 @@ DEPS_1 = $(filter-out $(firstword $(DEP_BUILDS)), $(DEP_BUILDS))
 DEPS_2 = $(filter-out $(lastword $(DEP_BUILDS)), $(DEP_BUILDS))
 $(foreach pair, $(join $(DEPS_1),$(addprefix :,$(DEPS_2))),$(eval $(pair)))
 
-build.deps/%-$(ARCH).build: deps/*_% build.deps/%.download
+build.deps/libs-$(ARCH):
+	mkdir -p build.deps/libs-$(ARCH)
+
+build.deps/%-$(ARCH).build: deps/*_% build.deps/libs-$(ARCH) build.deps/%.download
 	mkdir -p build.deps/$*-$(ARCH)
-	scripts/build_dep $* build.deps/$*-$(ARCH) downloads/$(shell grep -m 1 '#FILE:' $< | sed s/'#FILE: '// ) $(ARCH) "-j$(JOBS)"
+	scripts/build_dep $* build.deps/$*-$(ARCH) $(abspath build.deps/libs-$(ARCH)) downloads/$(shell grep -m 1 '#FILE:' $< | sed s/'#FILE: '// ) $(ARCH) "-j$(JOBS)"
 	touch $@
 
 clean-downloads:
@@ -101,13 +106,9 @@ all-disks: $(IMAGE_ROOT)
 
 # we can't build more than one root at a time, the python installer (mabey others) do work in the build.deps dir during install
 # this will make a target for each root, depending on one before it
-ROOTS_1 = $(filter-out $(firstword $(IMAGE_ROOT)), $(IMAGE_ROOT))
-ROOTS_2 = $(filter-out $(lastword $(IMAGE_ROOT)), $(IMAGE_ROOT))
-$(foreach pair, $(join $(ROOTS_2),$(addprefix :,$(ROOTS_1))),$(eval $(pair)))
-
-debug:
-	echo $(IMAGE_ROOT)
-	$(foreach pair, $(join $(ROOTS_2),$(addprefix :,$(ROOTS_1))),$(shell echo $(pair)))
+IMAGE_ROOTS_1 = $(filter-out $(firstword $(IMAGE_ROOT)), $(IMAGE_ROOT))
+IMAGE_ROOTS_2 = $(filter-out $(lastword $(IMAGE_ROOT)), $(IMAGE_ROOT))
+$(foreach pair, $(join $(IMAGE_ROOTS_2),$(addprefix :,$(IMAGE_ROOTS_1))),$(eval $(pair)))
 
 .SECONDEXPANSION:
 build.images/%-$(ARCH).root: build.deps/build-$(ARCH) build-src.touch disks/%/info $$(shell find disks/$$*/root -type f)
@@ -150,7 +151,7 @@ images/img-$(ARCH):
 #    <disk> (ie no `_`) -> disks/<images>/_default.img
 images/img-$(ARCH)/%.img : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2.img'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.boot'/)
 SECONDEXPANSION:
-images/img-$(ARCH)/%.img: images/img-$(ARCH) $$(shell scripts/img_iso_deps $$*)
+images/img-$(ARCH)/%.img: images/img-$(ARCH) $$(shell scripts/img_iso_deps $(ARCH) $$*)
 	if [ -f templates/$* ];                                                                                                             \
 	then                                                                                                                                \
 	  mkdir -p build.images/templates/$*/extras ;                                                                                       \
@@ -173,11 +174,11 @@ images/iso-$(ARCH):
 	mkdir -p images/iso-$(ARCH)
 
 # the ugly sed mess...
-#    <disk>_<other> -> disks/<images>/<other>.iso
-#    <disk> (ie no `_`) -> disks/<images>/_default.iso
-images/iso-$(ARCH)/%.iso : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2-$(ARCH).img'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.boot'/)
+#    <disk>_<other> -> disks/<images>/<other>.iso    # TODO: add the <disk>_<other> -> disks/<images>/<other>.boot case, probably easer to sub shell it like img_iso_deps
+#    <disk> (ie no `_`) -> disks/<images>/_default.boot
+images/iso-$(ARCH)/%.iso : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2.iso'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.boot'/)
 .SECONDEXPANSION:
-images/iso-$(ARCH)/%.iso: images/iso-$(ARCH) $$(shell scripts/img_iso_deps $$*)
+images/iso-$(ARCH)/%.iso: images/iso-$(ARCH) $$(shell scripts/img_iso_deps $(ARCH) $$*)
 	if [ -f templates/$* ];                                                                                                             \
 	then                                                                                                                                \
 	  mkdir -p build.images/templates/$*/extras ;                                                                                       \

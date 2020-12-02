@@ -36,15 +36,15 @@ build()
 
  	memset(&sb, 0, sizeof(struct cache_sb));
 PATCH_END
-  if [ "x$2" = "xx86_64" ]
+  if [ "x$3" = "xx86_64" ]
   then
-    make $3
-  elif [ "x$2" = "xarm" ]
+    make $4
+  elif [ "x$3" = "xarm" ]
   then
-    make CC=arm-linux-gnueabihf-gcc $3
-  elif [ "x$2" = "xarm64" ]
+    make CC=arm-linux-gnueabihf-gcc $4
+  elif [ "x$3" = "xarm64" ]
   then
-    make CC=aarch64-linux-gnu-gcc $3
+    make CC=aarch64-linux-gnu-gcc $4
   fi
 }
 

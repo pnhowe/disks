@@ -3,7 +3,7 @@
 DEBUG=0
 NET_DEBUG=0
 CONFIG_SRC="remote"
-CONFIG_REMOTE_URL="http://contractor/config/pxe_template"
+CONFIG_REMOTE_URL="http://contractor/config/pxe_template/"
 HTTP_PROXY=
 INTERFACE="any"
 INTERFACE_MAC=
@@ -445,6 +445,7 @@ then
   fi
 
   wget -q -O /config $CONFIG_REMOTE_URL
+  #  TODO: sometimes this wget fails, it would be nice to set -e this script and have a wrapper that would deal with that
 
   export contractor_host=$CONTRACTOR_HOST
   export config_uuid=$CONFIG_UUID
