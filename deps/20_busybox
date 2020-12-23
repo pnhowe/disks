@@ -1,7 +1,7 @@
 #!/bin/sh
-#SOURCE: http://busybox.net/downloads/busybox-1.28.3.tar.bz2
-#FILE: busybox-1.28.3.tar.bz2
-#HASH: 64b47e83dccc5db7fe4ca596b28c9b901a136fe3
+#SOURCE: https://busybox.net/downloads/busybox-1.32.0.tar.bz2
+#FILE: busybox-1.32.0.tar.bz2
+#HASH: 277b245e4bbad2df44c767017c68cb68c477274b
 
 set -e
 #set -x

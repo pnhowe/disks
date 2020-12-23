@@ -28,7 +28,7 @@ ISOS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/iso-$(ARCH)/%.is
 
 PWD = $(shell pwd)
 
-JOBS := $(or $(shell cat /proc/$$PPID/cmdline | sed -n 's/.*\(-j\|--jobs=\).\?\([0-9]\+\).*/\2/p'),1)
+JOBS := $(or $(shell cat /proc/$$PPID/cmdline | sed -n 's/.*\(-j\|--jobs=\)[^0-9]\?\([0-9]\+\).*/\2/p'),1)
 
 all: build.images/build-$(ARCH)
 
@@ -219,7 +219,7 @@ respkg-distros:
 # deb http://ports.ubuntu.com/ubuntu-ports bionic main universe multiverse
 # qemu-user-static
 respkg-requires:
-	echo respkg fake-root bc gperf python3-dev python3-setuptools pkg-config gettext python3-pip bison flex
+	echo respkg fakeroot bc gperf python3-dev python3-setuptools pkg-config gettext python3-pip bison flex gawk
 	# echo still need?  libelf-dev  libassuan-dev libksba-dev libnpth0-dev
 ifeq ($(ARCH),"x86_64")
 	echo build-essential uuid-dev libblkid-dev libudev-dev libgpg-error-dev liblzma-dev zlib1g-dev libxml2-dev libdevmapper-dev libssl-dev libreadline-dev libsqlite3-dev libbz2-dev libgcrypt-dev
