@@ -150,7 +150,7 @@ images/img-$(ARCH):
 #    <disk>_<other> -> disks/<images>/<other>.img
 #    <disk> (ie no `_`) -> disks/<images>/_default.img
 images/img-$(ARCH)/%.img : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2.img'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.boot'/)
-SECONDEXPANSION:
+.SECONDEXPANSION:
 images/img-$(ARCH)/%.img: images/img-$(ARCH) $$(shell scripts/img_iso_deps $(ARCH) $$*)
 	if [ -f templates/$* ];                                                                                                             \
 	then                                                                                                                                \

@@ -105,6 +105,6 @@ test-requires:
 	echo flake8
 
 lint:
-	flake8 --exclude *_h.py --ignore=E501,E201,E202,E111,E126,E114,E402,W605 --statistics .
+	flake8 --exclude *_h.py --ignore=E501,E201,E202,E111,E126,E114,E402 --statistics .
 
 .PHONY: all clean esx-lib install-disks install-client-pkg install-esx test lint test-requires

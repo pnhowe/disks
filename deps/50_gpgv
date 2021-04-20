@@ -11,13 +11,13 @@ build()
   tar --strip-components=1 -xjf $1
   if [ "x$3" = "xx86_64" ]
   then
-    ./configure --prefix= --disable-ntbtls --disable-gnutls --disable-ldap --disable-nls --disable-card-support --disable-nls
+    ./configure --prefix= --disable-ntbtls --disable-gnutls --disable-ldap --disable-nls --disable-card-support --disable-dirmngr --disable-scdaemon --disable-doc
   elif [ "x$3" = "xarm" ]
   then
-    ./configure --prefix= --disable-ntbtls --disable-gnutls --disable-ldap --disable-nls --disable-card-support --disable-nls --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
+    ./configure --prefix= --disable-ntbtls --disable-gnutls --disable-ldap --disable-nls --disable-card-support --disable-dirmngr --disable-scdaemon --disable-doc --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
   elif [ "x$3" = "xarm64" ]
   then
-    ./configure --prefix= --disable-ntbtls --disable-gnutls --disable-ldap --disable-nls --disable-card-support --disable-nls --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+    ./configure --prefix= --disable-ntbtls --disable-gnutls --disable-ldap --disable-nls --disable-card-support --disable-dirmngr --disable-scdaemon --disable-doc --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
   make $4
 }

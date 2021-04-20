@@ -75,7 +75,7 @@ def _execute( cmd, stdout, stderr, stdin, env, retry_rc_list=None ):
     debug_stdout.flush()
 
     retry -= 1
-    time.sleep( 30 )
+    time.sleep( 60 )
 
   else:
     raise Exception( 'Error Executing "{0}", retries exceded'.format( cmd ) )

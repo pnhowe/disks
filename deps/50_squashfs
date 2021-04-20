@@ -1,7 +1,7 @@
 #!/bin/sh
-#SOURCE: https://downloads.sourceforge.net/project/squashfs/squashfs/squashfs4.3/squashfs4.3.tar.gz
-#FILE: squashfs4.3.tar.gz
-#HASH: a615979db9cee82e4a934a1455577f597d290b41
+#SOURCE: https://downloads.sourceforge.net/project/squashfs/squashfs/squashfs4.4/squashfs4.4.tar.gz
+#FILE: squashfs4.4.tar.gz
+#HASH: a42fdedb8a1543274592e317c437cafa54e02705
 
 set -e
 #set -x
