@@ -17,7 +17,7 @@ prefix_2=proc  /proc  proc  defaults  0  0
 
 [bootstrap]
 type=redhatimg
-version=6
+version=6.10
 
 [packaging]
 manager_type=yum
