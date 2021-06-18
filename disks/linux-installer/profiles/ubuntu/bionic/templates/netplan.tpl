@@ -15,7 +15,7 @@
 {% endif %}
 
 
-{%- target '/etc/netplan/20-installer.yaml' -%}
+{%- target '/etc/netplan/01-netcfg.yaml' -%}
 # Auto Generated During Install
 
 network:

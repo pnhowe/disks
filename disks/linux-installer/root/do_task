@@ -8,7 +8,7 @@ then
   . /config
   for URL in $PROFILE_URL_LIST
   do
-    echo "Reterieving profile '$URL'..."
+    echo "Retrieving profile '$URL'..."
     wget -q -O- $URL | tar -C / -xz
   done
 fi

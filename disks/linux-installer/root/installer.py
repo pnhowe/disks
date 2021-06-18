@@ -140,6 +140,7 @@ os.unlink( '/target/config_data' )
 
 if os.access( os.path.join( install_root, 'usr/sbin/config-curator' ), os.X_OK ):
   contractor.postMessage( 'Running config-curator...' )
+  shutil.copytree( template_path, os.path.join( install_root, 'var/lib/config-curator/templates/linux-installer/' ), symlinks=True )
   chroot_execute( '/usr/sbin/config-curator -c -a -f -b' )
 
 shutil.copyfile( '/tmp/output.log', os.path.join( install_root, 'root/install.log' ) )
