@@ -1,1 +1,0 @@
-../../bionic/templates/netplan.tpl

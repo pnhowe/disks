@@ -1,1 +1,0 @@
-../../trusty/templates/grub.tpl

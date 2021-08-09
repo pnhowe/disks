@@ -203,7 +203,7 @@ clean: clean-deps clean-images clean-src respkg-clean pkg-clean resource-clean
 
 dist-clean: clean-deps clean-images clean-src clean-downloads pkg-dist-clean
 
-.PHONY:: all all-pxe all-imgs clean clean-src clean-downloads clean-deps clean-images dist-clean pxe-targets templates images/img/% images/iso/%
+.PHONY:: all all-pxe all-imgs clean clean-src clean-downloads clean-deps clean-images dist-clean pxe-targets templates images/%
 
 contractor/linux-installer-profiles.touch: $(shell find disks/linux-installer/profiles -type f -print)
 	mkdir -p  contractor/linux-installer-profiles/var/www/static/disks

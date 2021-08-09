@@ -1,1 +1,0 @@
-../../trusty/templates/default_locale.tpl
