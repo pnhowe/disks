@@ -31,15 +31,17 @@
   parents = [ 'ubuntu-base' ]
 [ structure.ubuntu-trusty-base.config_values ]
   distro_version = 'trusty'
-  azure_image = { 'publisher' = 'Canonical', 'offer' = 'UbuntuServer', 'sku' = '14.04-LTS', 'version' = 'latest' }
+  'azure_image:Azure' = { 'publisher' = 'Canonical', 'offer' = 'UbuntuServer', 'sku' = '14.04-LTS', 'version' = 'latest' }
 
 [ structure.ubuntu-xenial-base ]
   description = 'Base Ubuntu Xenial Xerus (16.04 LTS)'
   parents = [ 'ubuntu-base' ]
 [ structure.ubuntu-xenial-base.config_values ]
   distro_version = 'xenial'
-  awsec2_image_id = 'ami-efd0428f'
-  azure_image = { 'publisher' = 'Canonical', 'offer' = 'UbuntuServer', 'sku' = '16.04-LTS', 'version' = 'latest' }
+  'awsec2_image_id:AWS' = 'ami-efd0428f'
+  'docker_image:Docker' = 'ubuntu:xenial'
+  'azure_image:Azure' = { 'publisher' = 'Canonical', 'offer' = 'UbuntuServer', 'sku' = '16.04-LTS', 'version' = 'latest' }
+  'packet_os:Packet' = 'ubuntu_16_04'
 
 [ structure.ubuntu-bionic-base ]
   description = 'Base Ubuntu Bionic Beaver (18.04 LTS)'
@@ -47,13 +49,18 @@
 [ structure.ubuntu-bionic-base.config_values ]
   distro_version = 'bionic'
   azure_image = { 'publisher' = 'Canonical', 'offer' = 'UbuntuServer', 'sku' = '18.04-LTS', 'version' = 'latest' }
+  'docker_image:Docker' = 'ubuntu:bionic'
+  'azure_image:Azure' = { 'publisher' = 'Canonical', 'offer' = 'UbuntuServer', 'sku' = '18.04-LTS', 'version' = 'latest' }
+  'packet_os:Packet' = 'ubuntu_18_04'
 
 [ structure.ubuntu-focal-base ]
   description = 'Base Ubuntu Focal Fossa (20.04 LTS)'
   parents = [ 'ubuntu-base' ]
 [ structure.ubuntu-focal-base.config_values ]
   distro_version = 'focal'
-  azure_image = { 'publisher' = 'Canonical', 'offer' = 'UbuntuServer', 'sku' = '20.04-LTS', 'version' = 'latest' }
+  'docker_image:Docker' = 'ubuntu:focal'
+  'azure_image:Azure' = { 'publisher' = 'Canonical', 'offer' = 'UbuntuServer', 'sku' = '20.04-LTS', 'version' = 'latest' }
+  'packet_os:Packet' = 'ubuntu_20_04'
 
 # Debian
 [ structure.debian-base ]
