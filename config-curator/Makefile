@@ -63,8 +63,8 @@ lint:
 
 .PHONY:: test-requires test lint
 
-dpkg-distros:
-	echo ubuntu-trusty ubuntu-xenial ubuntu-bionic
+dpkg-blueprints:
+	echo ubuntu-bionic-base ubuntu-focal-base
 
 dpkg-requires:
 	echo dpkg-dev debhelper python3-dev python3-setuptools
@@ -77,10 +77,10 @@ dpkg:
 	dpkg-buildpackage -b -us -uc
 	touch dpkg
 
-.PHONY:: dpkg-distros dpkg-requires dpkg-file
+.PHONY:: dpkg-blueprints dpkg-requires dpkg-file
 
-rpm-distros:
-	echo centos-6 centos-7
+rpm-blueprints:
+	echo centos-6-base centos-7-base
 
 rpm-requires:
 	echo rpm-build
@@ -98,4 +98,4 @@ rpm:
 	rpmbuild -v -bb rpmbuild/config.spec
 	touch rpm
 
-.PHONY:: rpm-distros rpm-requires rpm-file
+.PHONY:: rpm-blueprints rpm-requires rpm-file

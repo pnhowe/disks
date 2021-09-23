@@ -212,8 +212,8 @@ contractor/linux-installer-profiles.touch: $(shell find disks/linux-installer/pr
 	for DISTRO in 6 7; do tar -h -czf contractor/linux-installer-profiles/var/www/static/disks/centos-$$DISTRO-profile.tar.gz -C disks/linux-installer/profiles/centos/$$DISTRO . ; done
 	touch contractor/linux-installer-profiles.touch
 
-respkg-distros:
-	echo ubuntu-bionic
+respkg-blueprints:
+	echo ubuntu-focal-base
 
 #  sudo dpkg --add-architecture arm64 armhf
 # deb http://ports.ubuntu.com/ubuntu-ports bionic main universe multiverse
@@ -247,10 +247,10 @@ respkg-clean:
 	$(RM) -fr resources/var/www/disks
 	$(RM) -fr contractor/linux-installer-profiles
 
-.PHONY:: respkg-distros respkg-requires respkg respkg-file respkg-clean
+.PHONY:: respkg-blueprints respkg-requires respkg respkg-file respkg-clean
 
-resource-distros:
-	echo ubuntu-bionic
+resource-blueprints:
+	echo ubuntu-focal-base
 
 resource-requires:
 	echo build-essential AppImage
@@ -268,7 +268,7 @@ resource-file:
 resource-clean:
 
 
-.PHONY:: resource-distros resource-requires resource resource-file resource-clean
+.PHONY:: resource-blueprints resource-requires resource resource-file resource-clean
 
 # MCP targets
 
@@ -278,22 +278,22 @@ pkg-clean:
 pkg-dist-clean:
 	for dir in config-curator; do $(MAKE) -C $$dir dist-clean || exit $$?; done
 
-test-distros:
-	echo ubuntu-xenial
+test-blueprints:
+	echo ubuntu-focal-base
 
 test-requires:
-	for dir in src config-curator; do $(MAKE) -C $$dir test-requires || exit $$?; done
+	for dir in disks src config-curator; do $(MAKE) -C $$dir test-requires || exit $$?; done
 
 test:
-	for dir in src config-curator; do $(MAKE) -C $$dir test || exit $$?; done
+	for dir in disks src config-curator; do $(MAKE) -C $$dir test || exit $$?; done
 
 lint:
-	for dir in src config-curator; do $(MAKE) -C $$dir lint || exit $$?; done
+	for dir in disks src config-curator; do $(MAKE) -C $$dir lint || exit $$?; done
 
-.PHONY:: test-distros lint test-requires test
+.PHONY:: test-blueprints lint test-requires test
 
-dpkg-distros:
-	for dir in config-curator; do $(MAKE) -C $$dir dpkg-distros || exit $$?; done
+dpkg-blueprints:
+	for dir in config-curator; do $(MAKE) -C $$dir dpkg-blueprints || exit $$?; done
 
 dpkg-requires:
 	for dir in config-curator; do $(MAKE) -C $$dir dpkg-requires || exit $$?; done
@@ -307,10 +307,10 @@ dpkg:
 dpkg-file:
 	echo $(shell ls config-curator*.deb)
 
-.PHONY:: dpkg-distros dpkg-requires dpkg-file dpkg
+.PHONY:: dpkg-blueprints dpkg-requires dpkg-file dpkg
 
-rpm-distros:
-	for dir in config-curator; do $(MAKE) -C $$dir rpm-distros || exit $$?; done
+rpm-blueprints:
+	for dir in config-curator; do $(MAKE) -C $$dir rpm-blueprints || exit $$?; done
 
 rpm-requires:
 	for dir in config-curator; do $(MAKE) -C $$dir rpm-requires || exit $$?; done
@@ -324,4 +324,4 @@ rpm:
 rpm-file:
 	echo $(shell ls config-curator/rpmbuild/RPMS/*/config-curator-*.rpm)
 
-.PHONY:: rpm-distros rpm-requires rpm-file rpm
+.PHONY:: rpm-blueprints rpm-requires rpm-file rpm

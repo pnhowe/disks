@@ -24,7 +24,7 @@ class Bootstrap:
   def logout( self ):
     try:
       self.request( 'call', '/api/v1/Auth/User(logout)', { 'token': self.token } )
-    except Exceptino:
+    except Exception:
       pass
 
   def lookup( self, info_map ):

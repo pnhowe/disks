@@ -9,7 +9,7 @@ class URI():
       raise ValueError( 'root_path must start and end with "/"' )
 
     self.root_path = root_path
-    self.uri_regex = re.compile( '^({0}|/)(([a-zA-Z0-9\-_.!~*]+/)*)([a-zA-Z0-9\-_.!~*]+)?(:([a-zA-Z0-9\-_.!~*\']*:)*)?(\([a-zA-Z0-9\-_.!~*]+\))?$'.format( self.root_path ) )
+    self.uri_regex = re.compile( r'^({0}|/)(([a-zA-Z0-9\-_.!~*]+/)*)([a-zA-Z0-9\-_.!~*]+)?(:([a-zA-Z0-9\-_.!~*\']*:)*)?(\([a-zA-Z0-9\-_.!~*]+\))?$'.format( self.root_path ) )
 
   def split( self, uri, root_optional=False ):
     uri_match = self.uri_regex.match( uri )

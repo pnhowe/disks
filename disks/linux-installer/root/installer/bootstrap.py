@@ -58,8 +58,8 @@ def bootstrap( mount_point, source, profile ):  # TODO: bootstrap http proxy, al
 
     print( 'Retreiving Package List...' )
     execute( '/bin/wget -q -O /tmp/pkglist {0}Packages/'.format( repo_root ) )
-    yum_match = re.compile( '"(yum-[^"]*\.rpm)"' )
-    release_match = re.compile( '"(centos-release-[^"]*\.rpm)"' )
+    yum_match = re.compile( r'"(yum-[^"]*\.rpm)"' )
+    release_match = re.compile( r'"(centos-release-[^"]*\.rpm)"' )
     yum_filename = None
     release_filename = None
     for line in open( '/tmp/pkglist', 'r' ).readlines():

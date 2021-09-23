@@ -4,7 +4,6 @@ import base64
 import os
 import hashlib
 import pwd
-import grp
 from datetime import datetime
 from libconfig.jinja2 import FileSystemLoader, Environment, nodes, TemplateSyntaxError
 from libconfig.jinja2.ext import Extension, do as do_ext

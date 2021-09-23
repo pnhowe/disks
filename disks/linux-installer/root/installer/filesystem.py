@@ -224,7 +224,7 @@ def _mdSyncPercentange():
   result = []
 
   for line in open( '/proc/mdstat', 'r' ).readlines():
-    match = re.search( '=[ ]+([0-9\.]+)%', line )
+    match = re.search( r'=[ ]+([0-9\.]+)%', line )
     if not match:
       continue
 
@@ -651,7 +651,7 @@ def partition( profile, value_map ):
       print( 'Creating LV "{0}" members {1}...'.format( vg_names[ vg ], block_list ) )
       execute( '/sbin/lvm vgcreate {0} {1}'.format( vg_names[ vg ], ' '.join( block_list ) ) )
       for line in execute_lines( '/sbin/lvm vgdisplay {0}'.format( vg_names[ vg ] ) ):
-        result = re.match( '[ ]*Total PE[ ]*([0-9\.]*)', line )
+        result = re.match( r'[ ]*Total PE[ ]*([0-9\.]*)', line )
         if result:
           vg_extents[ vg ] = int( result.group( 1 ) )
           break

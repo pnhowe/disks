@@ -99,10 +99,10 @@ clean:
 
 full-clean: clean
 
-test:
-
 test-requires:
 	echo flake8
+
+test:
 
 lint:
 	flake8 --exclude=*_h.py --ignore=E501,E201,E202,E111,E126,E114,E402 --statistics .
