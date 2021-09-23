@@ -594,7 +594,7 @@ def getNVMEPorts():
   tmp_list.sort()
 
   for name in [ i[1] for i in tmp_list ]:
-    tmp_list = glob.glob( '/sys/class/nvme/{0}/{0}n*'.format( name, name ) )
+    tmp_list = glob.glob( '/sys/class/nvme/{0}/{0}n*'.format( name ) )
     for tmp in tmp_list:
       block = tmp.split( '/' )[ -1 ]
       namespace = int( block.split( 'n' )[-1] )
@@ -638,12 +638,12 @@ def _getMegaRAIDLists():
   enclosure_list = []
   tmpController = None
   for line in stdout.splitlines():
-    result = re.match( '\s*Number of enclosures on adapter ([0-9]+)', line )
+    result = re.match( r'\s*Number of enclosures on adapter ([0-9]+)', line )
     if result:
       tmpController = result.group( 1 )
       controller_list.append( tmpController )
 
-    result = re.match( '\s*Enclosure ([0-9]+):', line )
+    result = re.match( r'\s*Enclosure ([0-9]+):', line )
     if result:
       enclosure_list.append( '{0}-{1}'.format( tmpController, result.group( 1 ) ) )
 
@@ -662,7 +662,7 @@ def _getMegaRAIDLogicalVolumes( controller_list ):
       raise Exception( 'Got return code "{0}" when getting list of logical volumes on controller "{1}"'.format( tmp.returncode, controller ) )
 
     for line in stdout.splitlines():
-      result = re.match( 'Virtual Drive: ([0-9])* (Target Id: \([0-9])*\)', line )
+      result = re.match( r'Virtual Drive: ([0-9])* (Target Id: \([0-9])*\)', line )
       if result:
         logicalVolumes_list[ controller ].append( ( int( result.group( 1 ) ), int( result.group( 2 ) ) ) )
 
@@ -990,7 +990,7 @@ def _getEnclosurePortMap( enclosure ):  # TODO: Cache this? save some globbing?
   if re.match( '[A-E][0-9]+', ports[0] ):  # voyager gen3
     return dict( zip( ports, ports ) )
 
-  if re.match( 'SLOT[ 0-9]*\[[A-G],[ ]*[1-9]+\]', ports[0] ):  # pikes peak
+  if re.match( r'SLOT[ 0-9]*\[[A-G],[ ]*[1-9]+\]', ports[0] ):  # pikes peak
     result = {}
     for item in ports:
       ( bay, slot ) = item.split( '[' )[1].split( ']' )[0].split( ',' )
@@ -1046,7 +1046,7 @@ def getSASDirectPorts():
   block_list = glob.glob( '/sys/class/scsi_host/host*/device/phy-*/port/end_device-*/target*/*/block/sd*' )  # phy not port so we can get the sas address
   for block in block_list:
     block_parts = block.split( '/' )
-    phy = '{0}/sas_phy/{1}'.format( '/'.join( block_parts[ 0:7 ] ), block_parts[6] )
+    # phy = '{0}/sas_phy/{1}'.format( '/'.join( block_parts[ 0:7 ] ), block_parts[6] )
 
     port = SASPort( block_parts[-3], block_parts[6].split( ':' )[-1], None )
 
