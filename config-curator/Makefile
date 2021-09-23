@@ -67,7 +67,7 @@ dpkg-blueprints:
 	echo ubuntu-bionic-base ubuntu-focal-base
 
 dpkg-requires:
-	echo dpkg-dev debhelper python3-dev python3-setuptools
+	echo dpkg-dev debhelper python3-dev python3-setuptools dh-python
 
 dpkg-setup:
 	./debian-setup
@@ -80,7 +80,7 @@ dpkg:
 .PHONY:: dpkg-blueprints dpkg-requires dpkg-file
 
 rpm-blueprints:
-	echo centos-6-base centos-7-base
+	echo centos-7-base
 
 rpm-requires:
 	echo rpm-build

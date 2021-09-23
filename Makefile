@@ -120,7 +120,7 @@ build.images/build-$(ARCH): $(IMAGE_ROOT)
 
 # pxe targets
 
-all-pxe: $(PXE_FILES)
+all-pxe: all $(PXE_FILES)
 
 pxe-targets:
 	@echo "Aviable PXE Targets: $(PXES)"
@@ -213,7 +213,7 @@ contractor/linux-installer-profiles.touch: $(shell find disks/linux-installer/pr
 	touch contractor/linux-installer-profiles.touch
 
 respkg-blueprints:
-	echo ubuntu-focal-base
+	echo ubuntu-focal-large
 
 #  sudo dpkg --add-architecture arm64 armhf
 # deb http://ports.ubuntu.com/ubuntu-ports bionic main universe multiverse
@@ -253,7 +253,8 @@ resource-blueprints:
 	echo ubuntu-focal-base
 
 resource-requires:
-	echo build-essential AppImage
+	echo build-essential
+	# AppImage
 
 resource:
 	# make an AppImage of the linux-installer, this will run on the host os that is close to the target os
