@@ -47,6 +47,13 @@ static int smbios( const __u8 *buff, struct dmi_entry list[], const int list_siz
 {
   __u16 version;
 
+  /* Don't let checksum run beyond the buffer */
+  if( buff[0x05] > 0x20 )
+  {
+    errno = EINVAL;
+    return -1;
+  }
+
   if( !checksum( buff, buff[0x05] ) || ( memcmp( buff + 0x10, "_DMI_", 5) != 0 ) || !checksum( buff + 0x10, 0x0F ) )
   {
     errno = EINVAL;
@@ -83,6 +90,42 @@ static int smbios( const __u8 *buff, struct dmi_entry list[], const int list_siz
   return 0;
 }
 
+static int smbios3( const __u8 *buff, struct dmi_entry list[], const int list_size, int *entry_counter, int *group_counter )
+{
+  __u32 version;
+  dmiu64 offset;
+
+  /* Don't let checksum run beyond the buffer */
+  if( buff[0x06] > 0x20 )
+  {
+    errno = EINVAL;
+    return -1;
+  }
+
+  if( !checksum( buff, buff[0x06] ) )
+  {
+    errno = EINVAL;
+    return -1;
+  }
+
+  if( verbose >= 2 )
+    fprintf( stderr, "SMBIOS %u.%u.%u  Present\n", buff[0x07], buff[0x08], buff[0x09] );
+
+  version = ( buff[0x07] << 16 ) + ( buff[0x08] << 8 ) + buff[0x09];
+
+  offset = dmiQWORD( buff + 0x10 );
+  if( offset.h && sizeof( off_t ) < 8 ) // 64-bit addresses not supported
+  {
+    errno = EINVAL;
+    return -1;
+  }
+
+  if( dmi_table( ( (off_t)offset.h << 32 ) | offset.l, DWORD( buff + 0x0C ), 0, version, list, list_size, entry_counter, group_counter ) )
+    return -1;
+
+  return 0;
+}
+
 int getDMIList( struct dmi_entry list[], const int list_size )
 {
   __u8 buff[DMI_SIZE];
@@ -98,28 +141,48 @@ int getDMIList( struct dmi_entry list[], const int list_size )
   group_counter = 0;
   table_counter = 0;
 
+  // need to use sysfs first, then efi, then /dev/mem
+  // https://github.com/mirror/dmidecode/blob/master/dmidecode.c#L5795
+
   for( pos = 0; pos <= 0XFFF0; pos += 16 )
   {
-    if( !memcmp( buff + pos, "_SM_", 4 ) )
+    if( memcmp( buff + pos, "_SM3_", 5 ) == 0 )
     {
       if( verbose >= 2 )
-        fprintf( stderr, "SMBIOS Decodeing at %zi (0x%08zx).\n", pos, pos + DMI_OFFSET );
+        fprintf( stderr, "SMBIOS3 Decodeing at %zi (0x%08zx).\n", pos, pos + DMI_OFFSET );
 
-      if( smbios( buff + pos, list, list_size, &entry_counter, &group_counter ) )
+      if( smbios3( buff + pos, list, list_size, &entry_counter, &group_counter ) )
         return -1;
 
       table_counter++;
-      pos += 16;
     }
-    else if( !memcmp( buff + pos, "_DMI_", 5 ) )
+  }
+
+  if( table_counter == 0 )
+  {
+    for( pos = 0; pos <= 0XFFF0; pos += 16 )
     {
-      if( verbose >= 2 )
-        fprintf( stderr, "Legacy Decodeing at %zi (0x%08zx).\n", pos, pos + DMI_OFFSET );
+      if( memcmp( buff + pos, "_SM_", 4 ) == 0 )
+      {
+        if( verbose >= 2 )
+          fprintf( stderr, "SMBIOS Decodeing at %zi (0x%08zx).\n", pos, pos + DMI_OFFSET );
 
-      if( legacy( buff + pos, list, list_size, &entry_counter, &group_counter ) )
-        return -1;
+        if( smbios( buff + pos, list, list_size, &entry_counter, &group_counter ) )
+          return -1;
 
-      table_counter++;
+        table_counter++;
+        pos += 16;
+      }
+      else if( memcmp( buff + pos, "_DMI_", 5 ) == 0 )
+      {
+        if( verbose >= 2 )
+          fprintf( stderr, "Legacy Decodeing at %zi (0x%08zx).\n", pos, pos + DMI_OFFSET );
+
+        if( legacy( buff + pos, list, list_size, &entry_counter, &group_counter ) )
+          return -1;
+
+        table_counter++;
+      }
     }
   }
 

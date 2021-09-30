@@ -11,6 +11,7 @@
 #define WORD(x)  (__u16) ( *(const __u16 *) (x) )
 #define DWORD(x) (__u32) ( *(const __u32 *) (x) )
 #define QWORD(x)         ( *(const __u64 *) (x) )
+#define dmiQWORD(x)      ( *(const dmiu64 *) (x) )
 
 #define ARRAY_SIZE(x) ( sizeof(x) / sizeof( (x)[0] ) )
 

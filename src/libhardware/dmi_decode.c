@@ -52,7 +52,7 @@ static const char *chassis_type[] = {
         "Sub Notebook",
         "Space-saving",
         "Lunch Box",
-        "Main System Chassis",
+        "Main Server Chassis", /* CIM_Chassis.ChassisPackageType says "Main System Chassis" */
         "Expansion Chassis",
         "Sub Chassis",
         "Bus Expansion Chassis",
@@ -64,7 +64,14 @@ static const char *chassis_type[] = {
         "CompactPCI",
         "AdvancedTCA",
         "Blade",
-        "Blade Enclosing" /* 0x1D */
+        "Blade Enclosing",
+        "Tablet",
+        "Convertible",
+        "Detachable",
+        "IoT Gateway",
+        "Embedded PC",
+        "Mini PC",
+        "Stick PC" /* 0x24 */
 };
 
 static const char *chassis_state[] = {
@@ -101,8 +108,8 @@ static const struct {
         { 0x13, "M2" },
         { 0x14, "Celeron M" },
         { 0x15, "Pentium 4 HT" },
-        { 0x18, "Duron" },
 
+        { 0x18, "Duron" },
         { 0x19, "K5" },
         { 0x1A, "K6" },
         { 0x1B, "K6-2" },
@@ -122,8 +129,11 @@ static const struct {
         { 0x29, "Core Duo Mobile" },
         { 0x2A, "Core Solo Mobile" },
         { 0x2B, "Atom" },
-
-        { 0x30, "Alpha or Pentium Pro" },
+        { 0x2C, "Core M" },
+        { 0x2D, "Core m3" },
+        { 0x2E, "Core m5" },
+        { 0x2F, "Core m7" },
+        { 0x30, "Alpha" },
         { 0x31, "Alpha 21064" },
         { 0x32, "Alpha 21066" },
         { 0x33, "Alpha 21164" },
@@ -136,14 +146,25 @@ static const struct {
         { 0x3A, "Athlon II Dual-Core M" },
         { 0x3B, "Opteron 6100" },
         { 0x3C, "Opteron 4100" },
-
+        { 0x3D, "Opteron 6200" },
+        { 0x3E, "Opteron 4200" },
+        { 0x3F, "FX" },
         { 0x40, "MIPS" },
         { 0x41, "MIPS R4000" },
         { 0x42, "MIPS R4200" },
         { 0x43, "MIPS R4400" },
         { 0x44, "MIPS R4600" },
         { 0x45, "MIPS R10000" },
-
+        { 0x46, "C-Series" },
+        { 0x47, "E-Series" },
+        { 0x48, "A-Series" },
+        { 0x49, "G-Series" },
+        { 0x4A, "Z-Series" },
+        { 0x4B, "R-Series" },
+        { 0x4C, "Opteron 4300" },
+        { 0x4D, "Opteron 6300" },
+        { 0x4E, "Opteron 3300" },
+        { 0x4F, "FirePro" },
         { 0x50, "SPARC" },
         { 0x51, "SuperSPARC" },
         { 0x52, "MicroSPARC II" },
@@ -160,6 +181,12 @@ static const struct {
         { 0x63, "68010" },
         { 0x64, "68020" },
         { 0x65, "68030" },
+        { 0x66, "Athlon X4" },
+        { 0x67, "Opteron X1000" },
+        { 0x68, "Opteron X2000" },
+        { 0x69, "Opteron A-Series" },
+        { 0x6A, "Opteron X3000" },
+        { 0x6B, "Zen" },
 
         { 0x70, "Hobbit" },
 
@@ -221,7 +248,7 @@ static const struct {
         { 0xBB, "Pentium D" },
         { 0xBC, "Pentium EE" },
         { 0xBD, "Core Solo" },
-        { 0xBE, "Core 2 or K7" },
+        /* 0xBE handled as a special case */
         { 0xBF, "Core 2 Duo" },
         { 0xC0, "Core 2 Solo" },
         { 0xC1, "Core 2 Extreme" },
@@ -235,9 +262,10 @@ static const struct {
         { 0xC9, "G4" },
         { 0xCA, "G5" },
         { 0xCB, "ESA/390 G6" },
-        { 0xCC, "z/Architectur" },
+        { 0xCC, "z/Architecture" },
         { 0xCD, "Core i5" },
         { 0xCE, "Core i3" },
+        { 0xCF, "Core i9" },
 
         { 0xD2, "C7-M" },
         { 0xD3, "C7-D" },
@@ -255,6 +283,8 @@ static const struct {
         { 0xDF, "Multi-Core Xeon 7xxx" },
         { 0xE0, "Multi-Core Xeon 3400" },
 
+        { 0xE4, "Opteron 3000" },
+        { 0xE5, "Sempron II" },
         { 0xE6, "Embedded Opteron Quad-Core" },
         { 0xE7, "Phenom Triple-Core" },
         { 0xE8, "Turion Ultra Dual-Core Mobile" },
@@ -269,6 +299,8 @@ static const struct {
         { 0xFA, "i860" },
         { 0xFB, "i960" },
 
+        { 0x100, "ARMv7" },
+        { 0x101, "ARMv8" },
         { 0x104, "SH-3" },
         { 0x105, "SH-4" },
         { 0x118, "ARM" },
@@ -279,6 +311,10 @@ static const struct {
         { 0x140, "WinChip" },
         { 0x15E, "DSP" },
         { 0x1F4, "Video Processor" },
+
+        { 0x200, "RV32" },
+        { 0x201, "RV64" },
+        { 0x202, "RV128" },
 };
 
 static const char *processor_status[] = {
@@ -377,7 +413,17 @@ static const char *memory_device_type[] = {
         "Reserved",
         "Reserved",
         "DDR3",
-        "FBD2", /* 0x19 */
+        "FBD2",
+        "DDR4",
+        "LPDDR",
+        "LPDDR2",
+        "LPDDR3",
+        "LPDDR4",
+        "Logical non-volatile device",
+        "HBM",
+        "HBM2",
+        "DDR5",
+        "LPDDR5" /* 0x23 */
 };
 
 static const char *memory_error_type[] = {
@@ -853,6 +899,47 @@ TABLE_LOOKUP( dmi_power_supply_status, power_supply_status, 0x01, 0x05 )
 
 TABLE_LOOKUP( dmi_power_supply_range_switching, power_supply_range_switching, 0x01, 0x06 )
 
+static const char *dmi_management_controller_host_type( __u8 code )
+{
+  /* DMTF DSP0239 (MCTP) version 1.1.0 */
+  static const char *type[] = {
+    "KCS: Keyboard Controller Style", /* 0x02 */
+    "8250 UART Register Compatible",
+    "16450 UART Register Compatible",
+    "16550/16550A UART Register Compatible",
+    "16650/16650A UART Register Compatible",
+    "16750/16750A UART Register Compatible",
+    "16850/16850A UART Register Compatible" /* 0x08 */
+  };
+
+  if (code >= 0x02 && code <= 0x08)
+    return type[code - 0x02];
+  if (code <= 0x3F)
+    return "MCTP";
+  if (code == 0x40)
+    return "Network";
+  if (code == 0xF0)
+    return "OEM";
+
+  return "OUT_OF_SPEC";
+}
+
+static const char *dmi_parse_device_type( __u8 type )
+{
+  const char *devname[] = {
+    "USB",    /* 0x2 */
+    "PCI/PCIe",  /* 0x3 */
+  };
+
+  if (type >= 0x2 && type <= 0x3)
+    return devname[type - 0x2];
+  if (type >= 0x80)
+    return "OEM";
+
+  return "OUT_OF_SPEC";
+}
+
+
 inline static void addEntry( const char *type, const char *name, const char *value, struct dmi_entry list[], const int list_size, int *counter, const int group )
 {
   if( *counter < list_size )
@@ -860,7 +947,7 @@ inline static void addEntry( const char *type, const char *name, const char *val
     list[*counter].group = group;
     strncpy( list[*counter].type, type, DMI_ENTRY_TYPE_LEN - 1 );
     strncpy( list[*counter].name, name, DMI_ENTRY_NAME_LEN - 1 );
-    strncpy( list[*counter].value, value, DMI_ENTRY_VALUE_LEN - 1 );
+    strncpy( list[*counter].value, value, DMI_ENTRY_VALUE_LEN - 1);
     if( verbose >= 3 )
       fprintf( stderr, "Added Entry %i, type: '%s', name: '%s', value: '%s'\n", *counter, list[*counter].type, list[*counter].name, list[*counter].value );
   }
@@ -869,7 +956,8 @@ inline static void addEntry( const char *type, const char *name, const char *val
 
 static void dmi_decode( const struct dmi_header *hdr, const int version, struct dmi_entry list[], const int list_size, int *counter, const int group )
 {
-  char wrkValue[DMI_ENTRY_VALUE_LEN];
+  char wrkValue[DMI_ENTRY_VALUE_LEN - 1];
+  char wrkName[DMI_ENTRY_NAME_LEN - 1];
   int i;
 
   switch( hdr->type )
@@ -1037,8 +1125,8 @@ static void dmi_decode( const struct dmi_header *hdr, const int version, struct 
 
       for( i = 1; i <= hdr->data[0x04]; i++ )
       {
-        sprintf( wrkValue, "String %d", i );
-        addEntry( "OEM Strings", wrkValue, dmi_string( hdr, i ), list, list_size, counter, group );
+        sprintf( wrkName, "String %d", i );
+        addEntry( "OEM Strings", wrkName, dmi_string( hdr, i ), list, list_size, counter, group );
       }
 
       break;
@@ -1049,8 +1137,8 @@ static void dmi_decode( const struct dmi_header *hdr, const int version, struct 
 
       for( i = 1; i <= hdr->data[0x04]; i++ )
       {
-        sprintf( wrkValue, "Option %d", i );
-        addEntry( "System Configuration Options", wrkValue, dmi_string( hdr, i ), list, list_size, counter, group );
+        sprintf( wrkName, "Option %d", i );
+        addEntry( "System Configuration Options", wrkName, dmi_string( hdr, i ), list, list_size, counter, group );
       }
 
       break;
@@ -1292,7 +1380,7 @@ static void dmi_decode( const struct dmi_header *hdr, const int version, struct 
     case 39: // section 7.40
       if( hdr->length < 0x10 )
         break;
-      sprintf( wrkValue, "%u\n", hdr->data[0x04] );
+      sprintf( wrkValue, "%u", hdr->data[0x04] );
       addEntry( "System Power Supply", "Power Unit Group", wrkValue, list, list_size, counter, group );
       addEntry( "System Power Supply", "Location", dmi_string( hdr, hdr->data[0x05] ), list, list_size, counter, group );
 
@@ -1322,8 +1410,22 @@ static void dmi_decode( const struct dmi_header *hdr, const int version, struct 
       //printf( "Onboard Device Extend Information:\n" );
       break;  // Nothing here we are interested in right now
     case 42: // section 7.43
-      //printf( "Management Controller Host Interface:\n" );
-      break;  // Nothing here we are interested in right now
+      if( hdr->length < 0x05 )
+        break;
+      addEntry( "Management Controller Host Interface", "Type", dmi_management_controller_host_type( hdr->data[0x04] ), list, list_size, counter, group );
+
+      if( hdr->length < 0x0B || hdr->data[0x04] != 0x40 )
+        break;
+
+      addEntry( "Management Controller Host Interface", "Device Type", dmi_parse_device_type( hdr->data[0x06] ), list, list_size, counter, group );
+      // there is a lot more https://github.com/mirror/dmidecode/blob/master/dmidecode.c#L3887 (dmi_parse_controller_structure)
+      break;
+
+    case 43: // section 7.44
+      sprintf( wrkValue, "%d.%d", hdr->data[0x08], hdr->data[0x09] );
+      addEntry( "TPM Device", "Specification Version", wrkValue, list, list_size, counter, group );
+      break;
+
     case 126: // section 7.44
       if( verbose >= 3 )
         fprintf( stderr, "Inactive\n" );
@@ -1398,7 +1500,10 @@ int dmi_table( const size_t base, const size_t length, const int count, const in
 
   if( verbose >= 3 )
   {
-    fprintf( stderr, "%i structures occupying %zi bytes starting at 0x%08zx.\n", count, length, base );
+    if( count == 0 )
+      fprintf( stderr, "occupying %zi bytes starting at 0x%08zx.\n", length, base );
+    else
+      fprintf( stderr, "%i structures occupying %zi bytes starting at 0x%08zx.\n", count, length, base );
   }
 
   buff = malloc( length );
@@ -1411,7 +1516,7 @@ int dmi_table( const size_t base, const size_t length, const int count, const in
   pos = buff;
   errno = 0;
 
-  for( i = 0 ; ( i <= count ) && ( ( size_t )( pos - buff ) < length ) ; i++ )
+  for( i = 0 ; ( ( count == 0 ) || ( i <= count ) ) && ( ( size_t )( pos - buff ) < length ) ; i++ )
   {
     to_dmi_header( &hdr, pos );
 
@@ -1425,6 +1530,9 @@ int dmi_table( const size_t base, const size_t length, const int count, const in
 
     if( verbose >= 2 )
       fprintf( stderr, "%i: Handle: 0x%04x, Type: %i, Header Length: %i, Pos: %p\n", i, hdr.handle, hdr.type, hdr.length, pos );
+
+    if( ( count == 0 ) && ( hdr.type == 127 ) ) // end of table, SM3 requires us to stop here, assuming we should stop anyway
+      break;
 
     if( verbose >= 4 )
       dump_bytes( pos, hdr.length );
@@ -1447,7 +1555,7 @@ int dmi_table( const size_t base, const size_t length, const int count, const in
     (*group_counter)++;
   }
 
-  if( i != count )
+  if( ( count != 0 ) && ( i != count ) )
   {
     if( verbose )
       fprintf( stderr, "Expecting %i entries, got %i", count, i );

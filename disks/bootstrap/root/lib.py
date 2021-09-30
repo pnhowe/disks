@@ -40,16 +40,6 @@ class Bootstrap:
     return self.request( 'call', '/api/v1/Building/Foundation:{0}:(setIdMap)'.format( foundation_locator ), { 'id_map': id_map }, retry_count=-1  )
 
 
-def ipmicommand( cmd, ignore_failure=False ):
-  proc = subprocess.run( [ '/bin/ipmitool' ] + cmd.split() )
-  if proc.returncode != 0:
-    if ignore_failure:
-      print( 'WARNING: ipmi cmd "{0}" failed, ignored...'.format( cmd ) )
-    else:
-      _setMessage( 'Ipmi Error with: "{0}"'.format( cmd ) )
-      sys.exit( 1 )
-
-
 def getLLDP():
   counter = 0
   lldp_values = {}
@@ -109,6 +99,12 @@ def getLLDP():
   return results
 
 
+def getIpAddress( interface ):
+  proc = subprocess.run( [ '/sbin/ip', 'addr', 'show', 'dev', interface ], shell=False, stdout=subprocess.PIPE )
+  lines = str( proc.stdout, 'utf-8' ).strip().splitlines()
+  return lines[2].split()[1].split( '/' )[0]
+
+
 def cpuPhysicalCount():
   wrk = []
   cpuinfo = open( '/proc/cpuinfo', 'r' )
@@ -134,19 +130,3 @@ def getRAMAmmount():
   for line in meminfo.readlines():
     if line.startswith( 'MemTotal' ):
       return int( line.split( ':' )[1].strip().split( ' ' )[0] ) / 1024
-
-
-def getIPMIMAC( lan_channel ):
-  proc = subprocess.run( [ '/bin/ipmitool', 'lan', 'print', str( lan_channel ) ], stdout=subprocess.PIPE )
-  lines = str( proc.stdout, 'utf-8' ).strip().splitlines()
-  for line in lines:
-    if line.startswith( 'MAC Address' ):
-      return line[ 25: ].strip()
-
-  return None
-
-
-def getIpAddress( interface ):
-  proc = subprocess.run( [ '/sbin/ip', 'addr', 'show', 'dev', interface ], shell=False, stdout=subprocess.PIPE )
-  lines = str( proc.stdout, 'utf-8' ).strip().splitlines()
-  return lines[2].split()[1].split( '/' )[0]

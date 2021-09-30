@@ -1,4 +1,4 @@
-VERSION := 0.6
+VERSION := 0.7.0
 
 # other arches: arm arm64
 ARCH = x86_64
@@ -220,14 +220,13 @@ respkg-blueprints:
 # qemu-user-static
 respkg-requires:
 	echo respkg fakeroot bc gperf python3-dev python3-setuptools pkg-config gettext python3-pip bison flex gawk
-	# echo still need?  libelf-dev  libassuan-dev libksba-dev libnpth0-dev
-ifeq ($(ARCH),"x86_64")
-	echo build-essential uuid-dev libblkid-dev libudev-dev libgpg-error-dev liblzma-dev zlib1g-dev libxml2-dev libdevmapper-dev libssl-dev libreadline-dev libsqlite3-dev libbz2-dev libgcrypt-dev
+ifeq ($(ARCH),x86_64)
+	echo build-essential uuid-dev libblkid-dev libudev-dev libgpg-error-dev liblzma-dev zlib1g-dev libxml2-dev libdevmapper-dev libssl-dev libreadline-dev libsqlite3-dev libbz2-dev libgcrypt-dev libelf-dev libassuan-dev libksba-dev libnpth0-dev
 endif
-ifeq ($(ARCH),"arm")
-	echo crossbuild-essential-armhf uuid-dev libblkid-dev libudev-dev libgpg-error-dev liblzma-dev zlib1g-dev libxml2-dev libdevmapper-dev libssl-dev libreadline-dev libsqlite3-dev libbz2-dev libgcrypt-dev
+ifeq ($(ARCH),arm)
+	echo crossbuild-essential-armhf uuid-dev libblkid-dev libudev-dev libgpg-error-dev liblzma-dev zlib1g-dev libxml2-dev libdevmapper-dev libssl-dev libreadline-dev libsqlite3-dev libbz2-dev libgcrypt-dev libelf-dev libassuan-dev libksba-dev libnpth0-dev
 endif
-ifeq ($(ARCH),"arm64")
+ifeq ($(ARCH),arm64)
 	echo crossbuild-essential-arm64
 endif
 
