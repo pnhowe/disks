@@ -85,7 +85,7 @@ print( 'Lookedup by "{0}"'.format( lookup[ 'matched_by'] ) )
 bootstrap.setMessage( 'Looked up as "{0}"'.format( foundation_locator ) )
 
 config = contractor.getConfig( foundation_locator=foundation_locator )
-config[ 'ipmi_lan_channel' ] = config.get( 'ipmi_lan_channel', 1 )
+platform.setup( config )
 
 bootstrap.setMessage( 'Geting Hardware Information...' )
 print( 'Getting Network Information...' )
@@ -94,7 +94,7 @@ network = {}
 for item in glob.glob( '/sys/class/net/eth*' ):
   network[ item.split( '/' )[ -1 ] ] = { 'mac': open( os.path.join( item, 'address' ), 'r' ).read().strip() }
 
-platform.updateNetwork( config, network )
+network.update( platform.getNetwork() )
 
 for iface in lldp:
   if iface not in network:
@@ -124,8 +124,7 @@ for drive in dm.drive_list:
   disks.append( item )
   drive.setFault( False )
 
-# print 'Getting SCSI/Disk Enclosure Information...'
-# nothing yet
+# 'Getting SCSI/Disk Enclosure Information...'
 
 bootstrap.setMessage( 'Reporting Hardware info...' )
 print( 'Reporting Hardware info to contractor...' )
@@ -141,11 +140,9 @@ iface_list = []
 
 bootstrap.setMessage( 'Configuring {0}...'.format( platform.type ) )
 
-changed = platform.setup( config )
+changed = platform.setAuth()
 
-changed != platform.setAuth( config )
-
-changed != platform.setIp( config )
+changed != platform.setIp()
 
 if changed:
   print( 'Preping Platform...' )

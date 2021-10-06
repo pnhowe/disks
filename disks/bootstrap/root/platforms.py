@@ -37,13 +37,13 @@ class UnknownPlatform:
   def setup( self, config ):
     return False
 
-  def setAuth( self, config ):
+  def setAuth( self ):
     return False
 
-  def setIp( self, config ):
+  def setIp( self ):
     return False
 
-  def updateNetwork( self, config, network ):
+  def getNetwork( self ):
     pass
 
   def prep( self ):
@@ -58,7 +58,7 @@ class IPMIPlatform( UnknownPlatform ):
   def type( self ):
     return 'IPMI'
 
-  def _command( cmd, ignore_failure=False ):
+  def _command( self, cmd, ignore_failure=False ):
     proc = subprocess.run( [ '/bin/ipmitool' ] + cmd.split() )
     if proc.returncode != 0:
       if ignore_failure:
@@ -74,46 +74,52 @@ class IPMIPlatform( UnknownPlatform ):
     pass
 
   def setup( self, config ):
-    self._command( 'sol set force-encryption true {0}'.format( config[ 'ipmi_lan_channel' ] ), True )  # these two stopped working on some new SM boxes, not sure why.
-    self._command( 'sol set force-authentication true {0}'.format( config[ 'ipmi_lan_channel' ] ), True )
-    self._command( 'sol set enabled true {0}'.format( config[ 'ipmi_lan_channel' ] ) )
-    self._command( 'sol set privilege-level user {0}'.format( config[ 'ipmi_lan_channel' ] ), True )  # dosen't work on some SM boxes?
-    self._command( 'sol payload enable {0} 5'.format( config[ 'ipmi_lan_channel' ] ) )
+    self.lan_channel = config.get( 'ipmi_lan_channel', 1 )
+    self.ip_address = config.get( 'ipmi_ip_address', None )
+    self.netmask = config.get( 'ipmi_ip_netmask', '255.255.255.0' )
+    self.gateway = config.get( 'ipmi_ip_gateway', '0.0.0.0' )  # use the address 0.0.0.0 dosen't allways work for disabeling defgw
+    self.vlan = config.get( 'ipmi_ip_vlan', None )
 
-    return True
-
-  def setAuth( self, config ):
+  def setAuth( self ):
     return False
+    # self._command( 'sol set force-encryption true {0}'.format( self.lan_channel ), True )  # these two stopped working on some new SM boxes, not sure why.
+    # self._command( 'sol set force-authentication true {0}'.format( self.lan_channel ), True )
+    # self._command( 'sol set enabled true {0}'.format( self.lan_channel ) )
+    # self._command( 'sol set privilege-level user {0}'.format( self.lan_channel ), True )  # dosen't work on some SM boxes?
+    # self._command( 'sol payload enable {0} 5'.format( self.lan_channel ) )
+
     # remove the other users first
     # lib.ipmicommand( 'user disable 5' )
     # lib.ipmicommand( 'user set name 5 {0}_'.format( ipmi_username ) )  # some ipmi's don't like you to set the username to the same as it is allready....Intel!!!
     # lib.ipmicommand( 'user set name 5 {0}'.format( ipmi_username ) )
     # lib.ipmicommand( 'user set password 5 {0}'.format( ipmi_password ) )
     # lib.ipmicommand( 'user enable 5' )
-    # lib.ipmicommand( 'user priv 5 4 {0}'.format( config[ 'ipmi_lan_channel' ] ) )  # 4 = ADMINISTRATOR
+    # lib.ipmicommand( 'user priv 5 4 {0}'.format( self.lan_channel ) )  # 4 = ADMINISTRATOR
     # return True
 
-  def setIp( self, config ):
-    self._command( 'lan set {0} arp generate off'.format( config[ 'ipmi_lan_channel' ] ), True )  # disable gratious arp, dosen't work on some Intel boxes?
-    self._command( 'lan set {0} ipsrc static'.format( config[ 'ipmi_lan_channel' ] ) )
-    self._command( 'lan set {0} ipaddr {1}'.format( config[ 'ipmi_lan_channel' ], config[ 'ipmi_ip_address' ] ) )
-    self._command( 'lan set {0} netmask {1}' .format( config[ 'ipmi_lan_channel' ], config[ 'ipmi_ip_netmask' ] ) )
-    self._command( 'lan set {0} defgw ipaddr {1}'.format( config[ 'ipmi_lan_channel' ], config.get( 'ipmi_ip_gateway', '0.0.0.0' ) ) )  # use the address 0.0.0.0 dosen't allways work for disabeling defgw
+  def setIp( self ):
+    return False
+    # if self.ip_address is not None:
+    #   self._command( 'lan set {0} arp generate off'.format( self.lan_channel ), True )  # disable gratious arp, dosen't work on some Intel boxes?
+    #   self._command( 'lan set {0} ipsrc static'.format( self.lan_channel ) )
+    #   self._command( 'lan set {0} ipaddr {1}'.format( self.lan_channel, self.ip_address ) )
+    #   self._command( 'lan set {0} netmask {1}' .format( self.lan_channel, self.netmask ) )
+    #   self._command( 'lan set {0} defgw ipaddr {1}'.format( self.lan_channel, self.gateway ) )
+    #
+    #   if self.vlan:
+    #     self._command( 'lan set {0} vlan id {1}'.format( self.lan_channel, self.vlan ) )
+    #
+    # return True
 
-    try:
-      self._command( 'lan set {0} vlan id {1}'.format( config[ 'ipmi_lan_channel' ], config[ 'ipmi_ip_vlan' ] ) )
-    except KeyError:
-      pass
-
-    return True
-
-  def updateNetwork( self, config, network ):
-    proc = subprocess.run( [ '/bin/ipmitool', 'lan', 'print', str( config[ 'ipmi_lan_channel' ] ) ], stdout=subprocess.PIPE )
+  def getNetwork( self ):
+    result = {}
+    proc = subprocess.run( [ '/bin/ipmitool', 'lan', 'print', str( self.lan_channel ) ], stdout=subprocess.PIPE )
     lines = str( proc.stdout, 'utf-8' ).strip().splitlines()
     for line in lines:
       if line.startswith( 'MAC Address' ):
-        network[ 'ipmi' ] = line[ 25: ].strip()
-        return
+        result[ 'ipmi' ] = line[ 25: ].strip()
+
+    return result
 
   def prep( self ):
     print( 'Letting BMC Settle...' )
