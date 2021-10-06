@@ -249,15 +249,15 @@ respkg-clean:
 .PHONY:: respkg-blueprints respkg-requires respkg respkg-file respkg-clean
 
 resource-blueprints:
-	echo ubuntu-focal-base
+	# echo ubuntu-focal-base
 
 resource-requires:
-	echo build-essential
+	echo build-essential python3-setuptools
 	# AppImage
 
 resource:
 	# make an AppImage of the linux-installer, this will run on the host os that is close to the target os
-  # this should take a profile and a path, and make a cpio of the installed OS
+	# this should take a profile and a path, and make a cpio of the installed OS
 	# do the bootstrap, config, packag install and update
 	# output a profile that installs the image finishes the config and installs the bootloader
 	touch resource
