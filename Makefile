@@ -4,7 +4,7 @@ VERSION := 0.7.0
 ARCH = x86_64
 
 DEPS = $(foreach item,$(sort $(shell ls deps)),$(lastword $(subst _, ,$(item))))
-DISKS = $(shell ls disks)
+DISKS = $(shell ls disks | grep -v Makefile)
 TEMPLATES = $(shell ls templates)
 DEP_DOWNLOADS = $(foreach dep,$(DEPS),build.deps/$(dep).download)
 DEP_BUILDS = $(foreach dep,$(DEPS),build.deps/$(dep)-$(ARCH).build)
@@ -131,7 +131,8 @@ images/pxe-$(ARCH):
 images/pxe-$(ARCH)/%.initrd: images/pxe-$(ARCH) build.images/%-$(ARCH).root
 	cd build.images/$*-$(ARCH) && find ./ | grep -v boot/vmlinuz | cpio --owner=+0:+0 -H newc -o | gzip -9 > $(PWD)/$@
 
-images/pxe-$(ARCH)/%.vmlinuz: images/pxe-$(ARCH) build.images/%-$(ARCH)/boot/vmlinuz
+# techinically depends on "build.images/%-$(ARCH)/boot/vmlinuz" but that is a part of "build.images/%-$(ARCH).root"
+images/pxe-$(ARCH)/%.vmlinuz: images/pxe-$(ARCH) build.images/%-$(ARCH).root
 	cp -f build.images/$*-$(ARCH)/boot/vmlinuz $@
 
 images/pxe-$(ARCH)/%: images/pxe-$(ARCH)/%.initrd images/pxe-$(ARCH)/%.vmlinuz
@@ -232,8 +233,8 @@ endif
 
 respkg: all-pxe contractor/linux-installer-profiles.touch
 	mkdir -p contractor/resources/var/www/static/pxe/disks
-	cp images/pxe/*.initrd contractor/resources/var/www/static/pxe/disks
-	cp images/pxe/*.vmlinuz contractor/resources/var/www/static/pxe/disks
+	cp images/pxe-$(ARCH)/*.initrd contractor/resources/var/www/static/pxe/disks
+	cp images/pxe-$(ARCH)/*.vmlinuz contractor/resources/var/www/static/pxe/disks
 	cd contractor && fakeroot respkg -b ../disks-contractor_$(VERSION).respkg -n disks-contractor -e $(VERSION) -c "Disks for Contractor" -t load_resources.sh -d resources -s contractor-os-base
 	cd contractor && fakeroot respkg -b ../disks-linux-installer-profiles_$(VERSION).respkg -n disks-linux-installer-profiles -e $(VERSION) -c "Disks Linux Installer Profiles" -t load_linux-installer-profiles.sh -d linux-installer-profiles
 	touch respkg
