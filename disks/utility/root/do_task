@@ -7,6 +7,7 @@ then
   echo "sshd:x:1000:1000:sshd:::" >> /etc/passwd
   echo "sshd:x:1000:" >> /etc/group
   echo "root:\$6\$t3kton00\$J.c49kYYhDgePtdZoGYirLkdNb9UDqzFmmR2..O18vy8PUsosPhIiTGli2BmmpBYt49/o7EaJ6O9KrQEbmRQ7.:15539:0:99999:7:::" > /etc/shadow
+  chmod 600 /etc/shadow
   mkdir -p /var/run/sshd
   mkdir -m 700 /var/empty
   /sbin/ssh-keygen -A

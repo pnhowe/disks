@@ -21,8 +21,19 @@ echo "NTP Server(s) '$ntp_servers'"
 echo "Curent Time..."
 date
 
+echo "# By default, exchange time with everybody, but don't allow configuration.
+restrict -4 default kod notrap nomodify nopeer noquery limited
+restrict -6 default kod notrap nomodify nopeer noquery limited
+
+" > /etc/ntp.conf
+
+for server in $ntp_servers
+do
+  echo "server $server iburst" >> /etc/ntp.conf
+done
+
 echo "Updating time..."
-/bin/ntpd -d -gqc /dev/null $ntp_servers && rc=0 || rc=$?
+/bin/ntpd -dnNq  && rc=0 || rc=$?
 
 echo "Now it is..."
 date

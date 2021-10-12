@@ -4,7 +4,19 @@ set -e
 
 /bin/postMessage "Starting Disk Wipe..."
 
-eval $( /bin/setEnv diskwipe_mode )
+for x in $(cat /proc/cmdline)
+do
+  case $x in
+    mode=*)
+      diskwipe_mode=${x#mode=}
+      ;;
+  esac
+done
+
+if [ "x$diskwipe_mode" == "x" ]
+then
+  eval $( /bin/setEnv diskwipe_mode )
+fi
 
 if [ "x$diskwipe_mode" == "x" ]
 then

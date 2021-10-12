@@ -183,3 +183,12 @@ initrd {{ __pxe_location }}disks/disk-wipe.initrd
 boot
 '''
   template = '# Disk Wipe'
+
+[ pxe.disk-wipe-single_pass ]
+  description = 'T3kton Disks - Disk Wipe - Single Pass'
+  boot_script = '''echo Linux Installer
+kernel {{ __pxe_location }}disks/disk-wipe.vmlinuz initrd=disk-wipe.initrd mode=single_pass interface_mac={{ _provisioning_interface_mac }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ _hostname }} config_uuid={{ _structure_config_uuid }}{% if _console.startswith("ttyS") %} console={{ _console }},115200 console=tty1{% endif %}
+initrd {{ __pxe_location }}disks/disk-wipe.initrd
+boot
+'''
+  template = '# Disk Wipe - Single Pass'
