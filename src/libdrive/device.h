@@ -52,7 +52,7 @@ struct drive_info // had to do the char thing to get python to read it right
   int PhysicalSectorSize;             // how large a sector is on Disk
   unsigned long long LBACount;        // !suportsLBA = 0, change when SETMAX called?
   unsigned __int128 WWN;              // = 0 for not supported, or GUID
-  // ATA ^& NVME Only
+  // ATA & NVME Only
   char firmware_rev[FIRMWARE_REV_LEN];
   // ATA Only
   int ATA_major_version;

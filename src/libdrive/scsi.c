@@ -1281,8 +1281,9 @@ void print_sense( const char *label, const unsigned char *sb )
       break;
   }
 
-  // see http://oss.sgi.com/LDP/HOWTO/SCSI-Programming-HOWTO-22.html#sec-sensecodes
+  // see https://tldp.org/HOWTO/archived/SCSI-Programming-HOWTO/SCSI-Programming-HOWTO-22.html
   //  or http://www.t10.org/lists/asc-num.txt
+  //  or https://en.wikipedia.org/wiki/Key_Code_Qualifier
   if( ( sb[12] == 0x20 ) && ( sb[13] == 0x00 ) )
     fprintf( stderr, "         INVALID COMMAND OPERATION CODE\n" );
 

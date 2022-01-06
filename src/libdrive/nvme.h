@@ -145,6 +145,13 @@ struct nvme_identity
   __u8 data[ sizeof( struct drive_info ) ];
 };
 
+struct nvme_dsmgnt_range
+{
+  __le32                  cattr;
+  __le32                  nlba;
+  __le64                  slba;
+};
+
 typedef enum
 {
   NVME_OP_AMDIN_GET_LOG_PAGE     = 0x02,
@@ -152,8 +159,19 @@ typedef enum
   NVME_OP_AMDIN_GET_LOG_IDENTIFY = 0x06,
 
   NVME_OP_AMDIN_KEEP_ALIVE       = 0x18, // used to probe/ping the controller
+
+  NVME_OP_ADMIN_SANITIZE         = 0x84,
+
+  NVME_OP_WRITE                  = 0x01,
+  NVME_OP_READ                   = 0x02,
+  NVME_OP_WRITE_ZEROS            = 0x08,
+  NVME_OP_DS_MANAGMENT           = 0x09, // dataset managment
 } NVME_COMMANDS;
 
+typedef enum
+{
+  NVME_DS_MANAGMENT_DEALLOCATE   = 1 << 2,
+} DS_MANAGMENT_ATTRIBUTES;
 
 struct nvme_cdb {
   NVME_COMMANDS  opcode;

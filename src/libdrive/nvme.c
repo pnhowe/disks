@@ -21,7 +21,7 @@ void loadInfoNVME( struct device_handle *drive, const struct nvme_identity *iden
   memcpy( &( drive->drive_info ), identity, sizeof( drive->drive_info ) );
 }
 
-int exec_cmd_nvme( struct device_handle *drive, const enum cdb_command command, __attribute__((unused)) const enum cdb_rw rw, void *data, const unsigned int data_len, __attribute__((unused)) __u64 parms[], __attribute__((unused)) const unsigned int parm_count, const unsigned int timeout )
+int exec_cmd_nvme( struct device_handle *drive, const enum cdb_command command, __attribute__((unused)) const enum cdb_rw rw, void *data, const unsigned int data_len, __u64 parms[], __attribute__((unused)) const unsigned int parm_count, const unsigned int timeout )
 {
   if( command == CMD_IDENTIFY )
   {
@@ -40,7 +40,7 @@ int exec_cmd_nvme( struct device_handle *drive, const enum cdb_command command, 
 
     memset( &cdb, 0, sizeof( cdb ) );
     memset( &ident_data_controller, 0, sizeof( ident_data_controller ) );
-    memset( &data, 0, sizeof( data) );
+    memset( &data, 0, sizeof( data ) );
 
     cdb.opcode = NVME_OP_AMDIN_GET_LOG_IDENTIFY;
     cdb.nsid = 0;   // want to talk to the controller
@@ -56,12 +56,12 @@ int exec_cmd_nvme( struct device_handle *drive, const enum cdb_command command, 
     strncpy( info->firmware_rev, ident_data_controller.firmware_rev, MIN(FIRMWARE_REV_LEN, NVME_FIRMREV_LEN ) );
 
     info->supportsSanitize = 1;
-    info->supportsTrim = 1;
+    info->supportsTrim = ( ( ident_data_controller.oncs & 0x0004 ) != 0 );  // ie: dataset managment, might also need to check the DMRL and DMRSL
     info->SMARTSupport = 1;
     info->SMARTEnabled = 1;
     info->supportsLBA = 1;
     info->isSSD = 1;
-    info->supportsSelfTest = ( ( ident_data_controller.oacs & 0x0020 ) != 0 );
+    info->supportsSelfTest = ( ( ident_data_controller.oacs & 0x0010 ) != 0 );
 
     info->LogicalSectorSize = 512;   // overwrite with ns if there is one
     info->PhysicalSectorSize = 512;
@@ -91,7 +91,7 @@ int exec_cmd_nvme( struct device_handle *drive, const enum cdb_command command, 
     // Bit 3 in the NSFEAT field (refer to Figure 245) indicates NGUID and EUI64 reuse characteristics.  <- do we care about the WWN if it keeps changing?
 
       // 5.15.2.4 Namespace Identification Descriptor list (CNS 03h)
-      // else    
+      // else
       info->WWN = getu128( ident_data_ns.nguid );
       if( !info-> WWN )
         info->WWN = getu64( ident_data_ns.eui64 );
@@ -127,6 +127,36 @@ int exec_cmd_nvme( struct device_handle *drive, const enum cdb_command command, 
     cdb.cdw10 = 1;  // controller data sctucture  see Figure 244
 
     if( drive->driver_cmd( drive, rw, (unsigned char *)&cdb, sizeof( cdb ), NULL, 0, timeout ) )
+      return -1;
+
+    return 0;
+  }
+  else if( command == CMD_TRIM )
+  {
+    struct nvme_dsmgnt_range range;
+    struct nvme_cdb cdb;
+    memset( &cdb, 0, sizeof( cdb ) );
+    memset( &range, 0, sizeof( range ) );
+
+    if( verbose >= 2 )
+      fprintf( stderr, "TRIM...\n" );
+
+    if( !drive->port )
+    {
+      errno = EINVAL;
+      return -1;
+    }
+
+    cdb.opcode = NVME_OP_DS_MANAGMENT;
+    cdb.nsid = drive->port;
+    cdb.cdw10 = 1;  // nr - number of ranges
+    cdb.cdw11 = NVME_DS_MANAGMENT_DEALLOCATE; // attribute
+
+    range.cattr = 0;
+    range.nlba = parms[0];
+    range.slba = parms[1];
+
+    if( drive->driver_cmd( drive, rw, (unsigned char *)&cdb, sizeof( cdb ), &range, sizeof( range ), timeout ) )
       return -1;
 
     return 0;
@@ -167,6 +197,30 @@ int nvme_cmd( struct device_handle *drive, __attribute__((unused)) const enum cd
   cmd.cdw15 = ncdb->cdw15;
   cmd.timeout_ms = timeout * 1000; /* msecs */
   cmd.result = 0;
+
+/*
+struct nvme_passthru_cmd64 {
+        __u8    opcode;
+        __u8    flags;
+        __u16   rsvd1;
+        __u32   nsid;
+        __u32   cdw2;
+        __u32   cdw3;
+        __u64   metadata;
+        __u64   addr;
+        __u32   metadata_len;
+        __u32   data_len;
+        __u32   cdw10;
+        __u32   cdw11;
+        __u32   cdw12;
+        __u32   cdw13;
+        __u32   cdw14;
+        __u32   cdw15;
+        __u32   timeout_ms;
+        __u32   rsvd2;
+        __u64   result;
+};
+*/
 
   if( verbose >= 4 )
     fprintf( stderr, "NVME: command in opcode: 0x%02x, data_len: 0x%04x, nsid: 0x%08x, cdw: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", cmd.opcode, cmd.data_len, cmd.nsid, cmd.cdw10, cmd.cdw11, cmd.cdw12, cmd.cdw13, cmd.cdw14, cmd.cdw15 );
