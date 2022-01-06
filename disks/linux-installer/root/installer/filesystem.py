@@ -777,6 +777,9 @@ def mount( mount_point, profile ):
   for item in profile.items( 'filesystem' ):
     if item[0].startswith( 'extra_mount_' ):
       parts = [ i.strip() for i in item[1].split( ':' ) ]
+      if parts[0] == 'efivarfs' and not os.path.exists( '/sys/firmware/efi' ):
+        continue  # TODO: there should be a better way to do this
+
       if len( parts ) == 3:
         mount_points[ parts[2] ] = tuple( parts[:2] )
       else:

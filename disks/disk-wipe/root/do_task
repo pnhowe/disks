@@ -82,3 +82,8 @@ fi
 /bin/signalComplete
 
 exit 0
+
+
+
+# single_pass -> wipe
+# multi_pass -> sanitize

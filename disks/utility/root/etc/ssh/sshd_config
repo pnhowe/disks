@@ -10,9 +10,7 @@ PermitRootLogin yes
 
 Subsystem sftp /sbin/sftp-server
 
-LogLevel VERBOSE
-
-AuthenticationMethods password
+PasswordAuthentication yes
 
 MaxAuthTries 10
 
