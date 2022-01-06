@@ -1,7 +1,7 @@
 #!/bin/sh
-#SOURCE: https://www.gnupg.org/ftp/gcrypt/gnupg/gnupg-2.1.23.tar.bz2
-#FILE: gnupg-2.1.23.tar.bz2
-#HASH: c470777eaa9657ef3258068507065c9a7caef9eb
+#SOURCE: https://www.gnupg.org/ftp/gcrypt/gnupg/gnupg-2.3.4.tar.bz2
+#FILE: gnupg-2.3.4.tar.bz2
+#HASH: 436823f57b8387ece6053d9a395374243d64feff
 
 set -e
 #set -x

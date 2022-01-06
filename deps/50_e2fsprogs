@@ -1,7 +1,7 @@
 #!/bin/sh
-#SOURCE: http://downloads.sourceforge.net/project/e2fsprogs/e2fsprogs/v1.43.9/e2fsprogs-1.43.9.tar.gz
-#FILE: e2fsprogs-1.43.9.tar.gz
-#HASH: e83e7cd624e4713a2e059566092f96dfd56250a2
+#SOURCE: https://mirrors.edge.kernel.org/pub/linux/kernel/people/tytso/e2fsprogs/v1.46.5/e2fsprogs-1.46.5.tar.gz
+#FILE: e2fsprogs-1.46.5.tar.gz
+#HASH: 6639cc77856bd1f3b5600c150c3ffa640d20b64b
 
 set -e
 #set -x
