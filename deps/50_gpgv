@@ -11,13 +11,18 @@ build()
   tar --strip-components=1 -xjf $1
   if [ "x$3" = "xx86_64" ]
   then
-    ./configure --prefix= --disable-ntbtls --disable-gnutls --disable-ldap --disable-nls --disable-card-support --disable-dirmngr --disable-scdaemon --disable-doc
+    export GPG_ERROR_CONFIG="`pwd`/../libgpg-error-x86_64/src/gpg-error-config"
+    export GPGRT_CONFIG="`pwd`/../libgpg-error-x86_64/src/gpgrt-config"
+    export LIBGCRYPT_CONFIG="`pwd`/../libgcrypt-x86_64/src/libgcrypt-config"
+    export CFLAGS="-I`pwd`/../libgcrypt-x86_64/src -I`pwd`/../libgpg-error-x86_64/src"
+    export LDFLAGS="-L`pwd`/../libgcrypt-x86_64/src/.libs -L`pwd`/../libgpg-error-x86_64/src/.libs"
+    ./configure --prefix= --disable-ntbtls --disable-gnutls --disable-ldap --disable-nls --disable-card-support --disable-dirmngr --disable-scdaemon --disable-gpgsm --disable-keyboxd --disable-tpm2d --disable-gpgtar --disable-wks-tools --disable-doc --with-libgpg-error-prefix=`pwd`../libgpg-error-x86_64/ --with-libgcrypt-prefix=`pwd`/../libgcrypt-x86_64 --without-readline --disable-tofu
   elif [ "x$3" = "xarm" ]
   then
-    ./configure --prefix= --disable-ntbtls --disable-gnutls --disable-ldap --disable-nls --disable-card-support --disable-dirmngr --disable-scdaemon --disable-doc --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
+    ./configure --prefix= --disable-ntbtls --disable-gnutls --disable-ldap --disable-nls --disable-card-support --disable-dirmngr --disable-scdaemon --disable-gpgsm --disable-keyboxd --disable-tpm2d --disable-gpgtar --disable-wks-tools --disable-doc --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
   elif [ "x$3" = "xarm64" ]
   then
-    ./configure --prefix= --disable-ntbtls --disable-gnutls --disable-ldap --disable-nls --disable-card-support --disable-dirmngr --disable-scdaemon --disable-doc --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+    ./configure --prefix= --disable-ntbtls --disable-gnutls --disable-ldap --disable-nls --disable-card-support --disable-dirmngr --disable-scdaemon --disable-gpgsm --disable-keyboxd --disable-tpm2d --disable-gpgtar --disable-wks-tools --disable-doc --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
   make $4
 }
@@ -31,3 +36,5 @@ binaries()
 {
   ls $1/sbin/gpgv
 }
+
+# this is the only thing that requires libgpg-error, libgcrypt

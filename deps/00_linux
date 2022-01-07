@@ -34,3 +34,6 @@ install()
 {
   : # allready installed ;-)
 }
+
+
+# update glibc if the version of the kernel changes
