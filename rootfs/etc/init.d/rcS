@@ -24,8 +24,6 @@ mkdir -m 755 /dev/pts
 mkdir -m 755 /dev/shm
 /bin/mount -n -t tmpfs -o mode=644 none /dev/shm
 
-/sbin/ldconfig
-
 if [ -r /proc/acpi/event ]
 then
   #hacked up power off when power button pressed

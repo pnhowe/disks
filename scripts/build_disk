@@ -74,8 +74,14 @@ lib_list=""
 for item in udev python $DEP_LIST
 do
   install_dep $2 $item $3
+done
+
+sudo chroot $2 /sbin/ldconfig
+
+for item in udev python $DEP_LIST
+do
   binary_list="$(get_binaries $2 $item)"
-  temp_libs="$(ldd $binary_list | grep -v 'not found' | grep -v 'not a dynamic executable' | awk '{print $3}')"
+  temp_libs="$(LD_LIBRARY_PATH=${2}/lib:${2}/slib:${2}/usr/lib:${2}/usr/slib ldd $binary_list | grep -v 'not found' | grep -v 'not a dynamic executable' | grep -v ${2} | awk '{print $3}')"
   lib_list="$(echo "$lib_list $temp_libs" | sort -u)"
 done
 
@@ -92,3 +98,5 @@ for LIB in $lib_list
 do
   cp -L $LIB "$2/lib"
 done
+
+sudo chroot $2 /sbin/ldconfig

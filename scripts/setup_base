@@ -33,8 +33,6 @@ do
   cp -L $LIB $1/lib
 done
 
-sudo chroot $1 /sbin/ldconfig -l /lib/libc-2.31.so -l /lib/libm-2.31.so
-
 # setup locale
 cp `which locale` $1/sbin/locale
 mkdir -p $1/usr/lib/locale
