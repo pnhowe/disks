@@ -34,14 +34,14 @@ network:
       {%- if loop_type == 'ethernets' and interface.mac %}
       match:
         macaddress: {{ interface.mac }}
+      #set-name: {{ interface_name }}  # need netplay 0.96 or better, see https://bugs.launchpad.net/netplan/+bug/1770082
       {%- endif %}
       {%- if loop_type == 'bonds' %}
       interfaces: [ {{ ', '.join( [ interface.primary ] + interface.secondary ) }} ]
+      {%- if interface.paramaters %}
       parameters:
         {% for key, value in interface.paramaters %}{{ key }}: {{ value }}{% endfor %}
       {%- endif %}
-      {%- if loop_type == 'ethernets' %}
-      #set-name: {{ interface_name }}  # need netplay 0.96 or better, see https://bugs.launchpad.net/netplan/+bug/1770082
       {%- endif %}
       {%- if interface.mtu %}
       mtu: {{ interface.mtu }}
