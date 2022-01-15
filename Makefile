@@ -1,4 +1,4 @@
-VERSION := 0.7.5
+VERSION := 0.7.6
 
 # other arches: arm arm64
 ARCH = x86_64

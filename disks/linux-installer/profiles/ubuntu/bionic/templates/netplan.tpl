@@ -1,8 +1,12 @@
 {% set global_ns = namespace( table_id=100 ) %}
 {% set pre_process_ns = namespace( gw_count=0 ) %}
 {% set bonds = {} %}
-{% for interface_name in _interface_map %}
-  {% if interface_name != 'ipmi' %}
+{% set interface_name_list = [] %}
+{% for interface_name in _interface_map %}{% do interface_name_list.append( interface_name ) %}{% endfor %}
+{% for interface_name in interface_name_list %}
+  {% if interface_name == 'ipmi' %}
+    {% do _interface_map.__delitem__( interface_name ) %}
+  {% else %}
     {% set interface = _interface_map[ interface_name ] %}
     {% for tmpaddr in interface.address_list %}
       {% if tmpaddr.gateway %}{% set pre_process_ns.gw_count = pre_process_ns.gw_count + 1 %}{% endif %}
@@ -17,7 +21,13 @@
 {% else %}
   {% set do_pbr = false %}
 {% endif %}
-
+{% set loop_type_list = [] %}
+{% if _interface_map %}
+  {% do loop_type_list.append( 'ethernets' ) %}
+  {% if bonds %}
+    {% do loop_type_list.append( 'bonds' ) %}
+  {% endif %}
+{% endif %}
 
 {%- target '/etc/netplan/01-netcfg.yaml' -%}
 # Auto Generated During Install
@@ -25,16 +35,16 @@
 network:
   version: 2
   renderer: networkd
-{%- for loop_type in [ 'ethernets', 'bonds' ] %}
+{%- for loop_type in loop_type_list %}
   {{ loop_type }}:
   {%- for interface_name in _interface_map -%}
-    {%- if interface_name != 'ipmi' and ( loop_type == 'bonds' and interface_name in bonds ) or ( loop_type != 'bonds' and interface_name not in bonds ) -%}
+    {%- if ( loop_type == 'bonds' and interface_name in bonds ) or ( loop_type != 'bonds' and interface_name not in bonds ) -%}
       {% set interface = _interface_map[ interface_name ] %}
     {{ interface_name }}:
       {%- if loop_type == 'ethernets' and interface.mac %}
       match:
         macaddress: {{ interface.mac }}
-      #set-name: {{ interface_name }}  # need netplay 0.96 or better, see https://bugs.launchpad.net/netplan/+bug/1770082
+      #  set-name: {{ interface_name }}  # need netplay 0.96 or better, see https://bugs.launchpad.net/netplan/+bug/1770082
       {%- endif %}
       {%- if loop_type == 'bonds' %}
       interfaces: [ {{ ', '.join( [ interface.primary ] + interface.secondary ) }} ]
