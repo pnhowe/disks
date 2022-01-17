@@ -144,8 +144,11 @@ vda.linux@googlemail.com
  * 0.49   minor tweaks to messages
  * 0.50   add more files to watch for changes
  * 0.51   fix a case where we forget to refcount-- the cached entry
+ * 0.52   make free_refcounted_ureq() tolerant to pointers to NULLs
+ * 0.53   fix INVALIDATE and SHUTDOWN requests being ignored
+ * 0.54   clang warning fix for "str" + OFFSET trick and variable struct field
  */
-#define PROGRAM_VERSION "0.51"
+#define PROGRAM_VERSION "0.54"
 
 #define DEBUG_BUILD 1
 
@@ -268,9 +271,11 @@ static void dump(const void *ptr, int len)
 	buf = ptr;
 	while (len > 0) {
 		int chunk = ((len >= 16) ? 16 : len);
-		fprintf(stderr,
+		const char *fmt =
 			"%02x %02x %02x %02x %02x %02x %02x %02x "
-			"%02x %02x %02x %02x %02x %02x %02x %02x " + (16-chunk) * 5,
+			"%02x %02x %02x %02x %02x %02x %02x %02x ";
+		fmt += (16-chunk) * 5;
+		fprintf(stderr, fmt,
 			buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7],
 			buf[8], buf[9],buf[10],buf[11],buf[12],buf[13],buf[14],buf[15]
 		);
@@ -1213,6 +1218,10 @@ static void free_refcounted_ureq(user_req **ureqp)
 {
 	user_req *ureq = *ureqp;
 
+	/* (when exactly can this happen?) */
+	if (ureq == NULL)
+		return;
+
 	if (!CACHED_ENTRY(ureq))
 		return;
 
@@ -1595,12 +1604,6 @@ static int handle_client(int i)
 		close_client(i);
 		return 0;
 	}
-	srv = type_to_srv[ureq->type];
-	if (!config.srv_enable[srv]) {
-		log(L_INFO, "service %d is disabled, dropping", srv);
-		close_client(i);
-		return 0;
-	}
 
 	hex_dump(cinfo[i].ureq, cinfo[i].bytecnt);
 
@@ -1633,6 +1636,13 @@ static int handle_client(int i)
 		log(L_INFO, "got invalidate request, flushing cache");
 		/* Frees entire cache. TODO: replace -1 with service (in ureq->reqbuf) */
 		age_cache(/*free_all:*/ 1, -1);
+		close_client(i);
+		return 0;
+	}
+
+	srv = type_to_srv[ureq->type];
+	if (!config.srv_enable[srv]) {
+		log(L_INFO, "service %d is disabled, dropping", srv);
 		close_client(i);
 		return 0;
 	}
@@ -2435,15 +2445,14 @@ static void special_op(const char *arg)
 		printf("sent shutdown request, exiting\n");
 	} else { /* invalidate */
 		size_t arg_len = strlen(arg) + 1;
-		struct {
-			user_req_header req;
-			char arg[arg_len];
-		} reqdata;
-		reqdata.req.version = NSCD_VERSION;
-		reqdata.req.type = INVALIDATE;
-		reqdata.req.key_len = arg_len;
-		memcpy(reqdata.arg, arg, arg_len);
-		xfull_write(sock, &reqdata, arg_len + sizeof(ureq));
+		char buf[sizeof(user_req_header) + arg_len];
+		user_req_header *req = (void*) buf;
+
+		req->version = NSCD_VERSION;
+		req->type = INVALIDATE;
+		req->key_len = arg_len;
+		memcpy(req + 1, arg, arg_len);
+		xfull_write(sock, req, sizeof(*req) + arg_len);
 		printf("sent invalidate(%s) request, exiting\n", arg);
 	}
 	exit(0);

@@ -4,7 +4,7 @@ CFLAGS = -Wall -Wl,--sort-section -Wl,alignment -Wl,--sort-common -Os -fomit-fra
 all: nscd
 
 nscd.c:
-	ln -s nscd-0.51.c nscd.c
+	ln -s nscd-0.54.c nscd.c
 
 nscd:   nscd.c
 
