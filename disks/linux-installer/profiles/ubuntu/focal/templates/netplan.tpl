@@ -48,10 +48,12 @@ network:
       {%- endif %}
       {%- if loop_type == 'bonds' %}
       interfaces: [ {{ ', '.join( [ interface.primary ] + interface.secondary ) }} ]
-      {%- if interface.paramaters %}
+        {%- if interface.paramaters %}
       parameters:
-        {% for key, value in interface.paramaters %}{{ key }}: {{ value }}{% endfor %}
-      {%- endif %}
+          {%- for key, value in interface.paramaters.items() %}
+        {{ key }}: {{ value }}
+          {%- endfor %}
+        {%- endif %}
       {%- endif %}
       {%- if interface.mtu %}
       mtu: {{ interface.mtu }}
@@ -116,6 +118,9 @@ network:
         addresses: [ {{ dns_servers|join( ', ' ) }} ]
           {%- endif -%}
         {%- endif -%}
+      {%- else %}
+      dhcp4: no
+      dhcp6: no
       {%- endif -%}
     {%- endif -%}
   {%- endfor %}

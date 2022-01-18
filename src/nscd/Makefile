@@ -3,10 +3,10 @@ CFLAGS = -Wall -Wl,--sort-section -Wl,alignment -Wl,--sort-common -Os -fomit-fra
 
 all: nscd
 
-nscd.c:
-	ln -s nscd-0.54.c nscd.c
+nscd.c: nscd-0.54.c
+	ln -sf nscd-0.54.c nscd.c
 
-nscd:   nscd.c
+nscd: nscd.c
 
 clean:
 	rm -f nscd.o nscd nscd.c
