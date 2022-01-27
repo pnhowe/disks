@@ -19,6 +19,7 @@ CONTRACTOR_IP=
 CONTRACTOR_HOST="http://contractor"
 CONTRACTOR_PROXY=
 CONFIG_UUID=
+JOB_ID=
 MEDIA_UUID=
 MEDIA_LABEL=
 
@@ -103,6 +104,9 @@ do
       ;;
     config_uuid=*)
       CONFIG_UUID="${x#config_uuid=}"
+      ;;
+    job_id=*)
+      JOB_ID="${x#job_id=}"
       ;;
     media_uuid=*)
       MEDIA_UUID="${x#media_uuid=}"
@@ -449,7 +453,9 @@ then
 
   export contractor_host=$CONTRACTOR_HOST
   export config_uuid=$CONFIG_UUID
+  export job_id=$JOB_ID
   echo "config_uuid = '$CONFIG_UUID'"
+  echo "job_id = '$JOB_ID'"
 fi
 
 echo "contractor_host = '$CONTRACTOR_HOST'"

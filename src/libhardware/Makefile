@@ -54,15 +54,16 @@ install: all
 	cp libhardware_h.py $(DESTDIR)/lib/python3.6/libhardware
 
 # have to compile twice b/c the lib is 32-bit (esx's python is 32bit)
+# this target path is wrong, when esx is a thing again, it will need to be updated
 install-esx:
 	$(MAKE) clean
 	$(MAKE) esx-lib
-	cp libhardware.so.$(LIB_VERSION) ../plato-esx/lib/libhardware.so.$(LIB_CURRENT_VERSION)
+	cp libhardware.so.$(LIB_VERSION) ../esx-img/lib/libhardware.so.$(LIB_CURRENT_VERSION)
 	$(MAKE) clean
 	$(MAKE) hardwareinfo libhardware_h.py
-	cp libhardware.py ../plato-esx/lib/python2.6/site-packages/platoclient
-	cp libhardware_h.py ../plato-esx/lib/python2.6/site-packages/platoclient
-	cp hardwareinfo ../plato-esx/sbin
+	cp libhardware.py ../esx-img/lib/python2.6/site-packages/libhardware
+	cp libhardware_h.py ../esx-img/lib/python2.6/site-packages/libhardware
+	cp hardwareinfo ../esx-img/sbin
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@

@@ -100,3 +100,5 @@ do
 done
 
 sudo chroot $2 /sbin/ldconfig
+
+echo $1 > $2/etc/disk_name

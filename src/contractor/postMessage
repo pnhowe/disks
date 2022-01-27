@@ -1,19 +1,28 @@
 #!/usr/bin/env python3
 
 import sys
+import json
 
-from contractor import getClient, NoJobException
+from contractor import getClient, HTTPClient
 
 try:
   msg = sys.argv[ 1 ]
 except KeyError:
   print( 'usage: {0} <message>' ).format( sys.argv[0] )
 
+print( '* {0} *'.format( msg ) )
+
 contractor = getClient()
 
-try:
-  contractor.postMessage( msg )
-except NoJobException:
-  print( 'WARNING! No Job, aborting.' )
+if not isinstance( contractor, HTTPClient ):
+  sys.exit( 0 )
+
+job = json.loads( open( '/etc/job.config', 'r' ).read() )[ 'job' ]
+
+resp = contractor.request( 'call', '/api/v1/Foreman/BaseJob(postMessage):{0}:'.format( job[ 'job_id' ] ), { 'msg': msg } )
+
+if resp != 'Posted':
+  print( 'WARNING! signaling failed: "{0}"'.format( resp ) )
+  sys.exit( 1 )
 
 sys.exit( 0 )

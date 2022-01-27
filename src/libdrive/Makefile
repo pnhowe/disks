@@ -67,16 +67,17 @@ install: all
 	cp libenclosure_h.py $(DESTDIR)/lib/python3.6/libdrive
 
 # have to compile twice b/c the lib is 32-bit (esx's python is 32bit)
+# this target path is wrong, when esx is a thing again, it will need to be updated
 install-esx:
 	$(MAKE) clean
 	$(MAKE) esx-lib
-	cp libdrive.so.$(LIB_VERSION) ../plato-esx/lib/libdrive.so.$(LIB_CURRENT_VERSION)
+	cp libdrive.so.$(LIB_VERSION) ../esx-img/lib/libdrive.so.$(LIB_CURRENT_VERSION)
 	$(MAKE) clean
 	$(MAKE) driveinfo smartinfo libdrive_h.py
-	cp libdrive.py ../plato-esx/lib/python2.6/site-packages/platoclient
-	cp libdrive_h.py ../plato-esx/lib/python2.6/site-packages/platoclient
-	cp driveinfo ../plato-esx/sbin
-	cp smartinfo ../plato-esx/sbin
+	cp libdrive.py ../esx-img/lib/python2.6/site-packages/libdrive
+	cp libdrive_h.py ../esx-img/lib/python2.6/site-packages/libdrive
+	cp driveinfo ../esx-img/sbin
+	cp smartinfo ../esx-img/sbin
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@

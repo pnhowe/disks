@@ -6,7 +6,7 @@ from libdrive.libdrive import DriveManager, setCLIs
 
 config = configparser.ConfigParser()
 try:
-  if not config.read( '/etc/plato/client.conf' ):
+  if not config.read( '/etc/libdrive.conf' ):
     config = None
 except Exception:
   config = None

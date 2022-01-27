@@ -50,15 +50,6 @@ class Client():
   def getConfig( self, config_uuid=None ):
     return {}
 
-  def signalComplete( self ):
-    pass
-
-  def signalAlert( self, msg ):
-    print( '! {0} !'.format( msg ) )
-
-  def postMessage( self, msg ):
-    print( '* {0} *'.format( msg ) )
-
 
 class HTTPClient( Client ):
   def __init__( self, host, proxy ):
