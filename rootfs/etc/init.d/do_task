@@ -474,6 +474,9 @@ then
   export contractor_proxy=$CONTRACTOR_PROXY
 fi
 
+echo "Loading Job Config..."
+initJobConfig
+
 if [ "x$DEBUG" != "x1" ]
 then
   read -t 1 IGNORE  #clear out any garbage that might of been entered

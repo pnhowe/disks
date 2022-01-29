@@ -3,7 +3,7 @@
 import sys
 import json
 
-from contractor import getClient, HTTPClient
+from contractor.client import getClient, HTTPClient
 
 try:
   msg = sys.argv[ 1 ]

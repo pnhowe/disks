@@ -26,4 +26,4 @@ config[ 'job' ] = {
 
 config[ 'config' ] = contractor_config
 
-open( '/etc/job.config', 'w' ).write( json.djumps( config, 2 ) )
+open( '/etc/job.config', 'w' ).write( json.dumps( config, indent=2 ) )
