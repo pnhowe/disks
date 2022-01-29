@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+
+import os
+import json
+from contractor.client import getClient
+
+contractor = getClient()
+
+contractor_config = contractor.getConfig()
+
+disk_name = None
+try:
+  disk_name = open( '/etc/disk_name', 'r' ).read().strip()
+except FileNotFoundError:
+  pass
+
+job_id = os.environ.get( 'job_id', None )
+
+config = {}
+config[ 'job' ] = {
+                    'job_id': job_id,
+                    'config_uuid': contractor_config[ '_structure_config_uuid' ],
+                    'pxe_name': disk_name,
+                    'cookie': '{0}_{1}({2})'.format( job_id, contractor_config[ '_structure_config_uuid' ], disk_name )
+                  }
+
+config[ 'config' ] = contractor_config
+
+open( '/etc/job.config', 'w' ).write( json.djumps( config, 2 ) )
