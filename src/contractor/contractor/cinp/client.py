@@ -11,7 +11,7 @@ from urllib import request
 from .common import URI
 
 __CLIENT_VERSION__ = '0.17.0'
-__CINP_VERSION__ = '0.9'
+__CINP_VERSION__ = '1.0'
 
 __all__ = [ 'Timeout', 'ResponseError', 'InvalidRequest', 'InvalidSession',
             'NotAuthorized', 'NotFound', 'ServerError', 'CInP' ]
