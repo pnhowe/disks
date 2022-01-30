@@ -19,7 +19,9 @@ if not isinstance( contractor, HTTPClient ):
 
 job = json.loads( open( '/etc/job.config', 'r' ).read() )[ 'job' ]
 
-resp = contractor.request( 'call', '/api/v1/Foreman/BaseJob(signalAlert):{0}:'.format( job[ 'job_id' ] ), { 'msg': msg } )
+contractor.login()
+
+resp = contractor.request( 'call', '/api/v1/Foreman/BaseJob:{0}:(signalAlert)'.format( job[ 'job_id' ] ), { 'msg': msg } )
 
 if resp != 'Alerted':
   print( 'WARNING! signaling failed: "{0}"'.format( resp ) )

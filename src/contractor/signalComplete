@@ -12,7 +12,9 @@ if not isinstance( contractor, HTTPClient ):
 
 job = json.loads( open( '/etc/job.config', 'r' ).read() )[ 'job' ]
 
-resp = contractor.request( 'call', '/api/v1/Foreman/BaseJob(signalComplete):{0}:'.format( job[ 'job_id' ] ), { 'cookie': job[ 'cookie' ] } )
+contractor.login()
+
+resp = contractor.request( 'call', '/api/v1/Foreman/BaseJob:{0}:(signalComplete)'.format( job[ 'job_id' ] ), { 'cookie': job[ 'cookie' ] } )
 
 if resp != 'Recieved':
   print( 'WARNING! signaling failed: "{0}"'.format( resp ) )

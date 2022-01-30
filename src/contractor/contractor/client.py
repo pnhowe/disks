@@ -91,6 +91,10 @@ class HTTPClient( Client ):
       retry += 1
       _backOffDelay( retry )
 
+  def login( self ):
+    token = self.request( 'call', 'api/v1/Auth/User(login)', { 'username': 'jobsig', 'password': 'jobsig' } )
+    self.cinp.setAuth( 'jobsig', token )
+
   def getConfig( self, config_uuid=None, foundation_locator=None ):
     if config_uuid is None:
       config_uuid = os.environ.get( 'config_uuid', None )
