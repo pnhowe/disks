@@ -92,7 +92,7 @@ class HTTPClient( Client ):
       _backOffDelay( retry )
 
   def login( self ):
-    token = self.request( 'call', 'api/v1/Auth/User(login)', { 'username': 'jobsig', 'password': 'jobsig' } )
+    token = self.request( 'call', '/api/v1/Auth/User(login)', { 'username': 'jobsig', 'password': 'jobsig' } )
     self.cinp.setAuth( 'jobsig', token )
 
   def getConfig( self, config_uuid=None, foundation_locator=None ):

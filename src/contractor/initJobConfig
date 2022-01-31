@@ -16,12 +16,13 @@ except FileNotFoundError:
 
 job_id = os.environ.get( 'job_id', None )
 
+# uuid = contractor_config[ '_structure_config_uuid' ]
+# uuid = contractor_config[ '_foundation_locator' ]
 config = {}
 config[ 'job' ] = {
                     'job_id': job_id,
-                    'config_uuid': contractor_config[ '_structure_config_uuid' ],
                     'pxe_name': disk_name,
-                    'cookie': '{0}_{1}({2})'.format( job_id, contractor_config[ '_structure_config_uuid' ], disk_name )
+                    'cookie': '{0}_{1}'.format( job_id, disk_name )
                   }
 
 config[ 'config' ] = contractor_config
