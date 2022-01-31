@@ -22,7 +22,7 @@ config = {}
 config[ 'job' ] = {
                     'job_id': job_id,
                     'pxe_name': disk_name,
-                    'cookie': '{0}_{1}'.format( job_id, disk_name )
+                    'cookie': '{0}({1})'.format( job_id, disk_name )
                   }
 
 config[ 'config' ] = contractor_config
