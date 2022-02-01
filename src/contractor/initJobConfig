@@ -16,8 +16,6 @@ except FileNotFoundError:
 
 job_id = os.environ.get( 'job_id', None )
 
-# uuid = contractor_config[ '_structure_config_uuid' ]
-# uuid = contractor_config[ '_foundation_locator' ]
 config = {}
 config[ 'job' ] = {
                     'job_id': job_id,

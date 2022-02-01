@@ -3,28 +3,18 @@
 import sys
 import json
 
-from contractor.client import getClient, HTTPClient
+from contractor.client import getClient
 
 try:
   msg = sys.argv[ 1 ]
 except KeyError:
   print( 'usage: {0} <message>' ).format( sys.argv[0] )
 
-print( '* {0} *'.format( msg ) )
-
-contractor = getClient()
-
-if not isinstance( contractor, HTTPClient ):
-  sys.exit( 0 )
-
 job = json.loads( open( '/etc/job.config', 'r' ).read() )[ 'job' ]
 
+contractor = getClient()
+contractor.setJobId( job[ 'job_id' ] )
 contractor.login()
-
-resp = contractor.request( 'call', '/api/v1/Foreman/BaseJob:{0}:(postMessage)'.format( job[ 'job_id' ] ), { 'msg': msg } )
-
-if resp != 'Posted':
-  print( 'WARNING! signaling failed: "{0}"'.format( resp ) )
-  sys.exit( 1 )
+contractor.postMessage( msg )
 
 sys.exit( 0 )

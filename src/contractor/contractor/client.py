@@ -50,11 +50,24 @@ class Client():
   def getConfig( self, config_uuid=None ):
     return {}
 
+  def setJobId( self, job_id ):
+    pass
+
+  def login( self ):
+    pass
+
+  def postMessage( self, msg ):
+    print( '* {0} *'.format( msg ) )
+
+  def signalAlert( self, msg ):
+    print( '! {0} !'.format( msg ) )
+
 
 class HTTPClient( Client ):
   def __init__( self, host, proxy ):
     super().__init__()
     self.cinp = CInP( host=host, root_path='/api/v1/', proxy=proxy )
+    self.job_id = None
     # self.cinp.opener.addheaders[ 'User-Agent' ] += ' - config agent'
 
   def request( self, method, uri, data=None, filter=None, timeout=30, retry_count=0 ):
@@ -91,9 +104,26 @@ class HTTPClient( Client ):
       retry += 1
       _backOffDelay( retry )
 
+  def setJobId( self, job_id ):
+    self.job_id = job_id
+
   def login( self ):
     token = self.request( 'call', '/api/v1/Auth/User(login)', { 'username': 'jobsig', 'password': 'jobsig' } )
     self.cinp.setAuth( 'jobsig', token )
+
+  def postMessage( self, msg ):
+    super().postMessage( msg )
+    resp = self.request( 'call', '/api/v1/Foreman/BaseJob:{0}:(postMessage)'.format( self.job_id ), { 'msg': msg } )
+
+    if resp != 'Posted':
+      print( 'WARNING! Message Signaling Failed: "{0}"'.format( resp ) )
+
+  def signalAlert( self, msg ):
+    super().signalAlert( msg )
+    resp = self.request( 'call', '/api/v1/Foreman/BaseJob:{0}:(signalAlert)'.format( self.job_id ), { 'msg': msg } )
+
+    if resp != 'Posted':
+      print( 'WARNING! Alert Signaling Failed: "{0}"'.format( resp ) )
 
   def getConfig( self, config_uuid=None, foundation_locator=None ):
     if config_uuid is None:

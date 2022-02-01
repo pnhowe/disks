@@ -3,15 +3,13 @@
 import sys
 import json
 
-from contractor.client import getClient, HTTPClient
+from contractor.client import getClient
 
-contractor = getClient()
-
-if not isinstance( contractor, HTTPClient ):
-  sys.exit( 0 )
 
 job = json.loads( open( '/etc/job.config', 'r' ).read() )[ 'job' ]
 
+contractor = getClient()
+contractor.setJobId( job[ 'job_id' ] )
 contractor.login()
 
 resp = contractor.request( 'call', '/api/v1/Foreman/BaseJob:{0}:(signalComplete)'.format( job[ 'job_id' ] ), { 'cookie': job[ 'cookie' ] } )
