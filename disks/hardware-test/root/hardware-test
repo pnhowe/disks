@@ -1,6 +1,7 @@
 #!/bin/sh
 
 # TODO: do a network test, send a bunch of data to something and look for dropped frames and such
+# TODO: try stress-ng
 
 QUICK=0
 

@@ -15,13 +15,20 @@ DELAY_MULTIPLIER = 15
 # max delay = 0, 20, 32, 40, 48, 52, 58, 62, 64, 68, 70, 74, 76, 78, 80 .....
 
 
-def getClient():
+def getClient( job_config=None ):
   host = os.environ.get( 'contractor_host', 'http://contractor' )
   if host.startswith( 'file://' ):
-    return LocalFileClient( host[ 7: ] )
+    client = LocalFileClient( host[ 7: ] )
 
   else:
-    return HTTPClient( host=host, proxy=os.environ.get( 'contractor_proxy', None ) )  # TODO: have do_task put on the http
+    client = HTTPClient( host=host, proxy=os.environ.get( 'contractor_proxy', None ) )  # TODO: have do_task put on the http
+
+  if job_config is not None:
+    job = json.loads( open( '/etc/job.config', 'r' ).read() )[ 'job' ]
+    client.job_id = job[ 'job_id' ]
+    client.cookie = job[ 'cookie' ]
+
+  return client
 
 
 class NoJob( Exception ):
@@ -50,9 +57,6 @@ class Client():
   def getConfig( self, config_uuid=None ):
     return {}
 
-  def setJobId( self, job_id ):
-    pass
-
   def login( self ):
     pass
 
@@ -61,6 +65,9 @@ class Client():
 
   def signalAlert( self, msg ):
     print( '! {0} !'.format( msg ) )
+
+  def signalComplete( self ):
+    print( '### Complete ###' )
 
 
 class HTTPClient( Client ):
@@ -104,9 +111,6 @@ class HTTPClient( Client ):
       retry += 1
       _backOffDelay( retry )
 
-  def setJobId( self, job_id ):
-    self.job_id = job_id
-
   def login( self ):
     token = self.request( 'call', '/api/v1/Auth/User(login)', { 'username': 'jobsig', 'password': 'jobsig' } )
     self.cinp.setAuth( 'jobsig', token )
@@ -124,6 +128,13 @@ class HTTPClient( Client ):
 
     if resp != 'Posted':
       print( 'WARNING! Alert Signaling Failed: "{0}"'.format( resp ) )
+
+  def signalComplete( self ):
+    super().signalComplete( )
+    resp = self.request( 'call', '/api/v1/Foreman/BaseJob:{0}:(signalComplete)'.format( self.job_id ), { 'cookie': self.cookie } )
+
+    if resp != 'Recieved':
+      print( 'WARNING! Complete Signaling Failed: "{0}"'.format( resp ) )
 
   def getConfig( self, config_uuid=None, foundation_locator=None ):
     if config_uuid is None:

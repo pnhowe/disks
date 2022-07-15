@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import sys
-import json
 
 from contractor.client import getClient
 
@@ -10,10 +9,7 @@ try:
 except KeyError:
   print( 'usage: {0} <message>' ).format( sys.argv[0] )
 
-job = json.loads( open( '/etc/job.config', 'r' ).read() )[ 'job' ]
-
-contractor = getClient()
-contractor.setJobId( job[ 'job_id' ] )
+contractor = getClient( '/etc/job.config' )
 contractor.login()
 contractor.postMessage( msg )
 

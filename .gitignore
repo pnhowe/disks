@@ -3,6 +3,7 @@ downloads
 build.deps
 build.images
 images
+resource
 
 contractor/linux-installer-profiles.touch
 linux-installer-profiles.touch

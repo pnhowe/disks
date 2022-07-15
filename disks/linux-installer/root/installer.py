@@ -2,7 +2,6 @@
 import os
 import sys
 import shutil
-import json
 
 from contractor.client import getClient
 from installer.procutils import open_output, set_chroot, execute, chroot_execute
@@ -16,10 +15,7 @@ from installer.users import setupUsers
 
 STDOUT_OUTPUT = '/dev/instout'
 
-job = json.loads( open( '/etc/job.config', 'r' ).read() )[ 'job' ]
-
-contractor = getClient()
-contractor.setJobId( job[ 'job_id' ] )
+contractor = getClient( '/etc/job.config', )
 contractor.login()
 
 config = contractor.getConfig()

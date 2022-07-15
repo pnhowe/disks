@@ -62,6 +62,15 @@
   'azure_image:Azure' = { 'publisher' = 'Canonical', 'offer' = 'UbuntuServer', 'sku' = '20.04-LTS', 'version' = 'latest' }
   'packet_os:Packet' = 'ubuntu_20_04'
 
+[ structure.ubuntu-jammy-base ]
+  description = 'Base Ubuntu Jammy Jellyfish (22.04 LTS)'
+  parents = [ 'ubuntu-base' ]
+[ structure.ubuntu-jammy-base.config_values ]
+  distro_version = 'jammy'
+  'docker_image:Docker' = 'ubuntu:jammy'
+  'azure_image:Azure' = { 'publisher' = 'Canonical', 'offer' = 'UbuntuServer', 'sku' = '22.04-LTS', 'version' = 'latest' }
+  'packet_os:Packet' = 'ubuntu_22_04'
+
 # Debian
 [ structure.debian-base ]
   description = 'Base Debian'

@@ -68,9 +68,16 @@ bootstrap.setMessage( 'Getting LLDP Information...' )
 print( 'Getting LLDP Information...' )
 lldp = lib.getLLDP()
 
+info_map = { 'hardware': hardware, 'lldp': lldp, 'ip_address': lib.getIpAddress( primary_iface ) }
+
+try:
+  info_map[ 'config_uuid' ] = os.environ.get[ 'config_uuid' ]
+except KeyError:
+  pass
+
 while not foundation_locator:
   print( 'Looking up....' )
-  lookup = bootstrap.lookup( { 'hardware': hardware, 'lldp': lldp, 'ip_address': lib.getIpAddress( primary_iface ) } )
+  lookup = bootstrap.lookup( info_map )
 
   if lookup[ 'matched_by' ] is None:
     bootstrap.setMessage( 'no match' )
@@ -81,8 +88,8 @@ while not foundation_locator:
     foundation_locator = lookup[ 'locator' ]
 
 print( '** Hello World! I am Foundation "{0}", nice to meet you! **'.format( foundation_locator ) )
-print( 'Lookedup by "{0}"'.format( lookup[ 'matched_by'] ) )
-bootstrap.setMessage( 'Looked up as "{0}"'.format( foundation_locator ) )
+print( 'Matched by "{0}"'.format( lookup[ 'matched_by' ] ) )
+bootstrap.setMessage( 'Matched as "{0}" by "{1}"'.format( foundation_locator, lookup[ 'matched_by' ] ) )
 
 config = contractor.getConfig( foundation_locator=foundation_locator )
 platform.setup( config )
