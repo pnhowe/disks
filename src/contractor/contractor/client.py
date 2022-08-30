@@ -126,7 +126,7 @@ class HTTPClient( Client ):
     super().signalAlert( msg )
     resp = self.request( 'call', '/api/v1/Foreman/BaseJob:{0}:(signalAlert)'.format( self.job_id ), { 'msg': msg } )
 
-    if resp != 'Posted':
+    if resp != 'Alerted':
       print( 'WARNING! Alert Signaling Failed: "{0}"'.format( resp ) )
 
   def signalComplete( self ):
