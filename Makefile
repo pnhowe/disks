@@ -6,8 +6,8 @@ ARCH = x86_64
 DEPS = $(foreach item,$(sort $(shell ls deps)),$(lastword $(subst _, ,$(item))))
 DISKS = $(shell ls disks | grep -v Makefile)
 TEMPLATES = $(shell ls templates)
-DEP_DOWNLOADS = $(foreach dep,$(DEPS),build.deps/$(dep).download)
-DEP_BUILDS = $(foreach dep,$(DEPS),build.deps/$(dep)-$(ARCH).build)
+DEP_DOWNLOADS = $(foreach dep,$(DEPS),build.$(ARCH)/build/$(dep).download)
+DEP_BUILDS = $(foreach dep,$(DEPS),build.$(ARCH)/build/$(dep).build)
 IMAGE_ROOT = $(foreach disk,$(DISKS),build.images/$(disk)-$(ARCH).root)
 
 # now that we are embracing contractor fully, we don't need the /disks/<disk>*.pxe sutff, that is all in the contractor resource, just get a list of the disks, and that is our list of PXEs
@@ -47,20 +47,20 @@ clean-src:
 .PHONY:: all version clean-src
 
 # external dependancy targets
-build.deps:
-	mkdir build.deps
+build.$(ARCH)/touch:
+	mkdir -p build.$(ARCH)
+	mkdir -p build.$(ARCH)/build
+	scripts/setup_build_root $(abspath build.$(ARCH))
+	touch $@
 
 downloads:
 	mkdir downloads
 
-build.deps/download: build.deps downloads $(DEP_DOWNLOADS)
+build.$(ARCH)/BUILT: downloads build.$(ARCH)/touch $(DEP_DOWNLOADS) $(DEP_BUILDS)
 	touch $@
 
-build.deps/build-$(ARCH): build.deps/download $(DEP_BUILDS)
-	touch $@
-
-build.deps/%.download : FILE = $(shell grep -m 1 '#FILE:' $< | sed s/'#FILE: '// )
-build.deps/%.download: deps/*_%
+build.$(ARCH)/build/%.download : FILE = $(shell basename "`grep -m 1 '#SOURCE:' $< | sed s/'#SOURCE: '//`")
+build.$(ARCH)/build/%.download: build.$(ARCH)/touch deps/*_%
 	@if test "$$( sha1sum downloads/$(FILE) 2> /dev/null | cut -d ' ' -f 1 )" != "$(shell grep -m 1 '#HASH:' $< | sed s/'#HASH: '// )";  \
 	then                                                                                                                                 \
 	  wget $(shell grep -m 1 '#SOURCE:' $< | sed s/'#SOURCE: '// ) -O downloads/$(FILE) --progress=bar:force:noscroll --show-progress;   \
@@ -78,20 +78,22 @@ DEPS_1 = $(filter-out $(firstword $(DEP_BUILDS)), $(DEP_BUILDS))
 DEPS_2 = $(filter-out $(lastword $(DEP_BUILDS)), $(DEP_BUILDS))
 $(foreach pair, $(join $(DEPS_1),$(addprefix :,$(DEPS_2))),$(eval $(pair)))
 
-build.deps/libs-$(ARCH):
-	mkdir -p build.deps/libs-$(ARCH)
-
-build.deps/%-$(ARCH).build: deps/*_% build.deps/libs-$(ARCH) build.deps/%.download
-	mkdir -p build.deps/$*-$(ARCH)
-	scripts/build_dep $* build.deps/$*-$(ARCH) $(abspath build.deps/libs-$(ARCH)) downloads/$(shell grep -m 1 '#FILE:' $< | sed s/'#FILE: '// ) $(ARCH) "-j$(JOBS)"
+build.$(ARCH)/build/%.build: deps/*_% build.$(ARCH)/build/%.download
+	mkdir -p build.$(ARCH)/build/$*
+	scripts/build_dep $* build.$(ARCH)/build/$* $(abspath build.$(ARCH)/build/) $(abspath downloads/$(shell basename "`grep -m 1 '#SOURCE:' $< | sed s/'#SOURCE: '//`")) $(ARCH) "-j$(JOBS)"
 	touch $@
 
 clean-downloads:
 	$(RM) -r downloads
 
 clean-deps:
-	$(RM) -r build.deps
+	$(RM) -r build.$(ARCH)
 
+# build utility targets
+build-shell:
+	env -i fakechroot fakeroot chroot $(abspath build.$(ARCH)) /host/bin/bash --init-file /etc/profile
+
+.PHONY:: build-shell
 # global image targets
 
 clean-images:
@@ -104,14 +106,14 @@ clean-images:
 
 all-disks: $(IMAGE_ROOT)
 
-# we can't build more than one root at a time, the python installer (mabey others) do work in the build.deps dir during install
+# we can't build more than one root at a time, the python installer (mabey others) do work in the build.$(ARCH) dir during install
 # this will make a target for each root, depending on one before it
 IMAGE_ROOTS_1 = $(filter-out $(firstword $(IMAGE_ROOT)), $(IMAGE_ROOT))
 IMAGE_ROOTS_2 = $(filter-out $(lastword $(IMAGE_ROOT)), $(IMAGE_ROOT))
 $(foreach pair, $(join $(IMAGE_ROOTS_2),$(addprefix :,$(IMAGE_ROOTS_1))),$(eval $(pair)))
 
 .SECONDEXPANSION:
-build.images/%-$(ARCH).root: build.deps/build-$(ARCH) build-src.touch disks/%/info $$(shell find disks/$$*/root -type f)
+build.images/%-$(ARCH).root: build.$(ARCH)/BUILT build-src.touch disks/%/info $$(shell find disks/$$*/root -type f)
 	scripts/build_disk $* $(abspath build.images/$*-$(ARCH)) $(ARCH)
 	touch $@
 

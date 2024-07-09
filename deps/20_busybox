@@ -1,7 +1,6 @@
 #!/bin/sh
-#SOURCE: https://busybox.net/downloads/busybox-1.32.0.tar.bz2
-#FILE: busybox-1.32.0.tar.bz2
-#HASH: 277b245e4bbad2df44c767017c68cb68c477274b
+#SOURCE: https://busybox.net/downloads/busybox-1.36.1.tar.bz2
+#HASH: a5d40ca0201b20909f7a8a561adf57adccc8a877
 
 set -e
 #set -x
@@ -10,15 +9,15 @@ build()
 {
   tar --strip-components=1 -xjf $1
   cp ../../configs/busybox .config
-  if [ "x$3" = "xx86_64" ]
+  if [ "x$2" = "xx86_64" ]
   then
-    make $4
-  elif [ "x$3" = "xarm" ]
+    make $3
+  elif [ "x$2" = "xarm" ]
   then
-    make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- $4
-  elif [ "x$3" = "xarm64" ]
+    make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- $3
+  elif [ "x$2" = "xarm64" ]
   then
-    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- $4
+    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- $3
   fi
 }
 

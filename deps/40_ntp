@@ -1,7 +1,6 @@
 #!/bin/sh
-#SOURCE: https://www.eecis.udel.edu/~ntp/ntp_spool/ntp4/ntp-4.2/ntp-4.2.8p15.tar.gz
-#FILE: ntp-4.2.8p15.tar.gz
-#HASH: e34e5b6f48c3ed1bbcfb03080dec1b8f91e19381
+#SOURCE: https://www.eecis.udel.edu/~ntp/ntp_spool/ntp4/ntp-4.2.8p18.tar.gz
+#HASH: 9b5247a8576c6082900682c6de98c8d3c17fc15f
 
 set -e
 #set -x
@@ -9,19 +8,19 @@ set -e
 build()
 {
   tar --strip-components=1 -xzf $1
-  if [ "x$3" = "xx86_64" ]
+  if [ "x$2" = "xx86_64" ]
   then
     ./configure --prefix= --disable-nls --disable-linuxcaps --without-net-snmp-config --disable-all-clocks --without-sntp --without-ntpsnmpd --without-threads --disable-thread-support --disable-debugging
-  elif [ "x$3" = "xarm" ]
+  elif [ "x$2" = "xarm" ]
   then
     ./configure --prefix= --disable-nls --disable-linuxcaps --without-net-snmp-config --disable-all-clocks --without-sntp --without-ntpsnmpd --without-threads --disable-thread-support --disable-debugging --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
-  elif [ "x$3" = "xarm64" ]
+  elif [ "x$2" = "xarm64" ]
   then
     ./configure --prefix= --disable-nls --disable-linuxcaps --without-net-snmp-config --disable-all-clocks --without-sntp --without-ntpsnmpd --without-threads --disable-thread-support --disable-debugging --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
   # we really don't need nor want the dns_sd aka the zeroconfig/bonjour auto config stuff
   sed 's%#define HAVE_DNSREGISTRATION 1%//#define HAVE_DNSREGISTRATION 1%' -i config.h
-  make $4
+  make $3
 }
 
 install()

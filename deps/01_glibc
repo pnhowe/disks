@@ -1,30 +1,31 @@
 #!/bin/sh
-#SOURCE: https://ftp.gnu.org/gnu/libc/glibc-2.34.tar.xz
-#FILE: glibc-2.34.tar.xz
-#HASH: 7c3b8890a6346793b6334cc5f2fea5d437d307b8
+#SOURCE: https://ftp.gnu.org/gnu/libc/glibc-2.39.tar.xz
+#HASH: 4b043eaba31efbdfc92c85d062e975141870295e
 
 set -e
 set -x
 
 build()
 {
+  adfasdf
+  TARGET_PATH=/
   mkdir -p src
   mkdir -p build
   tar -C src --strip-components=1 -xJf $1
   cd build
-  if [ "x$3" = "xx86_64" ]
+  if [ "x$2" = "xx86_64" ]
   then
-    ../src/configure --prefix=/ --with-headers=$2/include --enable-kernel=4.19.0 --without-selinux --disable-profile --enable-add-ons --disable-werror --host x86_64-pc-linux-gnu libc_cv_slibdir=/lib
-  elif [ "x$3" = "xarm" ]
+    ../src/configure --prefix=/ --with-headers=$TARGET_PATH/include --enable-kernel=4.19.0 --without-selinux --disable-profile --enable-add-ons --disable-werror --host x86_64-pc-linux-gnu libc_cv_slibdir=/lib
+  elif [ "x$2" = "xarm" ]
   then
-    ../src/configure --prefix=/ --with-headers=$2/include --enable-kernel=4.19.0 --without-selinux --disable-profile --enable-add-ons --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu libc_cv_slibdir=/lib
-  elif [ "x$3" = "xarm64" ]
+    ../src/configure --prefix=/ --with-headers=$TARGET_PATH/include --enable-kernel=4.19.0 --without-selinux --disable-profile --enable-add-ons --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu libc_cv_slibdir=/lib
+  elif [ "x$2" = "xarm64" ]
   then
-    ../src/configure --prefix=/ --with-headers=$2/include --enable-kernel=4.19.0 --without-selinux --disable-profile --enable-add-ons --host aarch64-linux-gnu --build x86_64-pc-linux-gnu libc_cv_slibdir=/lib
+    ../src/configure --prefix=/ --with-headers=$TARGET_PATH/include --enable-kernel=4.19.0 --without-selinux --disable-profile --enable-add-ons --host aarch64-linux-gnu --build x86_64-pc-linux-gnu libc_cv_slibdir=/lib
   fi
-  #make $4 # not used yet, when we are going to link against it, we can re-enable it.... ulibc-ng is probably a better choice anyway
+  #make $3 # not used yet, when we are going to link against it, we can re-enable it.... ulibc-ng is probably a better choice anyway
 
-  #DESTDIR=$2 make install
+  #DESTDIR=$TARGET_PATH make install
 }
 
 install()

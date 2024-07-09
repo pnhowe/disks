@@ -1,7 +1,6 @@
 #!/bin/sh
-#SOURCE: https://mirrors.edge.kernel.org/pub/linux/kernel/people/tytso/e2fsprogs/v1.46.5/e2fsprogs-1.46.5.tar.gz
-#FILE: e2fsprogs-1.46.5.tar.gz
-#HASH: 6639cc77856bd1f3b5600c150c3ffa640d20b64b
+#SOURCE: https://mirrors.edge.kernel.org/pub/linux/kernel/people/tytso/e2fsprogs/v1.47.1/e2fsprogs-1.47.1.tar.gz
+#HASH: bf47ae2fe92f6feb5a4ee2eeebecd07c52b79a07
 
 set -e
 #set -x
@@ -9,17 +8,17 @@ set -e
 build()
 {
   tar --strip-components=1 -xzf $1
-  if [ "x$3" = "xx86_64" ]
+  if [ "x$2" = "xx86_64" ]
   then
     ./configure --prefix=/ --disable-nls
-  elif [ "x$3" = "xarm" ]
+  elif [ "x$2" = "xarm" ]
   then
     ./configure --prefix=/ --disable-nls --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
-  elif [ "x$3" = "xarm64" ]
+  elif [ "x$2" = "xarm64" ]
   then
     ./configure --prefix=/ --disable-nls --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
-  make $4
+  make $3
 }
 
 install()

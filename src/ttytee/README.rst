@@ -3,7 +3,7 @@ ttytee
 
 ttytee will "tee" tty devices.  It is used here to duplicate the console
 of the PXE disks for cases where there is a Serial Over Lan(SOL).  This
-way the PXE disks can be interacted with both via the phicall monitor
+way the PXE disks can be interacted with both via the physical monitor
 as well as the SOL.
 
 Usage

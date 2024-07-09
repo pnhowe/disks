@@ -1,7 +1,6 @@
 #!/bin/sh
-#SOURCE: http://mirrors.kernel.org/sourceware/lvm2/LVM2.2.02.177.tgz
-#FILE: LVM2.2.02.177.tgz
-#HASH: b114b2ef40fca63c6df290a5f1aac54ff3e764aa
+#SOURCE: http://mirrors.kernel.org/sourceware/lvm2/LVM2.2.02.188.tgz
+#HASH: 2650e0b5a20bf454030132ab3e6ccb381f032f31
 
 set -e
 #set -x
@@ -9,17 +8,17 @@ set -e
 build()
 {
   tar --strip-components=1 -xzf $1
-  if [ "x$3" = "xx86_64" ]
+  if [ "x$2" = "xx86_64" ]
   then
     ./configure --prefix= --disable-selinux
-  elif [ "x$3" = "xarm" ]
+  elif [ "x$2" = "xarm" ]
   then
     ./configure --prefix= --disable-selinux --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
-  elif [ "x$3" = "xarm64" ]
+  elif [ "x$2" = "xarm64" ]
   then
     ./configure --prefix= --disable-selinux --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
-  make $4
+  make $3
 }
 
 install()

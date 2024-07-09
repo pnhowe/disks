@@ -1,7 +1,6 @@
 #!/bin/sh
-#SOURCE: http://archive.ubuntu.com/ubuntu/pool/main/d/debootstrap/debootstrap_1.0.126+nmu1.tar.gz
-#FILE: debootstrap_1.0.126+nmu1.tar.gz
-#HASH: 89d26c9af0623101af48a04fc037540c60bc8e22
+#SOURCE: http://archive.ubuntu.com/ubuntu/pool/main/d/debootstrap/debootstrap_1.0.136ubuntu1.tar.gz
+#HASH: 39729740586252feef7a618e54563340db818874
 
 set -e
 #set -x
@@ -9,7 +8,7 @@ set -e
 build()
 {
   tar --strip-components=1 -xzf $1
-  make $4
+  make $3
   # these two are so we don't have to sudo to install, the ownership get's washed out later anyway
   sed s/"install -o root -g root -m 0644"/"install -m 0644"/ -i Makefile
   sed s/"chown root:root"/"#chown root:root"/ -i Makefile

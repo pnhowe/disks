@@ -1,50 +1,49 @@
 #!/bin/sh
-#SOURCE: http://security.ubuntu.com/ubuntu/pool/main/b/bcache-tools/bcache-tools_1.0.8.orig.tar.gz
-#FILE: bcache-tools_1.0.8.orig.tar.gz
-#HASH: e848aa9ab376d93588de3fe3dd5ed33bacaae53c
+#SOURCE: https://git.kernel.org/pub/scm/linux/kernel/git/colyli/bcache-tools.git/snapshot/bcache-tools-1.1.tar.gz
+#HASH: 327a8f1930a61b12b267537a8009bf94d713a0a2
 
-# I could not find an .tar.gz on the project website, so we are going to use ubuntu, thanks!
-# the patch is to fix a problem with our version of gcc, and also to remove a safety cehck, b/c I don't want to pull in wipefs just for this
 set -e
 #set -x
 
 build()
 {
   tar --strip-components=1 -xzf $1
-  patch -p1 --ignore-whitespace << 'PATCH_END'
---- ./bcache.c.save	2020-06-12 21:13:21.827778191 -0600
-+++ ./bcache.c	2020-06-12 21:13:49.470980666 -0600
-@@ -115,7 +115,7 @@
-	 0x9AFCE626CE85B507ULL
- };
 
--inline uint64_t crc64(const void *_data, size_t len)
-+uint64_t crc64(const void *_data, size_t len)
- {
- 	uint64_t crc = 0xFFFFFFFFFFFFFFFFULL;
- 	const unsigned char *data = _data;
+  # the patch is to fix a problem with our version of gcc, and also to remove a safety cehck, b/c I don't want to pull in wipefs just for this
+#   patch -p1 --ignore-whitespace << 'PATCH_END'
+# --- ./bcache.c.save	2020-06-12 21:13:21.827778191 -0600
+# +++ ./bcache.c	2020-06-12 21:13:49.470980666 -0600
+# @@ -115,7 +115,7 @@
+# 	 0x9AFCE626CE85B507ULL
+#  };
 
---- ./make-bcache.c.orig	2020-06-13 07:37:13.005990880 -0600
-+++ ./make-bcache.c	2020-06-13 07:37:24.320078624 -0600
-@@ -203,7 +203,7 @@
- 		/* XXX wipefs doesn't know how to remove partition tables */
- 		fprintf(stderr, "Device %s already has a non-bcache superblock, "
- 				"remove it using wipefs and wipefs -a\n", dev);
--		exit(EXIT_FAILURE);
-+		//exit(EXIT_FAILURE);
+# -inline uint64_t crc64(const void *_data, size_t len)
+# +uint64_t crc64(const void *_data, size_t len)
+#  {
+#  	uint64_t crc = 0xFFFFFFFFFFFFFFFFULL;
+#  	const unsigned char *data = _data;
+
+# --- ./make-bcache.c.orig	2020-06-13 07:37:13.005990880 -0600
+# +++ ./make-bcache.c	2020-06-13 07:37:24.320078624 -0600
+# @@ -203,7 +203,7 @@
+#  		/* XXX wipefs doesn't know how to remove partition tables */
+#  		fprintf(stderr, "Device %s already has a non-bcache superblock, "
+#  				"remove it using wipefs and wipefs -a\n", dev);
+# -		exit(EXIT_FAILURE);
+# +		//exit(EXIT_FAILURE);
  	}
 
  	memset(&sb, 0, sizeof(struct cache_sb));
 PATCH_END
-  if [ "x$3" = "xx86_64" ]
+  if [ "x$2" = "xx86_64" ]
   then
-    make $4
-  elif [ "x$3" = "xarm" ]
+    make $3
+  elif [ "x$2" = "xarm" ]
   then
-    make CC=arm-linux-gnueabihf-gcc $4
-  elif [ "x$3" = "xarm64" ]
+    make CC=arm-linux-gnueabihf-gcc $3
+  elif [ "x$2" = "xarm64" ]
   then
-    make CC=aarch64-linux-gnu-gcc $4
+    make CC=aarch64-linux-gnu-gcc $3
   fi
 }
 

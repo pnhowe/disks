@@ -1,6 +1,5 @@
 #!/bin/sh
 #SOURCE: http://dev.gentoo.org/~blueness/eudev/eudev-3.2.9.tar.gz
-#FILE: eudev-3.2.9.tar.gz
 #HASH: f30e768bfa6a57a782fcef5456495cade79e2197
 
 set -e
@@ -10,29 +9,29 @@ build()
 {
   tar --strip-components=1 -xzf $1
   sed s/have_kmod=no/have_kmod=yes/ -i configure
-  # export KMOD_CFLAGS=-I$2/include
-  # export KMOD_LIBS="-L$2/lib -lkmod"
-  # export PKG_CONFIG_PATH=$2/lib/pkgconfig
-  if [ "x$3" = "xx86_64" ]
+  # export KMOD_CFLAGS=-I/include
+  # export KMOD_LIBS="-L/lib -lkmod"
+  # export PKG_CONFIG_PATH=/lib/pkgconfig
+  if [ "x$2" = "xx86_64" ]
   then
     export KMOD_CFLAGS=-I`pwd`/../kmod-x86_64/libkmod
     export KMOD_LIBS="-L`pwd`/../kmod-x86_64/libkmod/.libs/ -lkmod"
     export PKG_CONFIG_PATH=`pwd`/../kmod-x86_64/libkmod
     ./configure --prefix= --bindir=/sbin --sbindir=/sbin --with-rootprefix= --with-rootlibdir=/lib --sysconfdir=/etc --disable-manpages --enable-kmod --disable-selinux
-  elif [ "x$3" = "xarm" ]
+  elif [ "x$2" = "xarm" ]
   then
     export KMOD_CFLAGS=-I`pwd`/../kmod-arm/libkmod
     export KMOD_LIBS="-L`pwd`/../kmod-arm/libkmod/.libs/ -lkmod"
     export PKG_CONFIG_PATH=`pwd`/../kmod-arm/libkmod
     ./configure --prefix= --bindir=/sbin --sbindir=/sbin --with-rootprefix= --with-rootlibdir=/lib --sysconfdir=/etc --disable-manpages --enable-kmod --disable-selinux --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
-  elif [ "x$3" = "xarm64" ]
+  elif [ "x$2" = "xarm64" ]
   then
     export KMOD_CFLAGS=-I`pwd`/../kmod-arm64/libkmod
     export KMOD_LIBS="-L`pwd`/../kmod-arm64/libkmod/.libs/ -lkmod"
     export PKG_CONFIG_PATH=`pwd`/../kmod-arm64/libkmod
     ./configure --prefix= --bindir=/sbin --sbindir=/sbin --with-rootprefix= --with-rootlibdir=/lib --sysconfdir=/etc --disable-manpages --enable-kmod --disable-selinux --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
-  make $4
+  make $3
 }
 
 install()

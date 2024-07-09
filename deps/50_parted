@@ -1,7 +1,6 @@
 #!/bin/sh
-#SOURCE: https://ftp.gnu.org/gnu/parted/parted-3.3.tar.xz
-#FILE: parted-3.3.tar.xz
-#HASH: e639500f9587cf6fa9b0dbc08e5e760244614595
+#SOURCE: https://ftp.gnu.org/gnu/parted/parted-3.6.tar.xz
+#HASH: b83f10e654250a69dd9278f4425802c1b7fb0c74
 
 set -e
 #set -x
@@ -9,17 +8,17 @@ set -e
 build()
 {
   tar --strip-components=1 -xJf $1
-  if [ "x$3" = "xx86_64" ]
+  if [ "x$2" = "xx86_64" ]
   then
     CFLAGS="-I`pwd`/../lvm2-x86_64/libdm/" LDFLAGS="-L`pwd`/../lvm2-x86_64/libdm/" ./configure --prefix= --disable-shared --without-readline
-  elif [ "x$3" = "xarm" ]
+  elif [ "x$2" = "xarm" ]
   then
     ./configure --prefix= --disable-shared --without-readline --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
-  elif [ "x$3" = "xarm64" ]
+  elif [ "x$2" = "xarm64" ]
   then
     ./configure --prefix= --disable-shared --without-readline --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
-  make $4
+  make $3
 }
 
 install()

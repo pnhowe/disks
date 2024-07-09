@@ -1,7 +1,6 @@
 #!/bin/sh
-#SOURCE: https://mirrors.edge.kernel.org/pub/linux/utils/raid/mdadm/mdadm-4.0.tar.xz
-#FILE: mdadm-4.0.tar.xz
-#HASH: 0886a47e8109f86160e45896ca6dc445fdeee710
+#SOURCE: https://mirrors.edge.kernel.org/pub/linux/utils/raid/mdadm/mdadm-4.3.tar.xz
+#HASH: fb0bace919325b42a005372b5a5cfa999da6567a
 
 set -e
 #set -x
@@ -12,15 +11,15 @@ build()
 {
   tar --strip-components=1 -xJf $1
   sed 's@-Werror@@' -i Makefile
-  if [ "x$3" = "xx86_64" ]
+  if [ "x$2" = "xx86_64" ]
   then
-    make $4
-  elif [ "x$3" = "xarm" ]
+    make $3
+  elif [ "x$2" = "xarm" ]
   then
-    make CC=arm-linux-gnueabihf-gcc $4
-  elif [ "x$3" = "xarm64" ]
+    make CC=arm-linux-gnueabihf-gcc $3
+  elif [ "x$2" = "xarm64" ]
   then
-    make CC=aarch64-linux-gnu-gcc $4
+    make CC=aarch64-linux-gnu-gcc $3
   fi
 }
 

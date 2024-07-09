@@ -1,11 +1,11 @@
 #!/bin/sh
 
 set -e
-#set -x
+set -x
 
 # $1 - name of dep
 # $2 - build dir
-# $3 - path to lib dir
+# $3 - path to root build dir
 # $4 - path to the downloaded source archive
 # $5 - arch
 # $6 - make paramaters
@@ -14,10 +14,23 @@ set -e
 
 cd $2
 
-build ../../$4 $3 $5 "$6"
+case $4 in
+  *.tar.bz2)
+    tar --strip-components=1 -xjf $4
+    ;;
+  *.tar.gz) 
+    tar --strip-components=1 -xzf $4
+    ;;
+  *.tar.xz) 
+    tar --strip-components=1 -xJf $4
+    ;;
+  *)
+    cp $4 .
+    ;;
+esac
+
+sudo chroot $3 build $5 "$6"
 
 # build paramaters
-# $1 - path to the downloaded source
-# $2 - path to lib dir
-# $3 - arch
-# $4 - make paramaters
+# $1 - arch
+# $2 - make paramaters

@@ -1,7 +1,6 @@
 #!/bin/sh
-#SOURCE: https://www.python.org/ftp/python/3.6.3/Python-3.6.3.tar.xz
-#FILE: Python-3.6.3.tar.xz
-#HASH: 6c71b14bdbc4d8aa0cfd59d4b6dc356d46abfdf5
+#SOURCE: https://www.python.org/ftp/python/3.9.19/Python-3.9.19.tar.xz
+#HASH: 57d08ec0b329a78923b486abae906d4fa12fadb7
 
 set -e
 #set -x
@@ -17,18 +16,18 @@ build()
   echo "ac_cv_file__dev_ptmx=yes
 ac_cv_file__dev_ptc=yes" > config.site
   export CONFIG_SITE=config.site
-  if [ "x$3" = "xx86_64" ]
+  if [ "x$2" = "xx86_64" ]
   then
     ./configure --prefix=/ --enable-ipv6
-  elif [ "x$3" = "xarm" ]
+  elif [ "x$2" = "xarm" ]
   then
      ./configure --prefix=/ --enable-ipv6 --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
-  elif [ "x$3" = "xarm64" ]
+  elif [ "x$2" = "xarm64" ]
   then
     ./configure --prefix=/ --enable-ipv6 --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
-  make python $4
-  LIBSUBDIRS=$SUBDIRS make -e build_all $4
+  make python $3
+  LIBSUBDIRS=$SUBDIRS make -e build_all $3
 }
 
 install()

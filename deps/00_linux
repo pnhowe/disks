@@ -1,6 +1,5 @@
 #!/bin/sh
 #SOURCE: https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.19.128.tar.xz
-#FILE: linux-4.19.128.tar.xz
 #HASH: a96add8134be86baa5c91f9bcca505bd4d647f22
 
 set -e
@@ -9,24 +8,25 @@ set -e
 build()
 {
   tar --strip-components=1 -xJf $1
-  if [ "x$3" = "xx86_64" ]
+  TARGET_PATH=/
+  if [ "x$1" = "xx86_64" ]
   then
     cp ../../configs/linux.x86_64 .config
-    make $4
-    make modules $4
-    make INSTALL_HDR_PATH=$2 headers_install
-  elif [ "x$3" = "xarm" ]
+    make $2
+    make modules $2
+    make INSTALL_HDR_PATH=$TARGET_PATH headers_install
+  elif [ "x$1" = "xarm" ]
   then
     cp ../../configs/linux.arm .config
-    make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- $4
-    make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- modules $4
-    make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- INSTALL_HDR_PATH=$2 headers_install
-  elif [ "x$3" = "xarm64" ]
+    make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- $2
+    make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- modules $2
+    make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- INSTALL_HDR_PATH=$TARGET_PATH headers_install
+  elif [ "x$1" = "xarm64" ]
   then
     cp ../../configs/linux.arm64 .config
-    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- $4
-    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- modules $4
-    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- INSTALL_HDR_PATH=$2 headers_install
+    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- $2
+    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- modules $2
+    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- INSTALL_HDR_PATH=$TARGET_PATH headers_install
   fi
 }
 

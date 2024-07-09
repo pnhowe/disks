@@ -1,7 +1,6 @@
 #!/bin/sh
-#SOURCE: https://gnupg.org/ftp/gcrypt/gpgrt/libgpg-error-1.43.tar.bz2
-#FILE: libgpg-error-1.43.tar.bz2
-#HASH: e71b77e8e32023dfd9cb06504942aa8e028c8795
+#SOURCE: https://gnupg.org/ftp/gcrypt/gpgrt/libgpg-error-1.50.tar.bz2
+#HASH: 6790fc3d6e7bbd7576654b43971bbe15e953ccc4
 
 set -e
 #set -x
@@ -9,17 +8,17 @@ set -e
 build()
 {
   tar --strip-components=1 -xjf $1
-  if [ "x$3" = "xx86_64" ]
+  if [ "x$2" = "xx86_64" ]
   then
     ./configure --prefix= --disable-doc
-  elif [ "x$3" = "xarm" ]
+  elif [ "x$2" = "xarm" ]
   then
     ./configure --prefix= --disable-doc --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
-  elif [ "x$3" = "xarm64" ]
+  elif [ "x$2" = "xarm64" ]
   then
     ./configure --prefix= --disable-doc --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
-  make $4
+  make $3
   mkdir -p lib/pkgconfig
   ln -s ../../src/gpg-error.pc lib/pkgconfig/
 }

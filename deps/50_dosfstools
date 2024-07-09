@@ -1,7 +1,6 @@
 #!/bin/sh
-#SOURCE: https://github.com/dosfstools/dosfstools/releases/download/v4.1/dosfstools-4.1.tar.xz
-#FILE: dosfstools-4.1.tar.xz
-#HASH: 814e2d5842c62e328dfc8947178a0a4e45a1c028
+#SOURCE: https://github.com/dosfstools/dosfstools/releases/download/v4.2/dosfstools-4.2.tar.gz
+#HASH: 14efc68c64987a9067b6a919ad2870007247686b
 
 set -e
 set -x
@@ -9,17 +8,17 @@ set -x
 build()
 {
   tar --strip-components=1 -xJf $1
-  if [ "x$3" = "xx86_64" ]
+  if [ "x$2" = "xx86_64" ]
   then
     ./configure --prefix=
-  elif [ "x$3" = "xarm" ]
+  elif [ "x$2" = "xarm" ]
   then
     ./configure --prefix= --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
-  elif [ "x$3" = "xarm64" ]
+  elif [ "x$2" = "xarm64" ]
   then
     ./configure --prefix= --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
-  make $4
+  make $3
 }
 
 install()

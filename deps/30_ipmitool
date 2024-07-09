@@ -1,156 +1,26 @@
 #!/bin/sh
-#SOURCE: https://github.com/ipmitool/ipmitool/releases/download/IPMITOOL_1_8_18/ipmitool-1.8.18.tar.bz2
-#FILE: ipmitool-1.8.18.tar.bz2
-#HASH: f66b79902da95500a47d09ef916fc7bac4b94765
+#SOURCE: https://github.com/ipmitool/ipmitool/archive/refs/tags/IPMITOOL_1_8_19.tar.gz
+#HASH: 92620c40a0f2d5fbe72e774385a55a53aa4ec448
 
 set -e
 #set -x
 
 build()
 {
-  tar --strip-components=1 -xjf $1
-  if [ "x$3" = "xx86_64" ]
+  tar --strip-components=1 -xzf $1
+	./bootstrap
+  if [ "x$2" = "xx86_64" ]
   then
     ./configure --prefix= --enable-intf-lanplus --enable-intf-open --disable-intf-serial --disable-solaris-opt --disable-intf-lan --disable-intf-usb --disable-intf-free --disable-intf-imb --disable-intf-lipmi --disable-intf-bmc --disable-intf-dummy --disable-ipmishell
-  elif [ "x$3" = "xarm" ]
+  elif [ "x$2" = "xarm" ]
   then
     ./configure --prefix= --enable-intf-lanplus --enable-intf-open --disable-intf-serial --disable-solaris-opt --disable-intf-lan --disable-intf-usb --disable-intf-free --disable-intf-imb --disable-intf-lipmi --disable-intf-bmc --disable-intf-dummy --disable-ipmishell --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
-  elif [ "x$3" = "xarm64" ]
+  elif [ "x$2" = "xarm64" ]
   then
     ./configure --prefix= --enable-intf-lanplus --enable-intf-open --disable-intf-serial --disable-solaris-opt --disable-intf-lan --disable-intf-usb --disable-intf-free --disable-intf-imb --disable-intf-lipmi --disable-intf-bmc --disable-intf-dummy --disable-ipmishell --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
 
-  patch -p1 --ignore-whitespace << 'PATCH_END'
---- ./src/plugins/lanplus/lanplus_crypt_impl.c.orig	2019-06-25 06:54:37.000000000 -0600
-+++ ./src/plugins/lanplus/lanplus_crypt_impl.c	2019-10-15 10:34:09.563518585 -0600
-@@ -164,16 +164,19 @@
- 							uint8_t       * output,
- 							uint32_t        * bytes_written)
- {
--	EVP_CIPHER_CTX ctx;
--	EVP_CIPHER_CTX_init(&ctx);
--	EVP_EncryptInit_ex(&ctx, EVP_aes_128_cbc(), NULL, key, iv);
--	EVP_CIPHER_CTX_set_padding(&ctx, 0);
-+	EVP_CIPHER_CTX *ctx;
-+	ctx = EVP_CIPHER_CTX_new();
-+	EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key, iv);
-+	EVP_CIPHER_CTX_set_padding(ctx, 0);
-
-
- 	*bytes_written = 0;
-
- 	if (input_length == 0)
-+	{
-+		EVP_CIPHER_CTX_free(ctx);
- 		return;
-+	}
-
- 	if (verbose >= 5)
- 	{
-@@ -191,26 +194,29 @@
- 	assert((input_length % IPMI_CRYPT_AES_CBC_128_BLOCK_SIZE) == 0);
-
-
--	if(!EVP_EncryptUpdate(&ctx, output, (int *)bytes_written, input, input_length))
-+	if(!EVP_EncryptUpdate(ctx, output, (int *)bytes_written, input, input_length))
- 	{
- 		/* Error */
- 		*bytes_written = 0;
-+		EVP_CIPHER_CTX_free(ctx);
- 		return;
- 	}
- 	else
- 	{
- 		uint32_t tmplen;
-
--		if(!EVP_EncryptFinal_ex(&ctx, output + *bytes_written, (int *)&tmplen))
-+		if(!EVP_EncryptFinal_ex(ctx, output + *bytes_written, (int *)&tmplen))
- 		{
- 			*bytes_written = 0;
-+			EVP_CIPHER_CTX_free(ctx);
- 			return; /* Error */
- 		}
- 		else
- 		{
- 			/* Success */
- 			*bytes_written += tmplen;
--			EVP_CIPHER_CTX_cleanup(&ctx);
-+			EVP_CIPHER_CTX_cleanup(ctx);
-+			EVP_CIPHER_CTX_free(ctx);
- 		}
- 	}
- }
-@@ -239,10 +245,10 @@
- 							uint8_t       * output,
- 							uint32_t        * bytes_written)
- {
--	EVP_CIPHER_CTX ctx;
--	EVP_CIPHER_CTX_init(&ctx);
--	EVP_DecryptInit_ex(&ctx, EVP_aes_128_cbc(), NULL, key, iv);
--	EVP_CIPHER_CTX_set_padding(&ctx, 0);
-+	EVP_CIPHER_CTX *ctx;
-+	ctx = EVP_CIPHER_CTX_new();
-+	EVP_DecryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key, iv);
-+	EVP_CIPHER_CTX_set_padding(ctx, 0);
-
-
- 	if (verbose >= 5)
-@@ -256,7 +262,10 @@
- 	*bytes_written = 0;
-
- 	if (input_length == 0)
-+	{
-+		EVP_CIPHER_CTX_free(ctx);
- 		return;
-+	}
-
- 	/*
- 	 * The default implementation adds a whole block of padding if the input
-@@ -266,31 +275,34 @@
- 	assert((input_length % IPMI_CRYPT_AES_CBC_128_BLOCK_SIZE) == 0);
-
-
--	if (!EVP_DecryptUpdate(&ctx, output, (int *)bytes_written, input, input_length))
-+	if (!EVP_DecryptUpdate(ctx, output, (int *)bytes_written, input, input_length))
- 	{
- 		/* Error */
- 		lprintf(LOG_DEBUG, "ERROR: decrypt update failed");
- 		*bytes_written = 0;
-+		EVP_CIPHER_CTX_free(ctx);
- 		return;
- 	}
- 	else
- 	{
- 		uint32_t tmplen;
-
--		if (!EVP_DecryptFinal_ex(&ctx, output + *bytes_written, (int *)&tmplen))
-+		if (!EVP_DecryptFinal_ex(ctx, output + *bytes_written, (int *)&tmplen))
- 		{
- 			char buffer[1000];
- 			ERR_error_string(ERR_get_error(), buffer);
- 			lprintf(LOG_DEBUG, "the ERR error %s", buffer);
- 			lprintf(LOG_DEBUG, "ERROR: decrypt final failed");
- 			*bytes_written = 0;
-+			EVP_CIPHER_CTX_free(ctx);
- 			return; /* Error */
- 		}
- 		else
- 		{
- 			/* Success */
- 			*bytes_written += tmplen;
--			EVP_CIPHER_CTX_cleanup(&ctx);
-+			EVP_CIPHER_CTX_cleanup(ctx);
-+			EVP_CIPHER_CTX_free(ctx);
- 		}
- 	}
-
-@@ -300,3 +312,4 @@
- 		printbuf(output, *bytes_written, "Decrypted this data");
- 	}
- }
-+
-PATCH_END
-  make $4
+  #make $3
 }
 
 install()

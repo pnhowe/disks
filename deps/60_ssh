@@ -1,7 +1,6 @@
 #!/bin/sh
-#SOURCE: https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-7.9p1.tar.gz
-#FILE: openssh-7.9p1.tar.gz
-#HASH: 993aceedea8ecabb1d0dd7293508a361891c4eaa
+#SOURCE: https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-9.8p1.tar.gz
+#HASH: a0bb501b11349f5c5c33a269351be091dc2c2727
 
 set -e
 #set -x
@@ -9,17 +8,17 @@ set -e
 build()
 {
   tar --strip-components=1 -xzf $1
-  if [ "x$3" = "xx86_64" ]
+  if [ "x$2" = "xx86_64" ]
   then
     ./configure --prefix= --without-pam --sysconfdir=/etc/ssh --with-privsep-path=/var/empty
-  elif [ "x$3" = "xarm" ]
+  elif [ "x$2" = "xarm" ]
   then
     ./configure --prefix= --without-pam --sysconfdir=/etc/ssh --with-privsep-path=/var/empty --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
-  elif [ "x$3" = "xarm64" ]
+  elif [ "x$2" = "xarm64" ]
   then
     ./configure --prefix= --without-pam --sysconfdir=/etc/ssh --with-privsep-path=/var/empty --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
-  make $4
+  make $3
 }
 
 install()

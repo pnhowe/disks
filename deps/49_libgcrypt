@@ -1,7 +1,6 @@
 #!/bin/sh
-#SOURCE: https://gnupg.org/ftp/gcrypt/libgcrypt/libgcrypt-1.9.4.tar.bz2
-#FILE: libgcrypt-1.9.4.tar.bz2
-#HASH: 1bccc8393482fa1953323ff429c6b5ba5676eb1a
+#SOURCE: https://gnupg.org/ftp/gcrypt/libgcrypt/libgcrypt-1.11.0.tar.bz2
+#HASH: dd2c68e0685bb99249efeeb06046fae15b5214ba
 
 set -e
 #set -x
@@ -9,21 +8,21 @@ set -e
 build()
 {
   tar --strip-components=1 -xjf $1
-  if [ "x$3" = "xx86_64" ]
+  if [ "x$2" = "xx86_64" ]
   then
     export GPG_ERROR_CONFIG="`pwd`/../libgpg-error-x86_64/src/gpg-error-config"
     export GPGRT_CONFIG="`pwd`/../libgpg-error-x86_64/src/gpgrt-config"
     export CFLAGS="-I`pwd`/../libgpg-error-x86_64/src"
     export LDFLAGS="-L`pwd`/../libgpg-error-x86_64/src/.libs"
     ./configure --prefix= --disable-doc
-  elif [ "x$3" = "xarm" ]
+  elif [ "x$2" = "xarm" ]
   then
     ./configure --prefix= --disable-doc --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
-  elif [ "x$3" = "xarm64" ]
+  elif [ "x$2" = "xarm64" ]
   then
     ./configure --prefix= --disable-doc --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
-  make $4
+  make $3
 }
 
 install()

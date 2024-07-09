@@ -1,7 +1,6 @@
 build-src.touch
 downloads
-build.deps
-build.images
+/build\.*
 images
 resource
 

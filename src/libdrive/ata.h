@@ -12,6 +12,8 @@
 #define ATA_FIRMWARE_REV_RAW_LEN 4
 #define ATA_MODEL_NUMBER_RAW_LEN 20
 
+// https://people.freebsd.org/~imp/asiabsdcon2015/works/d2161r5-ATAATAPI_Command_Set_-_3.pdf
+
 struct ata_identity // needs to be 512 bytes
 {
   __u16 pad_0[10];
