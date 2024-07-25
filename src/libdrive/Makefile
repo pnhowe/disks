@@ -59,12 +59,12 @@ install: all
 	install -m 755 wipedrive $(DESTDIR)/usr/sbin
 	install -m 755 drivelist $(DESTDIR)/usr/sbin
 	install -m 755 enclosurelist $(DESTDIR)/usr/sbin
-	mkdir -p $(DESTDIR)/lib/python3.6/libdrive
-	cp __init__.py $(DESTDIR)/lib/python3.6/libdrive
-	cp libdrive.py $(DESTDIR)/lib/python3.6/libdrive
-	cp libenclosure.py $(DESTDIR)/lib/python3.6/libdrive
-	cp libdrive_h.py $(DESTDIR)/lib/python3.6/libdrive
-	cp libenclosure_h.py $(DESTDIR)/lib/python3.6/libdrive
+	mkdir -p $(DESTDIR)/lib/python3/libdrive
+	cp __init__.py $(DESTDIR)/lib/python3/libdrive
+	cp libdrive.py $(DESTDIR)/lib/python3/libdrive
+	cp libenclosure.py $(DESTDIR)/lib/python3/libdrive
+	cp libdrive_h.py $(DESTDIR)/lib/python3/libdrive
+	cp libenclosure_h.py $(DESTDIR)/lib/python3/libdrive
 
 # have to compile twice b/c the lib is 32-bit (esx's python is 32bit)
 # this target path is wrong, when esx is a thing again, it will need to be updated

@@ -9,26 +9,22 @@ set -e
 # would be nice to do the CROSS_COMPILE=arm-linux-gnueabihf- instad of CC=arm-linux-gnueabihf-gcc
 build()
 {
-  tar --strip-components=1 -xJf $1
   sed 's@-Werror@@' -i Makefile
-  if [ "x$2" = "xx86_64" ]
+  if [ "x$1" = "xx86_64" ]
   then
-    make $3
-  elif [ "x$2" = "xarm" ]
+    make $2
+  elif [ "x$1" = "xarm64" ]
   then
-    make CC=arm-linux-gnueabihf-gcc $3
-  elif [ "x$2" = "xarm64" ]
-  then
-    make CC=aarch64-linux-gnu-gcc $3
+    make CC=aarch64-linux-gnu-gcc $2
   fi
 }
 
 install()
 {
-  cp -f $3/mdadm $1/sbin
+  cp -f mdadm $1/sbin
 }
 
 binaries()
 {
-  ls $1/sbin/mdadm*
+  ls mdadm
 }

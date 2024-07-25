@@ -1,6 +1,6 @@
 #!/bin/sh
-#SOURCE: https://gnupg.org/ftp/gcrypt/libgcrypt/libgcrypt-1.11.0.tar.bz2
-#HASH: dd2c68e0685bb99249efeeb06046fae15b5214ba
+#SOURCE: https://gnupg.org/ftp/gcrypt/libksba/libksba-1.6.7.tar.bz2
+#HASH: 781acfb012cbb5328f41efcf82f723524e8d0128
 
 set -e
 #set -x

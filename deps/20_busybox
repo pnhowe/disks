@@ -7,21 +7,23 @@ set -e
 
 build()
 {
-  tar --strip-components=1 -xjf $1
   cp ../../configs/busybox .config
-  if [ "x$2" = "xx86_64" ]
+  if [ "x$1" = "xx86_64" ]
   then
-    make $3
-  elif [ "x$2" = "xarm" ]
+    make $2
+  elif [ "x$1" = "xarm64" ]
   then
-    make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- $3
-  elif [ "x$2" = "xarm64" ]
-  then
-    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- $3
+    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- $2
   fi
 }
 
 install()
 {
-  : # allready installed ;-)
+  cp busybox $1/bin
+  ln -sf /bin/env $1/usr/bin/env
+}
+
+binaries()
+{
+  ls busybox
 }

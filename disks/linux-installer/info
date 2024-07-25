@@ -4,3 +4,8 @@ set -e
 
 DEP_LIST="mdadm lvm2 parted e2fsprogs xfsprogs dosfstools libgpg-error libgcrypt gpgv debootstrap pkgdetails zstd squashfs bcache-tools"
 SRC_LIST="libconfig libdrive"
+
+image_extra()
+{
+  :
+}

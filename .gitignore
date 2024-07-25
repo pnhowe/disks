@@ -1,8 +1,9 @@
-build-src.touch
-downloads
-/build\.*
-images
-resource
+/src.build
+/downloads
+/build
+/images
+/resource
+/build.images
 
 contractor/linux-installer-profiles.touch
 linux-installer-profiles.touch

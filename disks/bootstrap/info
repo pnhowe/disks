@@ -4,3 +4,8 @@ set -e
 
 DEP_LIST="lldp ipmitool"
 SRC_LIST="libdrive libhardware"
+
+image_extra()
+{
+  :
+}

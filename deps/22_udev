@@ -1,54 +1,38 @@
 #!/bin/sh
-#SOURCE: http://dev.gentoo.org/~blueness/eudev/eudev-3.2.9.tar.gz
-#HASH: f30e768bfa6a57a782fcef5456495cade79e2197
+#SOURCE: https://github.com/eudev-project/eudev/releases/download/v3.2.14/eudev-3.2.14.tar.gz
+#HASH: 242801bd31ff45a3fdc4a3b9d078ffa69ccae3c9
 
 set -e
 #set -x
 
 build()
 {
-  tar --strip-components=1 -xzf $1
-  sed s/have_kmod=no/have_kmod=yes/ -i configure
-  # export KMOD_CFLAGS=-I/include
-  # export KMOD_LIBS="-L/lib -lkmod"
-  # export PKG_CONFIG_PATH=/lib/pkgconfig
-  if [ "x$2" = "xx86_64" ]
+  if [ "x$1" = "xx86_64" ]
   then
-    export KMOD_CFLAGS=-I`pwd`/../kmod-x86_64/libkmod
-    export KMOD_LIBS="-L`pwd`/../kmod-x86_64/libkmod/.libs/ -lkmod"
-    export PKG_CONFIG_PATH=`pwd`/../kmod-x86_64/libkmod
     ./configure --prefix= --bindir=/sbin --sbindir=/sbin --with-rootprefix= --with-rootlibdir=/lib --sysconfdir=/etc --disable-manpages --enable-kmod --disable-selinux
-  elif [ "x$2" = "xarm" ]
+  elif [ "x$1" = "xarm64" ]
   then
-    export KMOD_CFLAGS=-I`pwd`/../kmod-arm/libkmod
-    export KMOD_LIBS="-L`pwd`/../kmod-arm/libkmod/.libs/ -lkmod"
-    export PKG_CONFIG_PATH=`pwd`/../kmod-arm/libkmod
-    ./configure --prefix= --bindir=/sbin --sbindir=/sbin --with-rootprefix= --with-rootlibdir=/lib --sysconfdir=/etc --disable-manpages --enable-kmod --disable-selinux --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
-  elif [ "x$2" = "xarm64" ]
-  then
-    export KMOD_CFLAGS=-I`pwd`/../kmod-arm64/libkmod
-    export KMOD_LIBS="-L`pwd`/../kmod-arm64/libkmod/.libs/ -lkmod"
-    export PKG_CONFIG_PATH=`pwd`/../kmod-arm64/libkmod
     ./configure --prefix= --bindir=/sbin --sbindir=/sbin --with-rootprefix= --with-rootlibdir=/lib --sysconfdir=/etc --disable-manpages --enable-kmod --disable-selinux --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
-  make $3
+  make $2
+  make install
 }
 
 install()
 {
-  DESTDIR=$1 make -C $3 install
+  cp ../../sbin/udevadm $1/sbin
+  cp ../../sbin/udevd $1/sbin
+  cp -a ../../etc/udev $1/etc
+  cp -a ../../lib/udev $1/lib
   $1/sbin/udevadm hwdb --update --root=$1
   sed s/#udev_log=\"info\"/udev_log=\"debug\"/ -i $1/etc/udev/udev.conf
 
   # for now we are going to stick with the old network Interaface names
   rm $1/lib/udev/rules.d/80-net-name-slot.rules
-
-  rm -fr $1/lib/pkgconfig
-  rm -fr $1/share/pkgconfig
-  rm -fr $1/include
+  rm $1/lib/udev/rules.d/81-net-dhcp.rules
 }
 
 binaries()
 {
-  ls $1/sbin/udev*
+  ls ../../sbin/udev*
 }

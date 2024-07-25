@@ -3,8 +3,8 @@ all:
 clean:
 
 install:
-	mkdir -p $(DESTDIR)/lib/python3.6/contractor
-	cp -a contractor/* $(DESTDIR)/lib/python3.6/contractor
+	mkdir -p $(DESTDIR)/lib/python3/contractor
+	cp -a contractor/* $(DESTDIR)/lib/python3/contractor
 	cp initJobConfig $(DESTDIR)/bin
 	cp postMessage $(DESTDIR)/bin
 	cp signalAlert $(DESTDIR)/bin

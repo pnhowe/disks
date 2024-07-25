@@ -1,18 +1,19 @@
 VERSION := 0.9.0
 
-# other arches: arm arm64
+# other arches: arm64
 ARCH = x86_64
 
+DEPS_BUILD_FS = build/$(ARCH)
+DEPS_BUILD_DIR = $(DEPS_BUILD_FS)/build
 DEPS = $(foreach item,$(sort $(shell ls deps)),$(lastword $(subst _, ,$(item))))
 DISKS = $(shell ls disks | grep -v Makefile)
 TEMPLATES = $(shell ls templates)
-DEP_DOWNLOADS = $(foreach dep,$(DEPS),build.$(ARCH)/build/$(dep).download)
-DEP_BUILDS = $(foreach dep,$(DEPS),build.$(ARCH)/build/$(dep).build)
+DEP_DOWNLOADS = $(foreach dep,$(DEPS),build/$(dep).download)
+DEP_BUILDS = $(foreach dep,$(DEPS),$(DEPS_BUILD_DIR)/$(dep).build)
 IMAGE_ROOT = $(foreach disk,$(DISKS),build.images/$(disk)-$(ARCH).root)
 
-# now that we are embracing contractor fully, we don't need the /disks/<disk>*.pxe sutff, that is all in the contractor resource, just get a list of the disks, and that is our list of PXEs
 PXES = $(foreach disk,$(DISKS),images/pxe-$(ARCH)/$(disk))
-PXE_FILES = $(foreach disk,$(DISKS),images/pxe-$(ARCH)/$(disk).vmlinuz images/pxe-$(ARCH)/$(disk).initrd)
+#PXE_FILES = $(foreach disk,$(DISKS),images/pxe-$(ARCH)/$(disk).vmlinuz images/pxe-$(ARCH)/$(disk).initrd)
 
 # for img and iso targets, create a .boot for both, and a .img or .iso for .img and .iso respectively
 
@@ -30,46 +31,74 @@ PWD = $(shell pwd)
 
 JOBS := $(or $(shell cat /proc/$$PPID/cmdline | sed -n 's/.*\(-j\|--jobs=\)[^0-9]\?\([0-9]\+\).*/\2/p'),1)
 
-all: build.images/build-$(ARCH)
+all: $(IMAGE_ROOT)
 
 version:
 	echo $(VERSION)
 
 # included source
-build-src.touch: $(shell find src -type f)
+src.build: $(shell find src -type f)
 	$(MAKE) -C src all
-	touch build-src.touch
+	touch $@
 
 clean-src:
 	$(MAKE) -C src clean
-	$(RM) build-src.touch
+	$(RM) src.build
 
 .PHONY:: all version clean-src
 
-# external dependancy targets
-build.$(ARCH)/touch:
-	mkdir -p build.$(ARCH)
-	mkdir -p build.$(ARCH)/build
-	scripts/setup_build_root $(abspath build.$(ARCH))
-	touch $@
-
+# external dependancy source downloading
 downloads:
 	mkdir downloads
 
-build.$(ARCH)/BUILT: downloads build.$(ARCH)/touch $(DEP_DOWNLOADS) $(DEP_BUILDS)
+.PRECIOUS:: build/%.download
+build/%.download : SOURCE = $(shell grep -m 1 '#SOURCE:' $< | sed s/'#SOURCE: '//)
+build/%.download : HASH = $(shell grep -m 1 '#HASH:' $< | sed s/'#HASH: '//)
+build/%.download: deps/*_% downloads
+	@if test "$$( sha1sum downloads/$(shell basename $(SOURCE)) 2> /dev/null | cut -d ' ' -f 1 )" != "$(HASH)";  \
+	then                                                                                                         \
+	  wget $(SOURCE) -O downloads/$(shell basename $(SOURCE)) --progress=bar:force:noscroll --show-progress;     \
+	fi
+	@if test "$$( sha1sum downloads/$(shell basename $(SOURCE)) | cut -d ' ' -f 1 )" != "$(HASH)";               \
+	then                                                                                                         \
+	  echo "Hash Missmatch";                                                                                     \
+	  false;                                                                                                     \
+	fi
+	mkdir -p build
 	touch $@
 
-build.$(ARCH)/build/%.download : FILE = $(shell basename "`grep -m 1 '#SOURCE:' $< | sed s/'#SOURCE: '//`")
-build.$(ARCH)/build/%.download: build.$(ARCH)/touch deps/*_%
-	@if test "$$( sha1sum downloads/$(FILE) 2> /dev/null | cut -d ' ' -f 1 )" != "$(shell grep -m 1 '#HASH:' $< | sed s/'#HASH: '// )";  \
-	then                                                                                                                                 \
-	  wget $(shell grep -m 1 '#SOURCE:' $< | sed s/'#SOURCE: '// ) -O downloads/$(FILE) --progress=bar:force:noscroll --show-progress;   \
+clean-downloads:
+	$(RM) -r downloads
+
+.PHONY:: clean-downloads
+
+# external dependancy building
+
+# do not install package list: libgcrypt-dev libgpg-error-dev libassuan-dev libksba-dev
+build/host.build:
+	mkdir -p build/host
+	fakechroot fakeroot debootstrap --variant=minbase jammy build/host
+	fakechroot fakeroot chroot build/host sed 's/ main/ main universe multiverse/' -i /etc/apt/sources.list
+	fakechroot fakeroot chroot build/host apt update
+	fakechroot fakeroot chroot build/host apt -y install build-essential less bison flex bc gawk python3 pkg-config uuid-dev libblkid-dev libudev-dev liblzma-dev zlib1g-dev libxml2-dev libdevmapper-dev libssl-dev libreadline-dev libsqlite3-dev libbz2-dev libelf-dev  libksba-dev libnpth0-dev gperf rsync autoconf automake libtool curl libsmartcols-dev libaio-dev libinih-dev liburcu-dev liblz4-dev
+	touch $@
+
+$(DEPS_BUILD_FS)/.mount:
+# would be better to see if $(DEPS_BUILD_FS) is a mount
+	if [ ! -f $(DEPS_BUILD_FS)/.mount ];                             \
+	then                                                             \
+		[ -d $(DEPS_BUILD_FS) ] || mkdir $(DEPS_BUILD_FS);              \
+		[ -d $(DEPS_BUILD_FS).upper ] || mkdir $(DEPS_BUILD_FS).upper;  \
+		[ -d $(DEPS_BUILD_FS).work ] || mkdir $(DEPS_BUILD_FS).work;    \
+		sudo mount -t overlay overlay -olowerdir=build/host,upperdir=$(DEPS_BUILD_FS).upper,workdir=$(DEPS_BUILD_FS).work $(DEPS_BUILD_FS); \
 	fi
-	@if test "$$( sha1sum downloads/$(FILE) | cut -d ' ' -f 1 )" != "$(shell grep -m 1 '#HASH:' $< | sed s/'#HASH: '// )";     \
-	then                                                                                                                       \
-	  echo "Hash Missmatch";                                                                                                   \
-	  false;                                                                                                                   \
-	fi
+	touch $@
+
+$(DEPS_BUILD_FS).setup: $(DEPS_BUILD_FS)/.mount build/host.build scripts/setup_build_root scripts/setup_build_root_chroot scripts/build_dep_chroot
+	scripts/setup_build_root $(abspath $(DEPS_BUILD_FS))
+	touch $@
+
+$(DEPS_BUILD_FS).build: $(DEP_BUILDS)
 	touch $@
 
 # to make sure dependancies are in order
@@ -78,51 +107,47 @@ DEPS_1 = $(filter-out $(firstword $(DEP_BUILDS)), $(DEP_BUILDS))
 DEPS_2 = $(filter-out $(lastword $(DEP_BUILDS)), $(DEP_BUILDS))
 $(foreach pair, $(join $(DEPS_1),$(addprefix :,$(DEPS_2))),$(eval $(pair)))
 
-build.$(ARCH)/build/%.build: deps/*_% build.$(ARCH)/build/%.download
-	mkdir -p build.$(ARCH)/build/$*
-	scripts/build_dep $* build.$(ARCH)/build/$* $(abspath build.$(ARCH)/build/) $(abspath downloads/$(shell basename "`grep -m 1 '#SOURCE:' $< | sed s/'#SOURCE: '//`")) $(ARCH) "-j$(JOBS)"
+$(DEPS_BUILD_DIR)/%.build: deps/*_% $(DEPS_BUILD_FS).setup build/%.download
+	mkdir -p $(DEPS_BUILD_DIR)/$*
+	cp deps/*_$* $(DEPS_BUILD_DIR)/$*.dep
+	scripts/build_dep $(abspath $(DEPS_BUILD_DIR)/$*.dep) $(abspath $(DEPS_BUILD_DIR)/$*) $(abspath $(DEPS_BUILD_FS)) $(abspath downloads/$(shell basename "`grep -m 1 '#SOURCE:' $< | sed s/'#SOURCE: '//`")) $(ARCH) "-j$(JOBS)"
 	touch $@
 
-clean-downloads:
-	$(RM) -r downloads
-
 clean-deps:
-	$(RM) -r build.$(ARCH)
+	sudo umount $(DEPS_BUILD_FS) || true
+	$(RM) -r build
+
+.PHONY:: clean-deps
 
 # build utility targets
 build-shell:
-	env -i fakechroot fakeroot chroot $(abspath build.$(ARCH)) /host/bin/bash --init-file /etc/profile
+	fakechroot fakeroot chroot $(abspath $(DEPS_BUILD_FS)) /bin/bash -l || true
 
 .PHONY:: build-shell
-# global image targets
-
-clean-images:
-	$(RM) -r build.images
-	$(RM) -r images-$(ARCH)
-
-.PHONY:: clean-downloads clean-deps clean-images
 
 # disk file systems
 
-all-disks: $(IMAGE_ROOT)
-
-# we can't build more than one root at a time, the python installer (mabey others) do work in the build.$(ARCH) dir during install
+# we can't build more than one root at a time, the python installer (mabey others) do work in the $(DEPS_BUILD_FS) dir during install
 # this will make a target for each root, depending on one before it
+# this does have a side affect that building one will force some of the others to also build
 IMAGE_ROOTS_1 = $(filter-out $(firstword $(IMAGE_ROOT)), $(IMAGE_ROOT))
 IMAGE_ROOTS_2 = $(filter-out $(lastword $(IMAGE_ROOT)), $(IMAGE_ROOT))
 $(foreach pair, $(join $(IMAGE_ROOTS_2),$(addprefix :,$(IMAGE_ROOTS_1))),$(eval $(pair)))
 
 .SECONDEXPANSION:
-build.images/%-$(ARCH).root: build.$(ARCH)/BUILT build-src.touch disks/%/info $$(shell find disks/$$*/root -type f)
-	scripts/build_disk $* $(abspath build.images/$*-$(ARCH)) $(ARCH)
+build.images/%-$(ARCH).root: $(DEPS_BUILD_FS).build src.build scripts/build_disk disks/%/info $$(shell find disks/$$*/root -type f)
+	scripts/build_disk $* $(abspath build.images/$*-$(ARCH)) $(abspath $(DEPS_BUILD_FS)) $(abspath $(DEPS_BUILD_DIR)) $(abspath src) $(ARCH)
 	touch $@
 
-build.images/build-$(ARCH): $(IMAGE_ROOT)
-	touch $@
+clean-images:
+	$(RM) -r build.images
+	$(RM) -r images
+
+.PHONY:: clean-images
 
 # pxe targets
 
-all-pxe: all $(PXE_FILES)
+all-pxe: all $(PXES)
 
 pxe-targets:
 	@echo "Aviable PXE Targets: $(PXES)"
@@ -130,16 +155,17 @@ pxe-targets:
 images/pxe-$(ARCH):
 	mkdir -p images/pxe-$(ARCH)
 
+.PRECIOUS:: images/pxe-$(ARCH)/%.initrd
 images/pxe-$(ARCH)/%.initrd: images/pxe-$(ARCH) build.images/%-$(ARCH).root
 	cd build.images/$*-$(ARCH) && find ./ | grep -v boot/vmlinuz | cpio --owner=+0:+0 -H newc -o | gzip -9 > $(PWD)/$@
 
 # techinically depends on "build.images/%-$(ARCH)/boot/vmlinuz" but that is a part of "build.images/%-$(ARCH).root"
+.PRECIOUS:: images/pxe-$(ARCH)/%.vmlinuz
 images/pxe-$(ARCH)/%.vmlinuz: images/pxe-$(ARCH) build.images/%-$(ARCH).root
 	cp -f build.images/$*-$(ARCH)/boot/vmlinuz $@
 
 images/pxe-$(ARCH)/%: images/pxe-$(ARCH)/%.initrd images/pxe-$(ARCH)/%.vmlinuz
-
-.PHONY:: $(PXES)
+	touch $@
 
 # img targets
 
@@ -218,16 +244,14 @@ contractor/linux-installer-profiles.touch: $(shell find disks/linux-installer/pr
 respkg-blueprints:
 	echo ubuntu-focal-large
 
-#  sudo dpkg --add-architecture arm64 armhf
+#  sudo dpkg --add-architecture arm64
 # deb http://ports.ubuntu.com/ubuntu-ports bionic main universe multiverse
 # qemu-user-static
 respkg-requires:
 	echo respkg fakeroot bc gperf python3-dev python3-setuptools pkg-config gettext python3-pip bison flex gawk
 ifeq ($(ARCH),x86_64)
-	echo build-essential uuid-dev libblkid-dev libudev-dev libgpg-error-dev liblzma-dev zlib1g-dev libxml2-dev libdevmapper-dev libssl-dev libreadline-dev libsqlite3-dev libbz2-dev libgcrypt-dev libelf-dev libassuan-dev libksba-dev libnpth0-dev
-endif
-ifeq ($(ARCH),arm)
-	echo crossbuild-essential-armhf uuid-dev libblkid-dev libudev-dev libgpg-error-dev liblzma-dev zlib1g-dev libxml2-dev libdevmapper-dev libssl-dev libreadline-dev libsqlite3-dev libbz2-dev libgcrypt-dev libelf-dev libassuan-dev libksba-dev libnpth0-dev
+	echo build-essential
+# uuid-dev libblkid-dev libudev-dev libgpg-error-dev liblzma-dev zlib1g-dev libxml2-dev libdevmapper-dev libssl-dev libreadline-dev libsqlite3-dev libbz2-dev libgcrypt-dev libelf-dev libassuan-dev libksba-dev libnpth0-dev
 endif
 ifeq ($(ARCH),arm64)
 	echo crossbuild-essential-arm64

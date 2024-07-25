@@ -48,10 +48,10 @@ install: all
 	mkdir -p $(DESTDIR)/usr/sbin
 	install -m 644 libhardware.so.$(LIB_VERSION) $(DESTDIR)/usr/lib
 	install -m 755 hardwareinfo $(DESTDIR)/usr/sbin
-	mkdir -p $(DESTDIR)/lib/python3.6/libhardware
-	cp __init__.py $(DESTDIR)/lib/python3.6/libhardware
-	cp libhardware.py $(DESTDIR)/lib/python3.6/libhardware
-	cp libhardware_h.py $(DESTDIR)/lib/python3.6/libhardware
+	mkdir -p $(DESTDIR)/lib/python3/libhardware
+	cp __init__.py $(DESTDIR)/lib/python3/libhardware
+	cp libhardware.py $(DESTDIR)/lib/python3/libhardware
+	cp libhardware_h.py $(DESTDIR)/lib/python3/libhardware
 
 # have to compile twice b/c the lib is 32-bit (esx's python is 32bit)
 # this target path is wrong, when esx is a thing again, it will need to be updated

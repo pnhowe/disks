@@ -1,0 +1,46 @@
+#!/bin/bash
+##!/host/usr/bin/bash
+
+set -e
+set -x
+
+mkdir -p /build
+
+ln -sf /usr/include /include
+
+# export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/host/usr/local/sbin:/host/usr/local/bin:/host/usr/sbin:/host/usr/bin:/host/sbin:/host/bin
+
+# cd /
+
+# mkdir -p /bin
+# mkdir -p /sbin
+# mkdir -p /lib
+# mkdir -p /lib64
+# mkdir -p /etc
+# mkdir -p /tmp
+# chmod 777 /tmp
+# chmod +s /tmp
+
+# if [ ! -d /dev ]
+# then
+#   mkdir -p /dev
+#   cp -a /host/dev/* /dev
+# fi
+
+# if [ ! -d /usr/include ]
+# then
+#   for dir in $(cd /host; find * -type d -name include)
+#   do
+#     mkdir -p $(dirname /$dir)
+#     ln -sf /host/$dir /$dir
+#   done
+# fi
+
+# ln -sf /host/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 /lib64/ld-linux-x86-64.so.2
+# ln -sf /host/usr/sbin/ldconfig.real /sbin/ldconfig.real
+# ln -sf /host/usr/bin/bash /bin/sh
+# ln -sf /host/usr/bin/bash /bin/bash
+
+# cat /host/etc/ld.so.conf.d/* | grep -v ^# | sed s#^/#/host/# > /etc/ld.so.conf
+# echo "/lib" >> /etc/ld.so.conf
+# echo -n "PATH=/usr/sbin:/usr/bin:/sbin:/bin:/host/usr/local/sbin:/host/usr/local/bin:/host/usr/sbin:/host/usr/bin:/host/sbin:/host/bin\n" > /etc/profile

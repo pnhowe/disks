@@ -4,3 +4,8 @@ set -e
 
 DEP_LIST=""
 SRC_LIST=""
+
+image_extra()
+{
+  :
+}

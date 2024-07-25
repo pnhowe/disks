@@ -1,20 +1,16 @@
 #!/bin/sh
-#SOURCE: https://bazaar.launchpad.net/~ubuntu-installer/base-installer/master/view/head:/pkgdetails.c
-#HASH: 080662e696c80be721997d1b7d9f18c5c4a2245d
+#SOURCE: https://bazaar.launchpad.net/~ubuntu-installer/base-installer/master/download/head:/pkgdetails.c
+#HASH: de416aa945313666e9fe160bee0705f1f8da75bd
 
 set -e
 # set -x
 
 build()
 {
-  cp $1 .
-  if [ "x$2" = "xx86_64" ]
+  if [ "x$1" = "xx86_64" ]
   then
     gcc -O3 -Wall -o pkgdetails pkgdetails.c
-  elif [ "x$2" = "xarm" ]
-  then
-    arm-linux-gnueabihf-gcc -O3 -Wall -o pkgdetails pkgdetails.c
-  elif [ "x$2" = "xarm64" ]
+  elif [ "x$1" = "xarm64" ]
   then
     aarch64-linux-gnu-gcc -O3 -Wall -o pkgdetails pkgdetails.c
   fi
@@ -23,10 +19,10 @@ build()
 install()
 {
   mkdir -p $1/usr/lib/debootstrap
-  cp -f $3/pkgdetails $1/usr/lib/debootstrap
+  cp -f pkgdetails $1/usr/lib/debootstrap
 }
 
 binaries()
 {
-  ls $1/usr/lib/debootstrap/pkgdetails
+  ls pkgdetails
 }

@@ -4,3 +4,8 @@ set -e
 
 DEP_LIST="e2fsprogs"
 SRC_LIST=""
+
+image_extra()
+{
+  :
+}

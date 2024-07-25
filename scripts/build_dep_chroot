@@ -1,0 +1,19 @@
+#!/bin/sh
+
+set -e
+set -x
+
+# $1 - dep file
+# $2 - dep build dir
+# $3 - arch
+# $4 - make paramaters
+
+. $1
+
+cd $2
+
+build $3 "$4"
+
+# build paramaters
+# $1 - arch
+# $2 - make paramaters

@@ -7,30 +7,27 @@ set -e
 
 build()
 {
-  tar --strip-components=1 -xJf $1
-  if [ "x$2" = "xx86_64" ]
+  if [ "x$1" = "xx86_64" ]
   then
-    ./configure --prefix=/
-  elif [ "x$2" = "xarm" ]
+    ./configure --prefix=/ --disable-gettext
+  elif [ "x$1" = "xarm64" ]
   then
-    ./configure --prefix=/ --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
-  elif [ "x$2" = "xarm64" ]
-  then
-    ./configure --prefix=/ --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+    ./configure --prefix=/ --disable-gettext --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
-  make $3
+  make $2
 }
 
 install()
 {
-  cp -f $3/fsck/xfs_fsck.sh $1/sbin/fsck.xfs
-  cp -f $3/repair/xfs_repair $1/sbin
-  cp -f $3/growfs/xfs_growfs $1/sbin
-  cp -f $3/mkfs/mkfs.xfs $1/sbin
+  cp -f fsck/xfs_fsck.sh $1/sbin/fsck.xfs
+  cp -f repair/xfs_repair $1/sbin
+  cp -f growfs/xfs_growfs $1/sbin
+  cp -f mkfs/mkfs.xfs $1/sbin
 }
 
 binaries()
 {
-  ls $1/sbin/xfs_*
-  ls $1/sbin/mkfs.xfs
+  ls repair/xfs_repair
+  ls growfs/xfs_growfs
+  ls mkfs/mkfs.xfs
 }

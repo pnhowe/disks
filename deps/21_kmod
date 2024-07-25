@@ -7,26 +7,36 @@ set -e
 
 build()
 {
-  tar --strip-components=1 -xJf $1
-  if [ "x$2" = "xx86_64" ]
+  if [ "x$1" = "xx86_64" ]
   then
     ./configure --prefix=/ --with-xz --with-zlib
-  elif [ "x$2" = "xarm" ]
-  then
-    ./configure --prefix=/ --with-xz --with-zlib --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
-  elif [ "x$2" = "xarm64" ]
+  elif [ "x$1" = "xarm64" ]
   then
     ./configure --prefix=/ --with-xz --with-zlib --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
-  make $3
+  make $2
   
-  # this may be able to be removed later, in version 32 it was found the ln  needed -f to deal with building after the first time
+  # this may be able to be removed later, in version 32 it was found the ln needed -f to deal with building after the first time
   sed s/"(LN_S) kmod"/"(LN_S) -f kmod"/ -i Makefile
 
   DESTDIR=/ make install
+
+  # now that depmod is installed, we can depmod the kernel modules
+  depmod $(ls /lib/modules/)
 }
 
 install()
 {
-  : # just here for linking against
+  cp -f tools/kmod $1/sbin
+  ln -sf kmod $1/sbin/lsmod
+  ln -sf kmod $1/sbin/rmmod
+  ln -sf kmod $1/sbin/insmod
+  ln -sf kmod $1/sbin/modinfo
+  ln -sf kmod $1/sbin/modprobe
+  ln -sf kmod $1/sbin/depmod
+}
+
+binaries()
+{
+  ls tools/kmod
 }

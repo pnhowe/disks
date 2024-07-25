@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Busybox version: 1.36.1
-# Mon Jul  8 13:46:08 2024
+# Tue Aug 20 13:34:30 2024
 #
 CONFIG_HAVE_DOT_CONFIG=y
 
@@ -1088,7 +1088,7 @@ CONFIG_FEATURE_TOP_SMP_CPU=y
 CONFIG_FEATURE_TOP_DECIMALS=y
 CONFIG_FEATURE_TOP_SMP_PROCESS=y
 CONFIG_FEATURE_TOPMEM=y
-# CONFIG_UPTIME is not set
+CONFIG_UPTIME=y
 # CONFIG_FEATURE_UPTIME_UTMP_SUPPORT is not set
 # CONFIG_WATCH is not set
 

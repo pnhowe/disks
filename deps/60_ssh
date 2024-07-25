@@ -7,31 +7,32 @@ set -e
 
 build()
 {
-  tar --strip-components=1 -xzf $1
-  if [ "x$2" = "xx86_64" ]
+  if [ "x$1" = "xx86_64" ]
   then
-    ./configure --prefix= --without-pam --sysconfdir=/etc/ssh --with-privsep-path=/var/empty
-  elif [ "x$2" = "xarm" ]
+    ./configure --prefix= --libexecdir=/sbin --without-pam --sysconfdir=/etc/ssh --with-privsep-path=/var/empty
+  elif [ "x$1" = "xarm64" ]
   then
-    ./configure --prefix= --without-pam --sysconfdir=/etc/ssh --with-privsep-path=/var/empty --host arm-linux-gnueabihf --build x86_64-pc-linux-gnu
-  elif [ "x$2" = "xarm64" ]
-  then
-    ./configure --prefix= --without-pam --sysconfdir=/etc/ssh --with-privsep-path=/var/empty --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+    ./configure --prefix= --libexecdir=/sbin --without-pam --sysconfdir=/etc/ssh --with-privsep-path=/var/empty --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
-  make $3
+  make $2
 }
 
 install()
 {
-  cp -f $3/sshd $1/sbin
-  cp -f $3/ssh $1/bin
-  cp -f $3/sftp-server $1/sbin
-  cp -f $3/scp $1/bin
-  cp -f $3/ssh-keygen $1/bin
+  cp -f sshd $1/sbin
+  cp -f sshd-session $1/sbin
+  cp -f ssh $1/bin
+  cp -f sftp-server $1/sbin
+  cp -f scp $1/bin
+  cp -f ssh-keygen $1/bin
 }
 
 binaries()
 {
-  ls $1/sbin/ssh*
-  ls $1/sbin/sftp-server
+  ls sshd
+  ls sshd-session
+  ls ssh
+  ls sftp-server
+  ls scp
+  ls ssh-keygen
 }

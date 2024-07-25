@@ -1,30 +1,26 @@
 #!/bin/sh
-#SOURCE: https://github.com/facebook/zstd/releases/download/v1.5.6/zstd-1.5.6.tar.gz
-#HASH: 459ab8de8c24fc3ce648a35a07b31fcd6616ade2
+#SOURCE: https://github.com/facebook/zstd/releases/download/v1.5.5/zstd-1.5.5.tar.gz
+#HASH: 4479ecc74300d23391d99fbebf2fddd47aed9b28
 
 set -e
 #set -x
 
 build()
 {
-  tar --strip-components=1 -xzf $1
-  if [ "x$2" = "xx86_64" ]
+  if [ "x$1" = "xx86_64" ]
   then
-    make $3
-  elif [ "x$2" = "xarm" ]
+    make $2
+  elif [ "x$1" = "xarm64" ]
   then
-    make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- $3
-  elif [ "x$2" = "xarm64" ]
-  then
-    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- $3
+    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- $2
   fi
 }
 
 install()
 {
-  cp -f $3/programs/zstd $1/bin/
-  cp -f $3/programs/zstdgrep $1/bin/
-  cp -f $3/programs/zstdless $1/bin/
+  cp -f programs/zstd $1/bin/
+  cp -f programs/zstdgrep $1/bin/
+  cp -f programs/zstdless $1/bin/
   ln -sf zstd $1/bin/zstdcat
   ln -sf zstd $1/bin/unzstd
   ln -sf zstd $1/bin/zstdmt
@@ -32,7 +28,7 @@ install()
 
 binaries()
 {
-  ls $1/bin/zstd
-  ls $1/bin/zstdgrep
-  ls $1/bin/zstdless
+  ls programs/zstd
+  ls programs/zstdgrep
+  ls programs/zstdless
 }
