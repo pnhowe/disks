@@ -1,0 +1,30 @@
+#!/bin/sh
+#SOURCE: https://mirrors.edge.kernel.org/pub/linux/utils/raid/mdadm/mdadm-4.3.tar.xz
+#HASH: fb0bace919325b42a005372b5a5cfa999da6567a
+
+set -e
+#set -x
+
+# sed is to fix a error introduced in gcc 7.1
+# would be nice to do the CROSS_COMPILE=arm-linux-gnueabihf- instad of CC=arm-linux-gnueabihf-gcc
+build()
+{
+  sed 's@-Werror@@' -i Makefile
+  if [ "x$1" = "xx86_64" ]
+  then
+    make $2
+  elif [ "x$1" = "xarm64" ]
+  then
+    make CC=aarch64-linux-gnu-gcc $2
+  fi
+}
+
+install()
+{
+  cp -f mdadm $1/sbin
+}
+
+binaries()
+{
+  ls mdadm
+}

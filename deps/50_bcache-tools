@@ -1,0 +1,88 @@
+#!/bin/sh
+#SOURCE: https://git.kernel.org/pub/scm/linux/kernel/git/colyli/bcache-tools.git/snapshot/bcache-tools-1.1.tar.gz
+#HASH: 327a8f1930a61b12b267537a8009bf94d713a0a2
+
+set -e
+#set -x
+
+build()
+{
+  # the patch is to fix a problem with our version of gcc, and also to remove a safety cehck, b/c I don't want to pull in wipefs just for this
+#   patch -p1 --ignore-whitespace << 'PATCH_END'
+# --- ./bcache.c.save	2020-06-12 21:13:21.827778191 -0600
+# +++ ./bcache.c	2020-06-12 21:13:49.470980666 -0600
+# @@ -115,7 +115,7 @@
+# 	 0x9AFCE626CE85B507ULL
+#  };
+
+# -inline uint64_t crc64(const void *_data, size_t len)
+# +uint64_t crc64(const void *_data, size_t len)
+#  {
+#  	uint64_t crc = 0xFFFFFFFFFFFFFFFFULL;
+#  	const unsigned char *data = _data;
+
+# --- ./make-bcache.c.orig	2020-06-13 07:37:13.005990880 -0600
+# +++ ./make-bcache.c	2020-06-13 07:37:24.320078624 -0600
+# @@ -203,7 +203,7 @@
+#  		/* XXX wipefs doesn't know how to remove partition tables */
+#  		fprintf(stderr, "Device %s already has a non-bcache superblock, "
+#  				"remove it using wipefs and wipefs -a\n", dev);
+# -		exit(EXIT_FAILURE);
+# +		//exit(EXIT_FAILURE);
+#  	}
+
+#  	memset(&sb, 0, sizeof(struct cache_sb));
+# PATCH_END
+
+  if [ "x$1" = "xx86_64" ]
+  then
+    make $2
+  elif [ "x$1" = "xarm64" ]
+  then
+    make CC=aarch64-linux-gnu-gcc $2
+  fi
+}
+
+install()
+{
+  cp -f make-bcache $1/sbin
+  cp -f bcache-super-show $1/sbin
+  cp -f probe-bcache $1/lib/udev
+  cp -f 69-bcache.rules $1/lib/udev/rules.d/
+
+  cat << 'UDEV_END' > $1/lib/udev/rules.d/69-bcache.rules
+SUBSYSTEM!="block", GOTO="bcache_end"
+ACTION=="remove", GOTO="bcache_end"
+ENV{DM_UDEV_DISABLE_OTHER_RULES_FLAG}=="1", GOTO="bcache_end"
+KERNEL=="fd*|sr*", GOTO="bcache_end"
+
+# blkid was run by the standard udev rules
+# It recognised bcache (util-linux 2.24+)
+ENV{ID_FS_TYPE}=="bcache", GOTO="bcache_backing_found"
+# It recognised something else; bail
+ENV{ID_FS_TYPE}=="?*", GOTO="bcache_backing_end"
+
+# Backing devices: scan, symlink, register
+IMPORT{program}="probe-bcache -o udev $tempnode"
+ENV{ID_FS_TYPE}!="bcache", GOTO="bcache_backing_end"
+ENV{ID_FS_UUID_ENC}=="?*", SYMLINK+="disk/by-uuid/$env{ID_FS_UUID_ENC}"
+
+LABEL="bcache_backing_found"
+RUN{builtin}+="kmod load bcache"
+RUN+="bcache-register $tempnode"
+LABEL="bcache_backing_end"
+
+# Cached devices: symlink
+DRIVER=="bcache", ENV{CACHED_UUID}=="?*", SYMLINK+="bcache/by-uuid/$env{CACHED_UUID}"
+DRIVER=="bcache", ENV{CACHED_LABEL}=="?*", SYMLINK+="bcache/by-label/$env{CACHED_LABEL}"
+
+LABEL="bcache_end"
+UDEV_END
+}
+
+binaries()
+{
+  ls make-bcache
+  ls bcache-super-show
+  ls probe-bcache
+}

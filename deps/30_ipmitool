@@ -1,0 +1,32 @@
+#!/bin/sh
+#SOURCE: https://github.com/ipmitool/ipmitool/archive/refs/tags/IPMITOOL_1_8_19.tar.gz
+#HASH: 92620c40a0f2d5fbe72e774385a55a53aa4ec448
+
+set -e
+#set -x
+
+build()
+{
+  autoupdate
+	./bootstrap
+  if [ "x$1" = "xx86_64" ]
+  then
+    ./configure --prefix= --enable-intf-lanplus --enable-intf-open --disable-intf-serial --disable-solaris-opt --enable-intf-lan --disable-intf-usb --disable-intf-free --disable-intf-imb --disable-intf-lipmi --disable-intf-bmc --disable-intf-dummy --disable-ipmishell
+  elif [ "x$1" = "xarm64" ]
+  then
+    ./configure --prefix= --enable-intf-lanplus --enable-intf-open --disable-intf-serial --disable-solaris-opt --enable-intf-lan --disable-intf-usb --disable-intf-free --disable-intf-imb --disable-intf-lipmi --disable-intf-bmc --disable-intf-dummy --disable-ipmishell --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+  fi
+
+  make $2
+}
+
+install()
+{
+  # do we need to copy IANA PEN dictionary to /share/misc ?
+  cp -f src/ipmitool $1/bin
+}
+
+binaries()
+{
+  ls src/ipmitool
+}

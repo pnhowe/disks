@@ -1,5 +1,17 @@
+Port 22
+
+ListenAddress ::
+ListenAddress 0.0.0.0
+Protocol 2
+
 UseDNS no
 
 PermitRootLogin yes
 
 Subsystem sftp /sbin/sftp-server
+
+PasswordAuthentication yes
+
+MaxAuthTries 10
+
+X11Forwarding no

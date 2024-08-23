@@ -4,7 +4,6 @@ linux-installer
 teamplate values
 ----------------
 
-  :image_package:
   :resource_location: (optional)
   :distro:
   :distro_version:
@@ -25,3 +24,5 @@ teamplate values
 
 
 /config.json: config vaules if local_config is specified, otherwise retrieved via the contractor client
+
+also template_url

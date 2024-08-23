@@ -44,7 +44,7 @@
  *
  */
 
-/* Addapeted by Peter Howe peterh@mozy.com */
+/* Adapeted by Peter Howe pnhowe@gmail.com */
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>

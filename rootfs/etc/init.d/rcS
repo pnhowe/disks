@@ -24,8 +24,6 @@ mkdir -m 755 /dev/pts
 mkdir -m 755 /dev/shm
 /bin/mount -n -t tmpfs -o mode=644 none /dev/shm
 
-/sbin/ldconfig
-
 if [ -r /proc/acpi/event ]
 then
   #hacked up power off when power button pressed
@@ -38,7 +36,10 @@ do
   case $x in
     console=*)
       tmp=${x#console=}
-      CONSOLE_LIST="$CONSOLE_LIST /dev/${tmp%,*}"
+      if [ "x$tmp" != "x" ]
+      then
+        CONSOLE_LIST="$CONSOLE_LIST /dev/${tmp%,*}"
+      fi
       ;;
   esac
 done
@@ -50,8 +51,8 @@ fi
 
 echo "Creating Devices..."
 [ -d /run/udev ] || mkdir /run/udev
-/sbin/udevd --daemon --resolve-names=never --debug
-/sbin/udevadm trigger
+/sbin/udevd --daemon --resolve-names=never
+/sbin/udevadm trigger --action=add
 /sbin/udevadm settle
 
 echo "Setting Clock..."

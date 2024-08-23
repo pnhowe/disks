@@ -12,9 +12,9 @@ install:
 	install -m 644 templates/config-curator/* $(DESTDIR)/var/lib/config-curator/templates/config-curator/
 
 ifeq (ubuntu, $(DISTRO))
-	./setup.py install --root $(DESTDIR) --install-purelib=/usr/lib/python3/dist-packages/ --prefix=/usr --no-compile -O0
+	./setup.py install --root=$(DESTDIR) --install-purelib=/usr/lib/python3/dist-packages/ --prefix=/usr --no-compile -O0
 else
-	./setup.py install --root $(DESTDIR) --prefix=/usr --no-compile -O0
+	./setup.py install --root=$(DESTDIR) --prefix=/usr --no-compile -O0
 endif
 
 ifeq (centos, $(DISTRO))
@@ -59,15 +59,15 @@ test-requires:
 test:
 
 lint:
-	flake8 --ignore=E501,E201,E202,E111,E126,E114,E402,W605 --statistics .
+	flake8 --ignore=E501,E201,E202,E111,E126,E114,E402 --statistics .
 
 .PHONY:: test-requires test lint
 
-dpkg-distros:
-	echo ubuntu-trusty ubuntu-xenial ubuntu-bionic
+dpkg-blueprints:
+	echo ubuntu-bionic-base ubuntu-focal-base
 
 dpkg-requires:
-	echo dpkg-dev debhelper python3-dev python3-setuptools
+	echo dpkg-dev debhelper python3-dev python3-setuptools dh-python
 
 dpkg-setup:
 	./debian-setup
@@ -77,10 +77,10 @@ dpkg:
 	dpkg-buildpackage -b -us -uc
 	touch dpkg
 
-.PHONY:: dpkg-distros dpkg-requires dpkg-file
+.PHONY:: dpkg-blueprints dpkg-requires dpkg-file
 
-rpm-distros:
-	echo centos-6 centos-7
+rpm-blueprints:
+	echo centos-7-base
 
 rpm-requires:
 	echo rpm-build
@@ -98,4 +98,4 @@ rpm:
 	rpmbuild -v -bb rpmbuild/config.spec
 	touch rpm
 
-.PHONY:: rpm-distros rpm-requires rpm-file
+.PHONY:: rpm-blueprints rpm-requires rpm-file

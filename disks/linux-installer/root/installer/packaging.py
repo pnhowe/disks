@@ -1,4 +1,5 @@
 import os
+from configparser import NoOptionError
 from installer.procutils import chroot_execute, execute, chroot_env
 from installer.httputils import http_getfile
 from installer.config import renderTemplates
@@ -32,14 +33,15 @@ def configSources( install_root, profile, value_map ):
 
         tmp = http_getfile( uri, proxy=proxy )
 
-        if manager_type == 'apt':
-          chroot_execute( '/usr/bin/apt-key add -', tmp.decode() )
-
         if 'key_file' in repo:
           key_file_path = '{0}/{1}'.format( install_root, repo[ 'key_file' ] )
           if not os.path.isdir( os.path.dirname( key_file_path ) ):
             os.makedirs( os.path.dirname( key_file_path ) )
+
           open( key_file_path, 'wb' ).write( tmp )
+
+        elif manager_type == 'apt':  # for binary keys, write it to a file ^
+          chroot_execute( '/usr/bin/apt-key add -', tmp.decode() )
 
         key_uris.append( uri )
 
@@ -47,23 +49,28 @@ def configSources( install_root, profile, value_map ):
 
   print( 'Updating Repo Data...' )
   if manager_type == 'apt':
-    chroot_execute( '/usr/bin/apt-get update' )
+    chroot_execute( '/usr/bin/apt-get update', retry_rc_list=[ 100 ] )
 
   # yum dosen't need a repo update
 
 
 def installBase( install_root, profile ):
+  try:
+    base_package = profile.get( 'packaging', 'base' )
+  except NoOptionError:
+    return
+
   if manager_type == 'apt':
-    chroot_execute( '/usr/bin/apt-get install -q -y {0}'.format( profile.get( 'packaging', 'base' ) ) )
+    chroot_execute( '/usr/bin/apt-get install -q -y {0}'.format( base_package ) )
 
   elif manager_type == 'yum':
-    chroot_execute( '/usr/bin/yum -y groupinstall {0}'.format( profile.get( 'packaging', 'base' ) ) )
+    chroot_execute( '/usr/bin/yum -y groupinstall {0}'.format( base_package ) )
     chroot_execute( '/usr/bin/yum -y reinstall yum centos-release' )  # find a better way to figure out what needs to be re-installed
     execute( 'ash -c "rm {0}/etc/yum.repos.d/*"'.format( install_root ) )  # clean up extra repos that some package might have left behind... this is the last time we will do this.... any package after this we will allow to keep their repos, we are really just after the base ones
     renderTemplates( profile.get( 'packaging', 'source_templates' ).split( ',' ) )
 
   elif manager_type == 'zypper':
-    chroot_execute( '/usr/bin/zypper --non-interactive install {0}'.format( profile.get( 'packaging', 'base' ) ) )
+    chroot_execute( '/usr/bin/zypper --non-interactive install {0}'.format( base_package ) )
 
 
 def installOtherPackages( profile, value_map ):
@@ -98,7 +105,7 @@ def installPackages( packages ):
 
 def updatePackages():
   if manager_type == 'apt':
-    chroot_execute( '/usr/bin/apt-get update' )
+    chroot_execute( '/usr/bin/apt-get update', retry_rc_list=[ 100 ] )
     chroot_execute( '/usr/bin/apt-get upgrade -q -y' )
   elif manager_type == 'yum':
     chroot_execute( '/usr/bin/yum -y update' )
@@ -127,7 +134,7 @@ def undivert( profile ):
       chroot_execute( '/usr/bin/dpkg-divert --rename --remove {0}'.format( name ) )
 
 
-def preBaseSetup( profile ):
+def preBaseSetup( profile, value_map ):
   renderTemplates( profile.get( 'packaging', 'prebase_templates' ).split( ',' ) )
 
   for item in profile.items( 'packaging' ):
@@ -140,6 +147,9 @@ def preBaseSetup( profile ):
       if item[0].startswith( 'selection_' ):
         chroot_execute( '/usr/bin/debconf-set-selections', item[1] )
 
+    for item in value_map.get( 'debconf_selection_list', [] ):
+      chroot_execute( '/usr/bin/debconf-set-selections', item )
+
   for item in profile.items( 'packaging' ):
     if item[0].startswith( 'prebase_cmd_' ):
       chroot_execute( item[1] )
@@ -151,10 +161,10 @@ def cleanPackaging( install_root ):
 
   elif manager_type == 'yum':
     chroot_execute( '/usr/bin/yum clean all' )
-    execute( '/bin/find {0} \( -path {0}/proc -o -path {0}/sys \) -prune -o -name *.rpmnew -exec rm {{}} \;'.format( install_root ) )
-    execute( '/bin/find {0} \( -path {0}/proc -o -path {0}/sys \) -prune -o -name *.rpmsave -exec rm {{}} \;'.format( install_root ) )
+    execute( r'/bin/find {0} \( -path {0}/proc -o -path {0}/sys \) -prune -o -name *.rpmnew -exec rm {{}} \;'.format( install_root ) )
+    execute( r'/bin/find {0} \( -path {0}/proc -o -path {0}/sys \) -prune -o -name *.rpmsave -exec rm {{}} \;'.format( install_root ) )
 
   elif manager_type == 'zypper':
     chroot_execute( '/usr/bin/zypper --non-interactive clean' )
-    execute( '/bin/find {0} \( -path {0}/proc -o -path {0}/sys \) -prune -o -name *.rpmnew -exec rm {{}} \;'.format( install_root ) )
-    execute( '/bin/find {0} \( -path {0}/proc -o -path {0}/sys \) -prune -o -name *.rpmsave -exec rm {{}} \;'.format( install_root ) )
+    execute( r'/bin/find {0} \( -path {0}/proc -o -path {0}/sys \) -prune -o -name *.rpmnew -exec rm {{}} \;'.format( install_root ) )
+    execute( r'/bin/find {0} \( -path {0}/proc -o -path {0}/sys \) -prune -o -name *.rpmsave -exec rm {{}} \;'.format( install_root ) )

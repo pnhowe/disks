@@ -1,0 +1,33 @@
+#!/bin/sh
+#SOURCE: https://github.com/lldpd/lldpd/releases/download/1.0.18/lldpd-1.0.18.tar.gz
+#HASH: 49d21ad64809d146930977d7327d3c4ada4d0549
+
+set -e
+#set -x
+
+build()
+{
+  if [ "x$1" = "xx86_64" ]
+  then
+    ./configure --with-json --with-privsep-user=root --with-privsep-group=root --with-privsep-chroot=/ --without-xml --prefix=/
+  elif [ "x$1" = "xarm64" ]
+  then
+    ./configure --with-json --with-privsep-user=root --with-privsep-group=root --with-privsep-chroot=/ --without-xml --prefix=/ --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+  fi
+  make $2
+}
+
+install()
+{
+  cp -f src/client/.libs/lldpcli $1/sbin
+  cp -f src/daemon/lldpd $1/sbin
+  cp -f src/lib/.libs/liblldpctl.so.4.9.1 $1/lib
+}
+
+
+binaries()
+{
+  ls src/client/.libs/lldpcli
+  ls src/daemon/lldpd
+  #ls ../../lib/liblldpctl.so*
+}

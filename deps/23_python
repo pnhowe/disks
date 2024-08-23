@@ -1,0 +1,61 @@
+#!/bin/sh
+#SOURCE: https://www.python.org/ftp/python/3.10.9/Python-3.10.9.tar.xz
+#HASH: a6ab44fa6c7dc31506ee262b2f6ad10735ffe750
+
+set -e
+#set -x
+
+# we don't need everything, so only these subdirs
+# lib2to3 is there b/c the install will not work with out it, going to remove that during the install function
+SUBDIRS="encodings serial json config ctypes logging sqlite3 collections urllib email http asyncio concurrent concurrent/futures multiprocessing importlib lib2to3 time"
+
+build()
+{
+  # site is techinically only for arm/arm64
+  echo "ac_cv_file__dev_ptmx=yes
+ac_cv_file__dev_ptc=yes" > config.site
+  export CONFIG_SITE=config.site
+  if [ "x$1" = "xx86_64" ]
+  then
+    ./configure --prefix=/ --enable-ipv6
+  elif [ "x$1" = "xarm64" ]
+  then
+    ./configure --prefix=/ --enable-ipv6 --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+  fi
+  make python $2
+  LIBSUBDIRS=$SUBDIRS make -e build_all $2
+  LIBSUBDIRS=$SUBDIRS make install -e libinstall
+  LIBSUBDIRS=$SUBDIRS make install -e sharedinstall
+}
+
+install()
+{
+  cp -f python $1/bin/
+
+  prefix=$1 LIBSUBDIRS=$SUBDIRS make -e libinstall
+  prefix=$1 LIBSUBDIRS=$SUBDIRS make -e sharedinstall
+
+  rm -fr $1/lib/python3.10/lib2to3
+  rm $1/bin/2to3-3.10
+  rm $1/bin/idle3.10
+  rm $1/bin/pydoc3.10
+  #find $1/lib/ -name *.py -exec rm {} \;  # python3 dosen't let us use the the compiled files? would be nice to get rid of uncompiled source, it takes up a lot of space, mabey compress it
+
+  ln -sf python $1/bin/python3
+
+  pip3 install --no-compile --target $1/lib/python3.10/ python-dateutil
+
+  rm -fr $1/lib/python3.10/*.dist-info
+
+  cat <<CUSTOMIZE > $1/lib/python3.10/sitecustomize.py
+import sys
+
+sys.path.append( '/lib/python3/' )
+CUSTOMIZE
+}
+
+binaries()
+{
+  ls python
+  ls ../../lib/python3.10/lib-dynload/*.so
+}

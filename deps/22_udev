@@ -1,0 +1,38 @@
+#!/bin/sh
+#SOURCE: https://github.com/eudev-project/eudev/releases/download/v3.2.14/eudev-3.2.14.tar.gz
+#HASH: 242801bd31ff45a3fdc4a3b9d078ffa69ccae3c9
+
+set -e
+#set -x
+
+build()
+{
+  if [ "x$1" = "xx86_64" ]
+  then
+    ./configure --prefix= --bindir=/sbin --sbindir=/sbin --with-rootprefix= --with-rootlibdir=/lib --sysconfdir=/etc --disable-manpages --enable-kmod --disable-selinux
+  elif [ "x$1" = "xarm64" ]
+  then
+    ./configure --prefix= --bindir=/sbin --sbindir=/sbin --with-rootprefix= --with-rootlibdir=/lib --sysconfdir=/etc --disable-manpages --enable-kmod --disable-selinux --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+  fi
+  make $2
+  make install
+}
+
+install()
+{
+  cp ../../sbin/udevadm $1/sbin
+  cp ../../sbin/udevd $1/sbin
+  cp -a ../../etc/udev $1/etc
+  cp -a ../../lib/udev $1/lib
+  $1/sbin/udevadm hwdb --update --root=$1
+  sed s/#udev_log=\"info\"/udev_log=\"debug\"/ -i $1/etc/udev/udev.conf
+
+  # for now we are going to stick with the old network Interaface names
+  rm $1/lib/udev/rules.d/80-net-name-slot.rules
+  rm $1/lib/udev/rules.d/81-net-dhcp.rules
+}
+
+binaries()
+{
+  ls ../../sbin/udev*
+}

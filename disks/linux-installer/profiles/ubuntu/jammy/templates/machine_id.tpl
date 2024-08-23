@@ -1,0 +1,1 @@
+../../trusty/templates/machine_id.tpl

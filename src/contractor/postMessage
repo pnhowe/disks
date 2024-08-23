@@ -2,18 +2,15 @@
 
 import sys
 
-from contractor import getClient, NoJobException
+from contractor.client import getClient
 
 try:
   msg = sys.argv[ 1 ]
 except KeyError:
   print( 'usage: {0} <message>' ).format( sys.argv[0] )
 
-contractor = getClient()
-
-try:
-  contractor.postMessage( msg )
-except NoJobException:
-  print( 'WARNING! No Job, aborting.' )
+contractor = getClient( '/etc/job.config' )
+contractor.login()
+contractor.postMessage( msg )
 
 sys.exit( 0 )

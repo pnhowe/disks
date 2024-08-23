@@ -1,0 +1,28 @@
+#!/bin/sh
+#SOURCE: https://bazaar.launchpad.net/~ubuntu-installer/base-installer/master/download/head:/pkgdetails.c
+#HASH: de416aa945313666e9fe160bee0705f1f8da75bd
+
+set -e
+# set -x
+
+build()
+{
+  if [ "x$1" = "xx86_64" ]
+  then
+    gcc -O3 -Wall -o pkgdetails pkgdetails.c
+  elif [ "x$1" = "xarm64" ]
+  then
+    aarch64-linux-gnu-gcc -O3 -Wall -o pkgdetails pkgdetails.c
+  fi
+}
+
+install()
+{
+  mkdir -p $1/usr/lib/debootstrap
+  cp -f pkgdetails $1/usr/lib/debootstrap
+}
+
+binaries()
+{
+  ls pkgdetails
+}

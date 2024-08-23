@@ -3,11 +3,34 @@
 set -e
 set -x
 
-#  $1 - name of dep
-#  $2 - target root fs dir
+# $1 - dep file
+# $2 - dep build dir
+# $3 - path to root build dir
+# $4 - path to the downloaded source archive
+# $5 - arch
+# $6 - make paramaters
 
-. deps/$1
+cd $2
 
-cd build.deps/$1
+case $4 in
+  *.tar.bz2)
+    tar --strip-components=1 -xjf $4
+    ;;
+  *.tar.gz | *.tgz)
+    tar --strip-components=1 -xzf $4
+    ;;
+  *.tar.xz) 
+    tar --strip-components=1 -xJf $4
+    ;;
+  *)
+    cp $4 .
+    ;;
+esac
 
-build ../../$2
+fakechroot fakeroot chroot $3 /bin/bash -l -c "/build_dep_chroot $(realpath --relative-to=$3 $1) $(realpath --relative-to=$3 $2) $5 '$6'"
+
+# build_dep_chroot paramaters
+# $1 - name of dep
+# $2 - build dir
+# $3 - arch
+# $4 - make paramaters

@@ -930,7 +930,7 @@ int exec_cmd_ata( struct device_handle *drive, const enum cdb_command command, c
     long long unsigned length;
     long long unsigned tmp;
     unsigned char tdata[512];
-    
+
     if( parm_count != 2 )
     {
       errno = EINVAL;
@@ -1004,8 +1004,8 @@ int exec_cmd_ata( struct device_handle *drive, const enum cdb_command command, c
     {
       if( verbose >= 2 )
         fprintf( stderr, "Warning: Check Condition requested, but no CDB.\n" );
-      //errno = EBADE;  can't bail here, b/c some raid controllers strip the CDB for some reason (3ware, megaraid)
-      //return -1;      perhaps some kind of degenrate operating mode like smartctls permissive mode instead, or only bypass for 3ware/megaraid
+      //errno = EBADE;  can't bail here, b/c some raid controllers strip the CDB for some reason (megaraid)
+      //return -1;      perhaps some kind of degenrate operating mode like smartctls permissive mode instead, or only bypass for megaraid
        memset( parms, 0, parm_count );
     }
     else

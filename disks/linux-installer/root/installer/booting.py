@@ -15,7 +15,13 @@ def installBoot( install_root, profile ):
   if execute_lines( '/sbin/lvm pvs' ):
     installPackages( profile.get( 'packages', 'lvm_package' ) )
 
-  installPackages( profile.get( 'packages', 'bootloader_package' ) )
+  if os.access( '/sys/fs/bcache', os.R_OK ):
+    installPackages( profile.get( 'packages', 'bcache_package' ) )
+
+  if os.path.exists( '/sys/firmware/efi' ):  # might require efivars.ko to be loaded
+    installPackages( profile.get( 'packages', 'bootloader_package_efi' ) )
+  else:
+    installPackages( profile.get( 'packages', 'bootloader_package_bios' ) )
 
   try:
     chroot_execute( profile.get( 'booting', 'bootloader_config' ) )

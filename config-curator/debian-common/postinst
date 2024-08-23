@@ -29,7 +29,7 @@ case "$1" in
         FLAGS=""
         if test -z "$2" -o "$2" = "<unknown>" ; # first time install
         then
-          db_get config-curator/config-host || RET=http://controller
+          db_get config-curator/config-host || RET=http://contractor
           FLAGS="$FLAGS -f --config-host $RET --config-uuid _new_"
           db_get config-curator/config-proxy || RET=
           if test -n "$RET";

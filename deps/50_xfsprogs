@@ -1,0 +1,33 @@
+#!/bin/sh
+#SOURCE: https://www.kernel.org/pub/linux/utils/fs/xfs/xfsprogs/xfsprogs-6.8.0.tar.xz
+#HASH: 605662f5d674f64cebaa7db2e9566509b690fa0b
+
+set -e
+#set -x
+
+build()
+{
+  if [ "x$1" = "xx86_64" ]
+  then
+    ./configure --prefix=/ --disable-gettext
+  elif [ "x$1" = "xarm64" ]
+  then
+    ./configure --prefix=/ --disable-gettext --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+  fi
+  make $2
+}
+
+install()
+{
+  cp -f fsck/xfs_fsck.sh $1/sbin/fsck.xfs
+  cp -f repair/xfs_repair $1/sbin
+  cp -f growfs/xfs_growfs $1/sbin
+  cp -f mkfs/mkfs.xfs $1/sbin
+}
+
+binaries()
+{
+  ls repair/xfs_repair
+  ls growfs/xfs_growfs
+  ls mkfs/mkfs.xfs
+}

@@ -1,0 +1,56 @@
+#!/bin/sh
+#SOURCE: https://ftp.gnu.org/gnu/libc/glibc-2.39.tar.xz
+#HASH: 4b043eaba31efbdfc92c85d062e975141870295e
+
+set -e
+set -x
+
+build()
+{
+  exit 0
+  # export BISON_PKGDATADIR=/host/usr/share/bison
+  # export M4=m4
+  # export PERL5LIB=/host/etc/perl:/host/usr/local/lib/x86_64-linux-gnu/perl/5.34.0:/host/usr/local/share/perl/5.34.0:/host/usr/lib/x86_64-linux-gnu/perl5/5.34:/host/usr/share/perl5:/host/usr/lib/x86_64-linux-gnu/perl-base:/host/usr/lib/x86_64-linux-gnu/perl/5.34:/host/usr/share/perl/5.34:/host/usr/local/lib/site_perl
+
+  # cp /host/usr/include/*.h /usr/include # dosen't look like linux has any .h files here
+  # cp -a /host/usr/include/x86_64-linux-gnu/ /usr/include
+  # cp -a /host/usr/lib/x86_64-linux-gnu/ /usr/lib
+  # ln -sf /usr/lib/x86_64-linux-gnu /lib/x86_64-linux-gnu
+
+  if [ -d build ]
+  then
+    rm -fr build
+  fi
+  if [ -d src ]
+  then
+    rm -fr src
+  fi
+  file_list=$(ls)
+  mkdir -p src
+  mv $file_list src
+  mkdir -p build
+  cd build
+  if [ "x$1" = "xx86_64" ]
+  then
+    ../src/configure --prefix=/ --with-headers=/usr/include --enable-kernel=6.6.0 --without-selinux --disable-profile --disable-nscd --enable-add-ons --host x86_64-pc-linux-gnu --build x86_64-pc-linux-gnu libc_cv_slibdir=/lib
+  elif [ "x$1" = "xarm64" ]
+  then
+    ../src/configure --prefix=/ --with-headers=/usr/include --enable-kernel=4.19.0 --without-selinux --disable-profile --disable-nscd --enable-add-ons --host aarch64-linux-gnu --build x86_64-pc-linux-gnu libc_cv_slibdir=/lib
+  fi
+  make $2
+
+  # rm /usr/include/*.h  # dosen't look like linux has any .h files here
+  # rm -fr /usr/include/x86_64-linux-gnu/
+  # rm -fr /usr/lib/x86_64-linux-gnu/
+  # rm /lib/x86_64-linux-gnu/
+
+  #DESTDIR=/ make install
+}
+
+install()
+{
+  : # will be intalled installed by scripts/setup_base
+}
+
+
+# not sure --disable-werror is needed, mabey remove it for a future "clean" version

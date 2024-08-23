@@ -1,0 +1,30 @@
+#!/bin/sh
+#SOURCE: http://mirrors.kernel.org/sourceware/lvm2/LVM2.2.02.188.tgz
+#HASH: 2650e0b5a20bf454030132ab3e6ccb381f032f31
+
+set -e
+#set -x
+
+build()
+{
+  if [ "x$1" = "xx86_64" ]
+  then
+    ./configure --prefix= --disable-selinux
+  elif [ "x$1" = "xarm64" ]
+  then
+    ./configure --prefix= --disable-selinux --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+  fi
+  make $2
+}
+
+install()
+{
+  cp -f tools/lvm $1/sbin
+  cp -f libdm/libdevmapper.so.1.02 $1/lib
+}
+
+binaries()
+{
+  ls tools/lvm 
+  #ls libdm/libdevmapper.so.1.02
+}

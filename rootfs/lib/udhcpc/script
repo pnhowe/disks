@@ -55,6 +55,15 @@ case "$1" in
     /sbin/ip addr add ${ip}/${mask} dev $interface
     [ -n "$router" ] && /sbin/ip route add default via ${router%% *} dev $interface
 
+    if [ "x$mtu" != "x" ]
+    then
+      ip link set $interface mtu $mtu
+    fi
+    if [ "x$vlanid" != "x" ]
+    then
+      vconfig add $interface $vlanid
+    fi
+
     echo "# auto generated at `date`" > $RESOLV_CONF
     echo "domain ${domain%% *}" >> $RESOLV_CONF
     echo "search $domain" >> $RESOLV_CONF

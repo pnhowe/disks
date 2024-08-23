@@ -1,0 +1,29 @@
+#!/bin/sh
+#SOURCE: https://busybox.net/downloads/busybox-1.36.1.tar.bz2
+#HASH: a5d40ca0201b20909f7a8a561adf57adccc8a877
+
+set -e
+#set -x
+
+build()
+{
+  cp ../../configs/busybox .config
+  if [ "x$1" = "xx86_64" ]
+  then
+    make $2
+  elif [ "x$1" = "xarm64" ]
+  then
+    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- $2
+  fi
+}
+
+install()
+{
+  cp busybox $1/bin
+  ln -sf /bin/env $1/usr/bin/env
+}
+
+binaries()
+{
+  ls busybox
+}

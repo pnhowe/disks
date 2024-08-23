@@ -26,7 +26,7 @@ Usage: [OPTIONS] device\n\
 Options:\n\
   -v, --verbose    Verbose, more -v more stuff.(4 levles, starts on level 0)\n\
   -q, --quiet      Less Verbose, more -q less stuff.\n\
-  -d, --driver     Force a Driver to use ( SGIO, SAT, 3Ware, MegaDev, MegaSAS, IDE(forces -pATA) )\n\
+  -d, --driver     Force a Driver to use ( SGIO, SAT, MegaDev, MegaSAS, IDE(forces -pATA) )\n\
   -p, --protocol   Force a Protocol to use ( ATA, SCSI )\n\
   -h,-?, --help    Show this\n\
 \n";
@@ -70,8 +70,8 @@ int main( int argc, char **argv )
           driver = DRIVER_TYPE_SGIO;
         else if( strcmp( optarg, "SAT" ) == 0 )
           driver = DRIVER_TYPE_SAT;
-        else if( strcmp( optarg, "3Ware" ) == 0 )
-          driver = DRIVER_TYPE_3WARE;
+        else if( strcmp( optarg, "NVME" ) == 0 )
+          driver = DRIVER_TYPE_NVME;
         else if( strcmp( optarg, "MegaDev" ) == 0 )
           driver = DRIVER_TYPE_MEGADEV;
         else if( strcmp( optarg, "MegaSAS" ) == 0 )

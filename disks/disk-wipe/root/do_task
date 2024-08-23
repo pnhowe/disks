@@ -4,14 +4,26 @@ set -e
 
 /bin/postMessage "Starting Disk Wipe..."
 
-eval $( /bin/setEnv diskwipe_mode )
+for x in $(cat /proc/cmdline)
+do
+  case $x in
+    mode=*)
+      diskwipe_mode=${x#mode=}
+      ;;
+  esac
+done
+
+if [ "x$diskwipe_mode" == "x" ]
+then
+  eval $( /bin/setEnv diskwipe_mode )
+fi
 
 if [ "x$diskwipe_mode" == "x" ]
 then
   diskwipe_mode="mbr"
 fi
 
-wrk_list=`for i in /sys/block/[hs]d* ; do echo $i | awk '{ split( $0, a, "/" ); print a[4] }'; done`
+wrk_list=`for i in /sys/block/[hs]d* /sys/block/nvme* ; do echo $i | awk '{ split( $0, a, "/" ); print a[4] }'; done`
 drive_list=""
 
 for drive in $wrk_list;
@@ -70,3 +82,8 @@ fi
 /bin/signalComplete
 
 exit 0
+
+
+
+# single_pass -> wipe
+# multi_pass -> sanitize

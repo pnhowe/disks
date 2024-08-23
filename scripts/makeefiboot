@@ -1,0 +1,123 @@
+#!/bin/bash
+
+set -e
+#set -x
+
+# $1 - output filename
+# $2 - path to kernel
+# $3 - path to initrd
+# $4 - oath to boot config
+
+. $4
+
+MOUNT_POINT="build.images/mnt"
+
+if ! which sfdisk parted > /dev/null
+then
+  print "sfdisk and/or parted is missing, please install"
+  exit 1
+fi
+
+if [ ! -d $MOUNT_POINT ]
+then
+  mkdir -p $MOUNT_POINT
+fi
+
+if mountpoint -q $MOUNT_POINT
+then
+  echo "$MOUNT_POINT allready mounted, possibly a failed build needs to be cleaned up?"
+  exit 1
+fi
+
+EFI_BIN64="/usr/lib/systemd/boot/efi/systemd-bootx64.efi"
+EFI_STUB64="/usr/lib/systemd/boot/efi/linuxx64.efi.stub"
+
+if [ ! -f "$EFI_BIN64" ] || [ ! -f "$EFI_STUB64" ];
+then
+  echo "systemd-bootx64.efi not found install systemd"
+  exit 1
+fi
+
+if [ $( id -u ) != 0 ]
+then
+  echo "Must be root"
+  exit 1
+fi
+
+rm -f $1
+
+let ENTRY_SIZE=$(stat -c%s $2)
+let ENTRY_SIZE+=$(stat -c%s $3)
+let ENTRY_SIZE+=$(stat -c%s $EFI_STUB64)
+let ENTRY_SIZE/=4096 # this / + * thing is to round up to next sector, plus 1
+let ENTRY_SIZE+=2
+let ENTRY_SIZE*=4096
+let PAYLOAD_SIZE="${#CMDLINE_LIST[@]}"
+let PAYLOAD_SIZE*=$ENTRY_SIZE
+let PAYLOAD_SIZE+=$(stat -c%s $EFI_BIN64)
+let PAYLOAD_SIZE/=4096
+let PAYLOAD_SIZE+=500
+
+echo "entry size: $ENTRY_SIZE"
+echo "entry count: ${#CMDLINE_LIST[@]}"
+echo "payload size: $PAYLOAD_SIZE * 4k"
+
+echo "Creating image..."
+dd if=/dev/zero of=$1 bs=4k count=$PAYLOAD_SIZE
+DRIVE_LOOP=$(losetup -f --show $1)
+echo "Using loop device '$DRIVE_LOOP' for image..."
+
+echo "Formatting partition..."
+mkfs.fat -F 32 $DRIVE_LOOP
+
+echo "Mounting partition..."
+mount -n $DRIVE_LOOP $MOUNT_POINT
+
+echo "Copying files..."
+mkdir -p $MOUNT_POINT/efi/boot/
+mkdir -p $MOUNT_POINT/loader/
+mkdir -p $MOUNT_POINT/efi/Linux/
+
+cp $EFI_BIN64 $MOUNT_POINT/efi/boot/bootx64.efi
+
+DEFAULT=$( echo "${CMDLINE_LIST[0]}" | cut -f1 )
+
+echo "timeout 5
+auto-entries no
+auto-firmware no
+editor no
+default ${DEFAULT}-0.0
+" > $MOUNT_POINT/loader/loader.conf
+
+for item in "${CMDLINE_LIST[@]}"
+do
+  NAME=$( echo "$item" | cut -f1 )
+  DESC=$( echo "$item" | cut -f2 )
+  CMDLINE=$( echo "$item" | cut -f3 )
+
+  echo "$CMDLINE" > /tmp/t3kton-cmdline
+
+  echo "NAME=\"$NAME\"
+VERSION=\"0.0.0.0\"
+ID=$NAME
+PRETTY_NAME=\"$DESC\"
+VERSION_ID=\"0.0\"
+" > /tmp/t3kton-os-release
+
+  #    --add-section .splash="/usr/share/systemd/bootctl/splash-arch.bmp" --change-section-vma .splash=0x40000 \
+  objcopy \
+      --add-section .osrel="/tmp/t3kton-os-release" --change-section-vma .osrel=0x20000 \
+      --add-section .cmdline="/tmp/t3kton-cmdline" --change-section-vma .cmdline=0x30000 \
+      --add-section .linux="$2" --change-section-vma .linux=0x2000000 \
+      --add-section .initrd="$3" --change-section-vma .initrd=0x3000000 \
+      $EFI_STUB64 $MOUNT_POINT/efi/Linux/$NAME.efi
+
+  # and then sign linux.efi
+done
+
+sleep 1
+sync
+
+echo "Unmounting..."
+umount $MOUNT_POINT
+losetup -d $DRIVE_LOOP

@@ -1,5 +1,5 @@
 /* parts taken from  scsiata.cpp of smartmontools and sgio.c */
-/* modified by Peter Howe peterh@mozy.com */
+/* modified by Peter Howe pnhowe@gmail.com */
 
 #include <stdio.h>
 #include <stdlib.h>

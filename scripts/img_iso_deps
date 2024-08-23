@@ -1,0 +1,20 @@
+#!/bin/bash
+
+#  $1 - arch
+#  $2 - disk name
+
+if [ -d "disks/$2" ]
+then
+  echo images/pxe-$1/$2.initrd images/pxe-$1/$2.vmlinuz
+fi
+
+if [ -r "templates/$1" ]
+then
+  DISK=$( grep -m 1 '#DISK:' templates/$1 | sed s/'#DISK: '// )
+  if [ "x$DISK" == "xlinux-installer" ]
+  then
+    echo images/pxe-$1/$DISK.initrd images/pxe-$1/$DISK.vmlinuz templates/$1 linux-installer-profiles.touch
+  else
+    echo images/pxe-$1/$DISK.initrd images/pxe-$1/$DISK.vmlinuz templates/$1
+  fi
+fi

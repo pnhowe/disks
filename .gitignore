@@ -1,12 +1,18 @@
-build-src
-downloads
-build.deps
-build.images
-images
+/src.build
+/downloads
+/build
+/images
+/resource
+/build.images
 
+contractor/linux-installer-profiles.touch
+linux-installer-profiles.touch
 respkg
 *.respkg
 contractor/resources/var
+contractor/linux-installer-profiles
 
 *.pyc
 __pycache__
+
+external/*

@@ -1,0 +1,1 @@
+../../trusty/templates/bash_profile.tpl

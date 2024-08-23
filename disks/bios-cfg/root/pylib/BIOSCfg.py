@@ -1,4 +1,4 @@
-class BIOSCfg( object ):
+class BIOSCfg():
   def __init__( self, *args, **kwargs ):
     self.password = None
 

@@ -1,0 +1,56 @@
+[kernel]
+load_module_1=ext3 ; the embeded filesystem images is ext3
+
+[filesystem]
+partition_type=gpt
+fs_type=xfs
+boot_fs_type=ext4
+md_meta_version=1.0
+mtab=/proc/self/mounts
+extra_mount_1=proc:proc:/proc
+extra_mount_2=sysfs:sysfs:/sys
+extra_mount_3=:/dev:/dev:bind
+extra_mount_4=tmpfs:tmpfs:/run
+
+[fstab]
+prefix_1=# <file system> <mount point>   <type>  <options>       <dump>  <pass>
+
+[bootstrap]
+type=redhatimg
+version=7
+
+[packaging]
+manager_type=yum
+prebase_templates=
+base=Base
+packages=dhclient
+source_templates=repos
+install_env_var_1=CONFIG_CURATOR_HOST:{{ config_host }}
+install_env_var_2=CONFIG_CURATOR_PROXY:{{ config_proxy }}
+
+[config]
+base_templates=hosts network ifcfg i18n yum
+
+[booting]
+bootloader_templates=grub
+bootloader_install=/sbin/grub2-install {0}
+bootloader_config=/sbin/grub2-mkconfig -o /boot/grub2/grub.cfg
+
+[users]
+skel_dir=etc/skel/
+
+[general]
+after_cmd_1=touch /.autorelabel
+after_cmd_2=rm /etc/localtime
+after_cmd_3=ln -s ../usr/share/zoneinfo/UTC /etc/localtime
+after_cmd_4=mkdir /var/log/journal
+after_cmd_5=chgrp systemd-journal /var/log/journal
+after_cmd_6=chmod 2755 /var/log/journal
+after_cmd_7=systemctl enable systemd-journald
+
+[packages]
+bootloader_package_bios=grub2-pc
+bootloader_package_efi=grub2-efi-x86
+mdadm_package=mdadm
+bcache_package=bcache-tools
+lvm_package=lvm2

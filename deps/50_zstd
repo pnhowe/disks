@@ -1,0 +1,34 @@
+#!/bin/sh
+#SOURCE: https://github.com/facebook/zstd/releases/download/v1.5.5/zstd-1.5.5.tar.gz
+#HASH: 4479ecc74300d23391d99fbebf2fddd47aed9b28
+
+set -e
+#set -x
+
+build()
+{
+  if [ "x$1" = "xx86_64" ]
+  then
+    make $2
+  elif [ "x$1" = "xarm64" ]
+  then
+    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- $2
+  fi
+}
+
+install()
+{
+  cp -f programs/zstd $1/bin/
+  cp -f programs/zstdgrep $1/bin/
+  cp -f programs/zstdless $1/bin/
+  ln -sf zstd $1/bin/zstdcat
+  ln -sf zstd $1/bin/unzstd
+  ln -sf zstd $1/bin/zstdmt
+}
+
+binaries()
+{
+  ls programs/zstd
+  ls programs/zstdgrep
+  ls programs/zstdless
+}

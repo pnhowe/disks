@@ -5,7 +5,7 @@ import time
 import random
 import math
 from datetime import datetime
-from contractor.cinp.client import CInP, Timeout, ResponseError
+from .cinp.client import CInP, Timeout, ResponseError
 
 
 __VERSION__ = '0.1'
@@ -15,13 +15,20 @@ DELAY_MULTIPLIER = 15
 # max delay = 0, 20, 32, 40, 48, 52, 58, 62, 64, 68, 70, 74, 76, 78, 80 .....
 
 
-def getClient():
+def getClient( job_config=None ):
   host = os.environ.get( 'contractor_host', 'http://contractor' )
   if host.startswith( 'file://' ):
-    return LocalFileClient( host[ 7: ] )
+    client = LocalFileClient( host[ 7: ] )
 
   else:
-    return HTTPClient( host=host, proxy=os.environ.get( 'contractor_proxy', None ) )  # TODO: have do_task put on the http
+    client = HTTPClient( host=host, proxy=os.environ.get( 'contractor_proxy', None ) )  # TODO: have do_task put on the http
+
+  if job_config is not None:
+    job = json.loads( open( '/etc/job.config', 'r' ).read() )[ 'job' ]
+    client.job_id = job[ 'job_id' ]
+    client.cookie = job[ 'cookie' ]
+
+  return client
 
 
 class NoJob( Exception ):
@@ -50,20 +57,24 @@ class Client():
   def getConfig( self, config_uuid=None ):
     return {}
 
-  def signalComplete( self ):
+  def login( self ):
     pass
+
+  def postMessage( self, msg ):
+    print( '* {0} *'.format( msg ) )
 
   def signalAlert( self, msg ):
     print( '! {0} !'.format( msg ) )
 
-  def postMessage( self, msg ):
-    print( '* {0} *'.format( msg ) )
+  def signalComplete( self ):
+    print( '### Complete ###' )
 
 
 class HTTPClient( Client ):
   def __init__( self, host, proxy ):
     super().__init__()
     self.cinp = CInP( host=host, root_path='/api/v1/', proxy=proxy )
+    self.job_id = None
     # self.cinp.opener.addheaders[ 'User-Agent' ] += ' - config agent'
 
   def request( self, method, uri, data=None, filter=None, timeout=30, retry_count=0 ):
@@ -83,10 +94,10 @@ class HTTPClient( Client ):
           return self.cinp.call( uri, data, timeout=timeout )
 
         elif method == 'list':
-          return self.cinp.list( uri, filter, data )
+          return self.cinp.list( uri, filter, data, timeout=timeout )
 
         elif method == 'update':
-          return self.cinp.update( uri, data )
+          return self.cinp.update( uri, data, timeout=timeout )
 
         else:
           raise ValueError( 'Unknown method "{0}"'.format( method ) )
@@ -100,7 +111,37 @@ class HTTPClient( Client ):
       retry += 1
       _backOffDelay( retry )
 
+  def login( self ):
+    token = self.request( 'call', '/api/v1/Auth/User(login)', { 'username': 'jobsig', 'password': 'jobsig' } )
+    self.cinp.setAuth( 'jobsig', token )
+
+  def postMessage( self, msg ):
+    super().postMessage( msg )
+    resp = self.request( 'call', '/api/v1/Foreman/BaseJob:{0}:(postMessage)'.format( self.job_id ), { 'msg': msg } )
+
+    if resp != 'Posted':
+      print( 'WARNING! Message Signaling Failed: "{0}"'.format( resp ) )
+
+  def signalAlert( self, msg ):
+    super().signalAlert( msg )
+    resp = self.request( 'call', '/api/v1/Foreman/BaseJob:{0}:(signalAlert)'.format( self.job_id ), { 'msg': msg } )
+
+    if resp != 'Alerted':
+      print( 'WARNING! Alert Signaling Failed: "{0}"'.format( resp ) )
+
+  def signalComplete( self ):
+    super().signalComplete( )
+    resp = self.request( 'call', '/api/v1/Foreman/BaseJob:{0}:(signalComplete)'.format( self.job_id ), { 'cookie': self.cookie } )
+
+    if resp != 'Recieved':
+      print( 'WARNING! Complete Signaling Failed: "{0}"'.format( resp ) )
+
   def getConfig( self, config_uuid=None, foundation_locator=None ):
+    if config_uuid is None:
+      config_uuid = os.environ.get( 'config_uuid', None )
+      if not config_uuid:
+        config_uuid = None
+
     if config_uuid is not None:
       return self.request( 'raw get', '/config/config/c/{0}'.format( config_uuid ), timeout=10, retry_count=2 )
     elif foundation_locator is not None:

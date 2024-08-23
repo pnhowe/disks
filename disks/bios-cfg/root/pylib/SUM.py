@@ -2,12 +2,13 @@ from subprocess import Popen, PIPE
 import re
 from BIOSCfg import BIOSCfg
 
+
 class SUM( BIOSCfg ):
   class_map = { 'Network': 'Network', 'Hard Disk': 'Harddrive', 'UEFI': 'EFI', 'CD/DVD': 'DVD' }
   class_name = { 'Network special boot instance': 'Network', 'HDD special boot instance': 'Harddrive', 'CD/DVD special boot instance': 'DVD' }
 
   @classmethod
-  def detect( cls, baseboard ): # make sure to update bootstrap if these change
+  def detect( cls, baseboard ):  # make sure to update bootstrap if these change
     if baseboard.startswith( 'X9' ):
       return cls( '1.3' )
 

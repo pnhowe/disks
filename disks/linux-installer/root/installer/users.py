@@ -20,7 +20,7 @@ def setupUsers( mount_point, profile, value_map ):
     dest_dir = os.path.join( mount_point, 'root' )
     for filename in glob.glob( '{0}*'.format( src_dir ) ):
       print( 'copy "{0}" to "{1}"'.format( filename, filename.replace( src_dir, dest_dir ) ) )
-      shutil.copytree( filename, filename.replace( src_dir, dest_dir ) )
+      shutil.copytree( filename, filename.replace( src_dir, dest_dir ), symlinks=True )
 
   for user in value_map.get( 'user_list', [] ):
     print( 'create user {0}'.format( user[ 'name' ] ) )

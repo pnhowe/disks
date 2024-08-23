@@ -1,8 +1,0 @@
-PROMPT 1
-TIMEOUT 10
-
-DEFAULT bios-cfg
-
-LABEL bios-cfg
-KERNEL bios-cfg.vmlinuz
-APPEND initrd=bios-cfg.initrd

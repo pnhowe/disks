@@ -12,7 +12,9 @@
 #define ATA_FIRMWARE_REV_RAW_LEN 4
 #define ATA_MODEL_NUMBER_RAW_LEN 20
 
-struct ata_identity // needs to be 512 or less bytes
+// https://people.freebsd.org/~imp/asiabsdcon2015/works/d2161r5-ATAATAPI_Command_Set_-_3.pdf
+
+struct ata_identity // needs to be 512 bytes
 {
   __u16 pad_0[10];
   __u16 serial_number[ATA_SERIAL_NUMBER_RAW_LEN]; // 10-19
@@ -48,8 +50,8 @@ struct ata_identity // needs to be 512 or less bytes
   __u16 nominal_media_rotation;                   // 217
   __u16 pad_218[12];
   __u16 lbaextnded[4];                            // 230-233
+  __u16 pad_end[24];
 } __attribute__((packed));
-
 // use this for size dependant stuff -> ASSERT_SIZEOF_STRUCT(ata_identify_device, 512);
 
 

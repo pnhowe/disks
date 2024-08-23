@@ -17,10 +17,18 @@ make a symlink for short version name::
 
 generate the python header::
 
-  ~/.local/bin/clang2py --clang-args="-I /usr/include/x86_64-linux-gnu -I /usr/lib/gcc/x86_64-linux-gnu/6/include/ -target x86_64" -t x86_64-Linux -kfs libdrive.h -l libdrive.so.3 > libdrive_h.py
-  ~/.local/bin/clang2py --clang-args="-I /usr/include/x86_64-linux-gnu -I /usr/lib/gcc/x86_64-linux-gnu/6/include/ -target x86_64" -t x86_64-Linux -kfs libenclosure.h -l libenclosure.so.3 > libenclosure_h.py
+  LD_LIBRARY_PATH=. ~/.local/bin/clang2py --clang-args="-I /usr/include/x86_64-linux-gnu -I /usr/lib/gcc/x86_64-linux-gnu/6/include/ -target x86_64" -t x86_64-Linux -kfs libdrive.h -l libdrive.so.3 > libdrive_h.cache
+  LD_LIBRARY_PATH=. ~/.local/bin/clang2py --clang-args="-I /usr/include/x86_64-linux-gnu -I /usr/lib/gcc/x86_64-linux-gnu/6/include/ -target x86_64" -t x86_64-Linux -kfs libenclosure.h -l libenclosure.so.3 > libenclosure_h.cache
 
 clean up::
 
   rm libdrive.so.3
   rm libenclosure.so.3
+
+
+Verbosity levels:
+
+1 - User errors - unable to find device type things
+2 - High Level Errors - generic "failed" stuff
+3 - Detail Errors - low level errors
+4 - debug - dump cdb etc

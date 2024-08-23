@@ -1,0 +1,42 @@
+#!/bin/sh
+#SOURCE: https://www.kernel.org/pub/linux/utils/kernel/kmod/kmod-32.tar.xz
+#HASH: 2d49b88b0bd2c28b2a4b400c3bca180c923542cf
+
+set -e
+#set -x
+
+build()
+{
+  if [ "x$1" = "xx86_64" ]
+  then
+    ./configure --prefix=/ --with-xz --with-zlib
+  elif [ "x$1" = "xarm64" ]
+  then
+    ./configure --prefix=/ --with-xz --with-zlib --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+  fi
+  make $2
+  
+  # this may be able to be removed later, in version 32 it was found the ln needed -f to deal with building after the first time
+  sed s/"(LN_S) kmod"/"(LN_S) -f kmod"/ -i Makefile
+
+  DESTDIR=/ make install
+
+  # now that depmod is installed, we can depmod the kernel modules
+  depmod $(ls /lib/modules/)
+}
+
+install()
+{
+  cp -f tools/kmod $1/sbin
+  ln -sf kmod $1/sbin/lsmod
+  ln -sf kmod $1/sbin/rmmod
+  ln -sf kmod $1/sbin/insmod
+  ln -sf kmod $1/sbin/modinfo
+  ln -sf kmod $1/sbin/modprobe
+  ln -sf kmod $1/sbin/depmod
+}
+
+binaries()
+{
+  ls tools/kmod
+}

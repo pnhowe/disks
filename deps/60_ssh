@@ -1,0 +1,38 @@
+#!/bin/sh
+#SOURCE: https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-9.8p1.tar.gz
+#HASH: a0bb501b11349f5c5c33a269351be091dc2c2727
+
+set -e
+#set -x
+
+build()
+{
+  if [ "x$1" = "xx86_64" ]
+  then
+    ./configure --prefix= --libexecdir=/sbin --without-pam --sysconfdir=/etc/ssh --with-privsep-path=/var/empty
+  elif [ "x$1" = "xarm64" ]
+  then
+    ./configure --prefix= --libexecdir=/sbin --without-pam --sysconfdir=/etc/ssh --with-privsep-path=/var/empty --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+  fi
+  make $2
+}
+
+install()
+{
+  cp -f sshd $1/sbin
+  cp -f sshd-session $1/sbin
+  cp -f ssh $1/bin
+  cp -f sftp-server $1/sbin
+  cp -f scp $1/bin
+  cp -f ssh-keygen $1/bin
+}
+
+binaries()
+{
+  ls sshd
+  ls sshd-session
+  ls ssh
+  ls sftp-server
+  ls scp
+  ls ssh-keygen
+}

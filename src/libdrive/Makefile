@@ -10,7 +10,7 @@ LIB_CURRENT_VERSION = $(shell echo "$(PROG_VERSION)" | sed s/"\.[0-9]$$"//)
 LDLIBS = -lm
 PROGS = wipedrive muncher selftest driveinfo drivepower diskcopy smartinfo enclosureinfo
 SHARED_LIBS = libdrive.so.$(LIB_VERSION) libenclosure.so.$(LIB_VERSION)
-BASE_OBJS = device.o disk.o enclosure.o cdb.o ata.o scsi.o ide.o sgio.o sat.o lsi.o
+BASE_OBJS = device.o disk.o enclosure.o cdb.o ata.o scsi.o ide.o sgio.o sat.o nvme.o lsi.o
 
 override LDFLAGS +=
 override CFLAGS += -DPROG_VERSION=\"$(PROG_VERSION)\" -fno-builtin-memset
@@ -34,7 +34,7 @@ ALL_OBJS = $(BASE_OBJS) $(PROG_OBJS) $(LIB_OBJS)
 
 all: $(PROGS) $(SHARED_LIBS) libdrive_h.py libenclosure_h.py
 
-$(ALL_OBJS): device.h disk.h enclosure.h cdb.h ata.h scsi.h ide.h sgio.h sat.h lsi.h libdrive.py
+$(ALL_OBJS): device.h disk.h enclosure.h cdb.h ata.h scsi.h ide.h sgio.h sat.h nvme.h lsi.h libdrive.py
 
 esx-lib: override CFLAGS += -m32
 esx-lib: override LDFLAGS += -m32
@@ -59,24 +59,25 @@ install: all
 	install -m 755 wipedrive $(DESTDIR)/usr/sbin
 	install -m 755 drivelist $(DESTDIR)/usr/sbin
 	install -m 755 enclosurelist $(DESTDIR)/usr/sbin
-	mkdir -p $(DESTDIR)/lib/python3.6/libdrive
-	cp __init__.py $(DESTDIR)/lib/python3.6/libdrive
-	cp libdrive.py $(DESTDIR)/lib/python3.6/libdrive
-	cp libenclosure.py $(DESTDIR)/lib/python3.6/libdrive
-	cp libdrive_h.py $(DESTDIR)/lib/python3.6/libdrive
-	cp libenclosure_h.py $(DESTDIR)/lib/python3.6/libdrive
+	mkdir -p $(DESTDIR)/lib/python3/libdrive
+	cp __init__.py $(DESTDIR)/lib/python3/libdrive
+	cp libdrive.py $(DESTDIR)/lib/python3/libdrive
+	cp libenclosure.py $(DESTDIR)/lib/python3/libdrive
+	cp libdrive_h.py $(DESTDIR)/lib/python3/libdrive
+	cp libenclosure_h.py $(DESTDIR)/lib/python3/libdrive
 
 # have to compile twice b/c the lib is 32-bit (esx's python is 32bit)
+# this target path is wrong, when esx is a thing again, it will need to be updated
 install-esx:
 	$(MAKE) clean
 	$(MAKE) esx-lib
-	cp libdrive.so.$(LIB_VERSION) ../plato-esx/lib/libdrive.so.$(LIB_CURRENT_VERSION)
+	cp libdrive.so.$(LIB_VERSION) ../esx-img/lib/libdrive.so.$(LIB_CURRENT_VERSION)
 	$(MAKE) clean
 	$(MAKE) driveinfo smartinfo libdrive_h.py
-	cp libdrive.py ../plato-esx/lib/python2.6/site-packages/platoclient
-	cp libdrive_h.py ../plato-esx/lib/python2.6/site-packages/platoclient
-	cp driveinfo ../plato-esx/sbin
-	cp smartinfo ../plato-esx/sbin
+	cp libdrive.py ../esx-img/lib/python2.6/site-packages/libdrive
+	cp libdrive_h.py ../esx-img/lib/python2.6/site-packages/libdrive
+	cp driveinfo ../esx-img/sbin
+	cp smartinfo ../esx-img/sbin
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -99,12 +100,12 @@ clean:
 
 full-clean: clean
 
-test:
-
 test-requires:
 	echo flake8
 
+test:
+
 lint:
-	flake8 --exclude *_h.py --ignore=E501,E201,E202,E111,E126,E114,E402,W605 --statistics .
+	flake8 --exclude=*_h.py --ignore=E501,E201,E202,E111,E126,E114,E402 --statistics .
 
 .PHONY: all clean esx-lib install-disks install-client-pkg install-esx test lint test-requires

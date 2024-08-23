@@ -1,0 +1,35 @@
+#!/bin/sh
+#SOURCE: https://github.com/dosfstools/dosfstools/releases/download/v4.2/dosfstools-4.2.tar.gz
+#HASH: 14efc68c64987a9067b6a919ad2870007247686b
+
+set -e
+set -x
+
+build()
+{
+  if [ "x$1" = "xx86_64" ]
+  then
+    ./configure --prefix=
+  elif [ "x$1" = "xarm64" ]
+  then
+    ./configure --prefix= --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+  fi
+  make $2
+}
+
+install()
+{
+  cp -f src/fsck.fat $1/sbin
+  ln -sf fsck.fat $1/sbin/fsck.vfat
+  ln -sf fsck.fat $1/sbin/fsck.msdos
+  cp -f src/mkfs.fat $1/sbin
+  ln -sf mkfs.fat $1/sbin/mkfs.vfat
+  ln -sf mkfs.fat $1/sbin/mkfs.msdos
+}
+
+
+binaries()
+{
+  ls src/fsck.fat
+  ls src/mkfs.fat
+}

@@ -3,8 +3,8 @@
 # $1 - template
 # $2 - output config-init filename
 # $3 - output for config.json filename
-# $3 - output boot config filename
-# $4 - output boot menu filename
+# $4 - output for boot config file
+# $5 - output directory name for extras
 
 set -e
 #set -x
@@ -17,6 +17,8 @@ WIDTH=60
 . templates/$1
 
 DIALOG_TITLE="Questions for template $2"
+
+NEED_CLEAR=
 
 for i in `seq 0 $(( ${#QUESTION_LIST[@]} - 1 ))`;
 do
@@ -51,10 +53,15 @@ do
     fi
 
     eval "${QUESTION_LIST[$i]}=\"$TMP\""
+
+    NEED_CLEAR=y
   fi
 done
 
-clear
+if [ "x$NEED_CLEAR" == "xy" ]
+then
+  clear
+fi
 
 echo "Shortcut env exports:"
 echo "---------------------------------------------------------------------"
@@ -75,8 +82,7 @@ do
   VAR=${VAR_NAMES[$i]}
   INIT="${INIT//__${VAR}__/$(eval echo '$'${VAR})}"
   CONFIG="${CONFIG//__${VAR}__/$(eval echo '$'${VAR})}"
-  EXTLINUX="${EXTLINUX//__${VAR}__/$(eval echo '$'${VAR})}"
-  EXTMENU="${EXTMENU//__${VAR}__/$(eval echo '$'${VAR})}"
+  CMDLINE="${CMDLINE//__${VAR}__/$(eval echo '$'${VAR})}"
 done
 
 if [ ! -z "$INIT" ]
@@ -90,9 +96,25 @@ then
   echo "$CONFIG" > "$3"
 fi
 
-echo "$EXTLINUX" > "$4"
+echo "#!/bin/bash" > "$4"
+echo "CMDLINE_LIST=(\"$CMDLINE\")" >> "$4"
 
-if [ ! -z "$EXTMENU" ]
+if [ ! -d "$5" ]
 then
-  echo "$EXTMENU" > "$5"
+  echo "extra directory '$5' not a directory"
+  exit 1
 fi
+
+for item in $EXTRA_LIST
+do
+  type=${item#*.}
+  case $type in
+    tar.gz)
+      tar -xzf $item -C $5
+      ;;
+    *)
+      cp $item $5
+      ;;
+  esac
+
+done

@@ -1,158 +1,197 @@
-VERSION := 0.5
+VERSION := 0.9.0
 
-DEPS = $(shell ls deps)
-DISKS = $(shell ls disks)
+# other arches: arm64
+ARCH = x86_64
+
+DEPS_BUILD_FS = build/$(ARCH)
+DEPS_BUILD_DIR = $(DEPS_BUILD_FS)/build
+DEPS = $(foreach item,$(sort $(shell ls deps)),$(lastword $(subst _, ,$(item))))
+DISKS = $(shell ls disks | grep -v Makefile)
 TEMPLATES = $(shell ls templates)
-DEP_DOWNLOADS = $(foreach dep,$(DEPS),build.deps/$(dep).download)
-DEP_BUILDS = $(foreach dep,$(DEPS),build.deps/$(dep).build)
-IMAGE_ROOT = $(foreach disk,$(DISKS),build.images/$(disk).root)
+DEP_DOWNLOADS = $(foreach dep,$(DEPS),build/$(dep).download)
+DEP_BUILDS = $(foreach dep,$(DEPS),$(DEPS_BUILD_DIR)/$(dep).build)
+IMAGE_ROOT = $(foreach disk,$(DISKS),build.images/$(disk)-$(ARCH).root)
+
+PXES = $(foreach disk,$(DISKS),images/pxe-$(ARCH)/$(disk))
+#PXE_FILES = $(foreach disk,$(DISKS),images/pxe-$(ARCH)/$(disk).vmlinuz images/pxe-$(ARCH)/$(disk).initrd)
+
+# for img and iso targets, create a .boot for both, and a .img or .iso for .img and .iso respectively
 
 # for thoes following along...
 #  for each disk
-#    wildcard /disks/<disk>.pxe
-#    move to /images/pxe
-#    replace images/pxe/_default.pxe with images/pxe/<disk>
-#    replace images/pxe/<other>.pxe with imagex/pxe/<disk>-<other>
-# that should give us a images/pxe/<disk> for every _default and a <disk>_<other> for every other .pxe file
-PXES = $(foreach disk,$(DISKS),$(patsubst images/pxe/%.pxe,images/pxe/$(disk)_%,$(patsubst images/pxe/_default.pxe,images/pxe/$(disk),$(patsubst disks/$(disk)/%,images/pxe/%,$(wildcard disks/$(disk)/*.pxe)))))
-PXE_FILES = $(foreach disk,$(DISKS),images/pxe/$(disk).vmlinuz images/pxe/$(disk).initrd)
-
-# see PXES, but append .img
-IMGS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/img/%.img,images/img/$(disk)_%,$(patsubst images/img/_default.img,images/img/$(disk),$(patsubst disks/$(disk)/%,images/img/%,$(wildcard disks/$(disk)/*.img))))), $(item).img)
-
-# see PXES, but append .iso
-ISOS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/iso/%.iso,images/iso/$(disk)_%,$(patsubst images/iso/_default.iso,images/iso/$(disk),$(patsubst disks/$(disk)/%,images/iso/%,$(wildcard disks/$(disk)/*.iso))))), $(item).iso)
-
+#    wildcard /disks/<disk>/*.boot /disks/<disk>/*.img
+#    move to /images/img-$(ARCH)
+#    replace images/img-$(ARCH)/_default.boot with images/img-$(ARCH)/<disk>.img
+#    replace images/img-$(ARCH)/<other>.boot with imagex/img-$(ARCH)/<disk>-<other>.img
+# same thing for the .iso
+IMGS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/img-$(ARCH)/%.img,images/img-$(ARCH)/$(disk)_%,$(patsubst images/img-$(ARCH)/%.boot,images/img-$(ARCH)/$(disk)_%,$(patsubst images/img-$(ARCH)/_default.boot,images/img-$(ARCH)/$(disk),$(patsubst disks/$(disk)/%,images/img-$(ARCH)/%,$(wildcard disks/$(disk)/*.boot) $(wildcard disks/$(disk)/*.img)))))), $(item).img)
+ISOS = $(foreach item,$(foreach disk,$(DISKS),$(patsubst images/iso-$(ARCH)/%.iso,images/iso-$(ARCH)/$(disk)_%,$(patsubst images/iso-$(ARCH)/%.boot,images/iso-$(ARCH)/$(disk)_%,$(patsubst images/iso-$(ARCH)/_default.boot,images/iso-$(ARCH)/$(disk),$(patsubst disks/$(disk)/%,images/iso-$(ARCH)/%,$(wildcard disks/$(disk)/*.boot) $(wildcard disks/$(disk)/*.iso)))))), $(item).iso)
 
 PWD = $(shell pwd)
 
-all: all-pxe
+JOBS := $(or $(shell cat /proc/$$PPID/cmdline | sed -n 's/.*\(-j\|--jobs=\)[^0-9]\?\([0-9]\+\).*/\2/p'),1)
+
+all: $(IMAGE_ROOT)
 
 version:
 	echo $(VERSION)
 
 # included source
-build-src:
+src.build: $(shell find src -type f)
 	$(MAKE) -C src all
-	touch build-src
+	touch $@
 
 clean-src:
 	$(MAKE) -C src clean
-	$(RM) build-src
+	$(RM) src.build
 
+.PHONY:: all version clean-src
 
-# external dependancy targets
-build.deps:
-	mkdir build.deps
-
+# external dependancy source downloading
 downloads:
 	mkdir downloads
 
-build.deps/download: build.deps downloads $(DEP_DOWNLOADS)
-	touch $@
-
-build.deps/build: build.deps/download $(DEP_BUILDS)
-	touch $@
-
-build.deps/%.download : FILE = $(shell grep -m 1 '#FILE:' $< | sed s/'#FILE: '// )
-build.deps/%.download: deps/%
-	if test "$$( sha1sum downloads/$(FILE) 2> /dev/null | cut -d ' ' -f 1 )" != "$(shell grep -m 1 '#HASH:' $< | sed s/'#HASH: '// )";              \
-	then                                                                                                                               \
-	  wget $(shell grep -m 1 '#SOURCE:' $< | sed s/'#SOURCE: '// ) -O downloads/$(FILE) --progress=bar:force:noscroll --show-progress; \
+.PRECIOUS:: build/%.download
+build/%.download : SOURCE = $(shell grep -m 1 '#SOURCE:' $< | sed s/'#SOURCE: '//)
+build/%.download : HASH = $(shell grep -m 1 '#HASH:' $< | sed s/'#HASH: '//)
+build/%.download: deps/*_% downloads
+	@if test "$$( sha1sum downloads/$(shell basename $(SOURCE)) 2> /dev/null | cut -d ' ' -f 1 )" != "$(HASH)";  \
+	then                                                                                                         \
+	  wget $(SOURCE) -O downloads/$(shell basename $(SOURCE)) --progress=bar:force:noscroll --show-progress;     \
 	fi
-	if test "$$( sha1sum downloads/$(FILE) | cut -d ' ' -f 1 )" != "$(shell grep -m 1 '#HASH:' $< | sed s/'#HASH: '// )";             \
-	then                                                                                                                              \
-	  echo "Hash Missmatch";                                                                                                          \
-	  false;                                                                                                                          \
+	@if test "$$( sha1sum downloads/$(shell basename $(SOURCE)) | cut -d ' ' -f 1 )" != "$(HASH)";               \
+	then                                                                                                         \
+	  echo "Hash Missmatch";                                                                                     \
+	  false;                                                                                                     \
 	fi
-	touch $@
-
-build.deps/%.build: deps/% build.deps/%.download
-	mkdir -p build.deps/$*
-	scripts/build_dep $* downloads/$(shell grep -m 1 '#FILE:' $< | sed s/'#FILE: '// )
+	mkdir -p build
 	touch $@
 
 clean-downloads:
 	$(RM) -r downloads
 
+.PHONY:: clean-downloads
+
+# external dependancy building
+
+# do not install package list: libgcrypt-dev libgpg-error-dev libassuan-dev libksba-dev
+build/host.build:
+	mkdir -p build/host
+	fakechroot fakeroot debootstrap --variant=minbase jammy build/host
+	fakechroot fakeroot chroot build/host sed 's/ main/ main universe multiverse/' -i /etc/apt/sources.list
+	fakechroot fakeroot chroot build/host apt update
+	fakechroot fakeroot chroot build/host apt -y install build-essential less bison flex bc gawk python3 pkg-config uuid-dev libblkid-dev libudev-dev liblzma-dev zlib1g-dev libxml2-dev libdevmapper-dev libssl-dev libreadline-dev libsqlite3-dev libbz2-dev libelf-dev  libksba-dev libnpth0-dev gperf rsync autoconf automake libtool curl libsmartcols-dev libaio-dev libinih-dev liburcu-dev liblz4-dev
+	touch $@
+
+$(DEPS_BUILD_FS)/.mount:
+# would be better to see if $(DEPS_BUILD_FS) is a mount
+	if [ ! -f $(DEPS_BUILD_FS)/.mount ];                             \
+	then                                                             \
+		[ -d $(DEPS_BUILD_FS) ] || mkdir $(DEPS_BUILD_FS);              \
+		[ -d $(DEPS_BUILD_FS).upper ] || mkdir $(DEPS_BUILD_FS).upper;  \
+		[ -d $(DEPS_BUILD_FS).work ] || mkdir $(DEPS_BUILD_FS).work;    \
+		sudo mount -t overlay overlay -olowerdir=build/host,upperdir=$(DEPS_BUILD_FS).upper,workdir=$(DEPS_BUILD_FS).work $(DEPS_BUILD_FS); \
+	fi
+	touch $@
+
+$(DEPS_BUILD_FS).setup: $(DEPS_BUILD_FS)/.mount build/host.build scripts/setup_build_root scripts/setup_build_root_chroot scripts/build_dep_chroot
+	scripts/setup_build_root $(abspath $(DEPS_BUILD_FS))
+	touch $@
+
+$(DEPS_BUILD_FS).build: $(DEP_BUILDS)
+	touch $@
+
+# to make sure dependancies are in order
+# this will make a target for each root, depending on one before it
+DEPS_1 = $(filter-out $(firstword $(DEP_BUILDS)), $(DEP_BUILDS))
+DEPS_2 = $(filter-out $(lastword $(DEP_BUILDS)), $(DEP_BUILDS))
+$(foreach pair, $(join $(DEPS_1),$(addprefix :,$(DEPS_2))),$(eval $(pair)))
+
+$(DEPS_BUILD_DIR)/%.build: deps/*_% $(DEPS_BUILD_FS).setup build/%.download
+	mkdir -p $(DEPS_BUILD_DIR)/$*
+	cp deps/*_$* $(DEPS_BUILD_DIR)/$*.dep
+	scripts/build_dep $(abspath $(DEPS_BUILD_DIR)/$*.dep) $(abspath $(DEPS_BUILD_DIR)/$*) $(abspath $(DEPS_BUILD_FS)) $(abspath downloads/$(shell basename "`grep -m 1 '#SOURCE:' $< | sed s/'#SOURCE: '//`")) $(ARCH) "-j$(JOBS)"
+	touch $@
+
 clean-deps:
-	$(RM) -r build.deps
+	sudo umount $(DEPS_BUILD_FS) || true
+	$(RM) -r build
 
+.PHONY:: clean-deps
 
-# global image targets
+# build utility targets
+build-shell:
+	fakechroot fakeroot chroot $(abspath $(DEPS_BUILD_FS)) /bin/bash -l || true
 
-images:
-	mkdir images
-	mkdir images/pxe
-	mkdir images/img
-	mkdir images/iso
+.PHONY:: build-shell
+
+# disk file systems
+
+# we can't build more than one root at a time, the python installer (mabey others) do work in the $(DEPS_BUILD_FS) dir during install
+# this will make a target for each root, depending on one before it
+# this does have a side affect that building one will force some of the others to also build
+IMAGE_ROOTS_1 = $(filter-out $(firstword $(IMAGE_ROOT)), $(IMAGE_ROOT))
+IMAGE_ROOTS_2 = $(filter-out $(lastword $(IMAGE_ROOT)), $(IMAGE_ROOT))
+$(foreach pair, $(join $(IMAGE_ROOTS_2),$(addprefix :,$(IMAGE_ROOTS_1))),$(eval $(pair)))
+
+.SECONDEXPANSION:
+build.images/%-$(ARCH).root: $(DEPS_BUILD_FS).build src.build scripts/build_disk disks/%/info $$(shell find disks/$$*/root -type f)
+	scripts/build_disk $* $(abspath build.images/$*-$(ARCH)) $(abspath $(DEPS_BUILD_FS)) $(abspath $(DEPS_BUILD_DIR)) $(abspath src) $(ARCH)
+	touch $@
 
 clean-images:
 	$(RM) -r build.images
 	$(RM) -r images
 
+.PHONY:: clean-images
+
 # pxe targets
 
-all-pxe: $(PXE_FILES) $(PXES)
+all-pxe: all $(PXES)
 
 pxe-targets:
 	@echo "Aviable PXE Targets: $(PXES)"
 
-# build_root paramaters: $1 - target root fs dir, $2 - source dir, $3 - dep build dir
-build.images/%.root: disks/%/build_root build.deps/build build-src
-	mkdir -p build.images/$*
-	cp -a rootfs/* build.images/$*
-	cp -a disks/$*/root/* build.images/$*
-	./disks/$*/build_root
+images/pxe-$(ARCH):
+	mkdir -p images/pxe-$(ARCH)
+
+.PRECIOUS:: images/pxe-$(ARCH)/%.initrd
+images/pxe-$(ARCH)/%.initrd: images/pxe-$(ARCH) build.images/%-$(ARCH).root
+	cd build.images/$*-$(ARCH) && find ./ | grep -v boot/vmlinuz | cpio --owner=+0:+0 -H newc -o | gzip -9 > $(PWD)/$@
+
+# techinically depends on "build.images/%-$(ARCH)/boot/vmlinuz" but that is a part of "build.images/%-$(ARCH).root"
+.PRECIOUS:: images/pxe-$(ARCH)/%.vmlinuz
+images/pxe-$(ARCH)/%.vmlinuz: images/pxe-$(ARCH) build.images/%-$(ARCH).root
+	cp -f build.images/$*-$(ARCH)/boot/vmlinuz $@
+
+images/pxe-$(ARCH)/%: images/pxe-$(ARCH)/%.initrd images/pxe-$(ARCH)/%.vmlinuz
 	touch $@
-
-build.images/build: $(IMAGE_ROOT)
-	touch $@
-
-# we can't build more than one root at a time, the python installer (mabey others) do work in the build.deps dir during install
-# this will make a target for each root, depending on one before it
-ROOTS_1 = $(filter-out $(firstword $(IMAGE_ROOT)), $(IMAGE_ROOT))
-ROOTS_2 = $(filter-out $(lastword $(IMAGE_ROOT)), $(IMAGE_ROOT))
-$(foreach pair, $(join $(ROOTS_2),$(addprefix :,$(ROOTS_1))),$(eval $(pair)))
-
-images/pxe/%.initrd: images build.images/build
-	cd build.images/$* && find ./ | cpio --owner=+0:+0 -H newc -o | gzip -9 > $(PWD)/$@
-
-images/pxe/%.vmlinuz: images build.images/build
-	cp -f build.images/$*/boot/vmlinuz $@
-
-# the ugly sed mess...
-#    <disk>_<other> -> disks/<images>/<other>.pxe
-#    <disk> (ie no `_`) -> disks/<images>/_default.pxe
-images/pxe/% : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2.pxe'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.pxe'/)
-images/pxe/%: $(FILE) $(PXE_FILES)
-	cp -f $(FILE) $@
 
 # img targets
 
 img-targets:
 	@echo "Aviable Disk Image Targets: $(IMGS)"
 
-# for the sed see images/pxe/%
-images/img/%.img : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2.img'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.img'/)
-images/img/%.img: $(PXE_FILES)
+images/img-$(ARCH):
+	mkdir -p images/img-$(ARCH)
+
+# the ugly sed mess...
+#    <disk>_<other> -> disks/<images>/<other>.img
+#    <disk> (ie no `_`) -> disks/<images>/_default.img
+images/img-$(ARCH)/%.img : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2.img'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.boot'/)
+.SECONDEXPANSION:
+images/img-$(ARCH)/%.img: images/img-$(ARCH) $$(shell scripts/img_iso_deps $(ARCH) $$*)
 	if [ -f templates/$* ];                                                                                                             \
 	then                                                                                                                                \
-	  mkdir -p build.images/templates/$*/ ;                                                                                             \
+	  mkdir -p build.images/templates/$*/extras ;                                                                                       \
 		DISK=$$( grep -m 1 '#DISK:' templates/$* | sed s/'#DISK: '// );                                                                   \
-	  scripts/build_template $* build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/boot.config build.images/templates/$*/boot.menu && \
-	  sudo scripts/makeimg $@ images/pxe/$$DISK.vmlinuz images/pxe/$$DISK.initrd build.images/templates/$*/boot.config build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/boot.menu; \
-	elif [ -f $(FILE).config_file ] && [ -f $(FILE).boot_menu ];                                                                        \
-	then                                                                                                                                \
-	  sudo scripts/makeimg $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) $(FILE).config_file $(FILE).boot_menu;                 \
+	  scripts/build_template $* build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/config.boot build.images/templates/$*/extras && \
+	  sudo scripts/makeimg $@ images/pxe-$(ARCH)/$$DISK.vmlinuz images/pxe-$(ARCH)/$$DISK.initrd build.images/templates/$*/config.boot build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/extras; \
 	elif [ -f $(FILE).config_file ];                                                                                                    \
 	then                                                                                                                                \
-	  sudo scripts/makeimg $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) $(FILE).config_file;                                   \
-	elif [ -f $(FILE).boot_menu ];                                                                                                      \
-	then                                                                                                                                \
-	  sudo scripts/makeimg $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) "" $(FILE).boot_menu;                                  \
+	  sudo scripts/makeimg $@ images/pxe-$(ARCH)/$*.vmlinuz images/pxe-$(ARCH)/$*.initrd $(FILE) $(FILE).config_file;                                   \
 	else                                                                                                                                \
-	  sudo scripts/makeimg $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE);                                                       \
+	  sudo scripts/makeimg $@ images/pxe-$(ARCH)/$*.vmlinuz images/pxe-$(ARCH)/$*.initrd $(FILE);                                                       \
 	fi
 
 # iso targets
@@ -160,26 +199,26 @@ images/img/%.img: $(PXE_FILES)
 iso-targets:
 	@echo "Aviable ISO Targets: $(ISOS)"
 
-# for the sed see images/pxe/%
-images/iso/%.iso : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2.img'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.img'/)
-images/iso/%.iso: $(PXE_FILES)
+images/iso-$(ARCH):
+	mkdir -p images/iso-$(ARCH)
+
+# the ugly sed mess...
+#    <disk>_<other> -> disks/<images>/<other>.iso    # TODO: add the <disk>_<other> -> disks/<images>/<other>.boot case, probably easer to sub shell it like img_iso_deps
+#    <disk> (ie no `_`) -> disks/<images>/_default.boot
+images/iso-$(ARCH)/%.iso : FILE = $(shell echo "$*" | sed -e s/'\(.*\)_\(.*\)'/'disks\/\1\/\2.iso'/ -e t -e s/'\(.*\)'/'disks\/\1\/_default.boot'/)
+.SECONDEXPANSION:
+images/iso-$(ARCH)/%.iso: images/iso-$(ARCH) $$(shell scripts/img_iso_deps $(ARCH) $$*)
 	if [ -f templates/$* ];                                                                                                             \
 	then                                                                                                                                \
-	  mkdir -p build.images/templates/$*/ ;                                                                                             \
+	  mkdir -p build.images/templates/$*/extras ;                                                                                       \
 		DISK=$$( grep -m 1 '#DISK:' templates/$* | sed s/'#DISK: '// );                                                                   \
-		scripts/build_template $* build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/boot.config build.images/templates/$*/boot.menu && \
-	  scripts/makeiso $@ images/pxe/$$DISK.vmlinuz images/pxe/$$DISK.initrd build.images/templates/$*/boot.config build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/boot.menu; \
-	elif [ -f $(FILE).config_file ] && [ -f $(FILE).boot_menu ];                                                                        \
-	then                                                                                                                                \
-	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) $(FILE).config_file $(FILE).boot_menu;                      \
+		scripts/build_template $* build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/config.boot build.images/templates/$*/extras && \
+	  scripts/makeiso $@ images/pxe-$(ARCH)/$$DISK.vmlinuz images/pxe-$(ARCH)/$$DISK.initrd build.images/templates/$*/config.boot build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/extras; \
 	elif [ -f $(FILE).config_file ];                                                                                                    \
 	then                                                                                                                                \
-	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) $(FILE).config_file;                                        \
-	elif [ -f $(FILE).boot_menu ];                                                                                                      \
-	then                                                                                                                                \
-	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE) "" $(FILE).boot_menu;                                       \
+	  scripts/makeiso $@ images/pxe-$(ARCH)/$*.vmlinuz images/pxe-$(ARCH)/$*.initrd $(FILE) $(FILE).config_file;                                        \
 	else                                                                                                                                \
-	  scripts/makeiso $@ images/pxe/$*.vmlinuz images/pxe/$*.initrd $(FILE);                                                            \
+	  scripts/makeiso $@ images/pxe-$(ARCH)/$*.vmlinuz images/pxe-$(ARCH)/$*.initrd $(FILE);                                                            \
 	fi
 
 # templates
@@ -189,32 +228,74 @@ templates:
 
 # clean up
 
-clean: clean-deps clean-images clean-src respkg-clean pkg-clean
+clean: clean-deps clean-images clean-src respkg-clean pkg-clean resource-clean
 
 dist-clean: clean-deps clean-images clean-src clean-downloads pkg-dist-clean
 
-.PHONY:: all all-pxe all-imgs clean clean-src clean-downloads clean-deps clean-images dist-clean pxe-targets templates images/img/% images/iso/%
+.PHONY:: all all-pxe all-imgs clean clean-src clean-downloads clean-deps clean-images dist-clean pxe-targets templates images/%
 
-respkg-distros:
-	echo ubuntu-bionic
+contractor/linux-installer-profiles.touch: $(shell find disks/linux-installer/profiles -type f -print)
+	mkdir -p  contractor/linux-installer-profiles/var/www/static/disks
+	for DISTRO in trusty xenial bionic focal jammy; do tar -h -czf contractor/linux-installer-profiles/var/www/static/disks/ubuntu-$$DISTRO-profile.tar.gz -C disks/linux-installer/profiles/ubuntu/$$DISTRO . ; done
+	for DISTRO in buster; do tar -h -czf contractor/linux-installer-profiles/var/www/static/disks/debian-$$DISTRO-profile.tar.gz -C disks/linux-installer/profiles/debian/$$DISTRO . ; done
+	for DISTRO in 6 7; do tar -h -czf contractor/linux-installer-profiles/var/www/static/disks/centos-$$DISTRO-profile.tar.gz -C disks/linux-installer/profiles/centos/$$DISTRO . ; done
+	touch contractor/linux-installer-profiles.touch
 
+respkg-blueprints:
+	echo ubuntu-focal-large
+
+#  sudo dpkg --add-architecture arm64
+# deb http://ports.ubuntu.com/ubuntu-ports bionic main universe multiverse
+# qemu-user-static
 respkg-requires:
-	echo respkg build-essential libelf-dev bc zlib1g-dev libssl-dev gperf libreadline-dev libsqlite3-dev libbz2-dev liblzma-dev uuid-dev libdevmapper-dev libgcrypt-dev libgpg-error-dev libassuan-dev libksba-dev libnpth0-dev python3-dev python3-setuptools pkg-config libblkid-dev gettext python3-pip
+	echo respkg fakeroot bc gperf python3-dev python3-setuptools pkg-config gettext python3-pip bison flex gawk
+ifeq ($(ARCH),x86_64)
+	echo build-essential
+# uuid-dev libblkid-dev libudev-dev libgpg-error-dev liblzma-dev zlib1g-dev libxml2-dev libdevmapper-dev libssl-dev libreadline-dev libsqlite3-dev libbz2-dev libgcrypt-dev libelf-dev libassuan-dev libksba-dev libnpth0-dev
+endif
+ifeq ($(ARCH),arm64)
+	echo crossbuild-essential-arm64
+endif
 
-respkg: all-pxe
+respkg: all-pxe contractor/linux-installer-profiles.touch
 	mkdir -p contractor/resources/var/www/static/pxe/disks
-	cp images/pxe/*.initrd contractor/resources/var/www/static/pxe/disks
-	cp images/pxe/*.vmlinuz contractor/resources/var/www/static/pxe/disks
-	cd contractor && respkg -b ../disks-contractor_$(VERSION).respkg -n disks-contractor -e $(VERSION) -c "Disks for Contractor" -t load_data.sh -d resources -s contractor-os-base
+	cp images/pxe-$(ARCH)/*.initrd contractor/resources/var/www/static/pxe/disks
+	cp images/pxe-$(ARCH)/*.vmlinuz contractor/resources/var/www/static/pxe/disks
+	cd contractor && fakeroot respkg -b ../disks-contractor_$(VERSION).respkg -n disks-contractor -e $(VERSION) -c "Disks for Contractor" -t load_resources.sh -d resources -s contractor-os-base
+	cd contractor && fakeroot respkg -b ../disks-linux-installer-profiles_$(VERSION).respkg -n disks-linux-installer-profiles -e $(VERSION) -c "Disks Linux Installer Profiles" -t load_linux-installer-profiles.sh -d linux-installer-profiles
 	touch respkg
 
 respkg-file:
 	echo $(shell ls *.respkg)
 
 respkg-clean:
+	$(RM) linux-installer-profiles.touch
 	$(RM) -fr resources/var/www/disks
+	$(RM) -fr contractor/linux-installer-profiles
 
-.PHONY:: respkg-distros respkg-requires respkg respkg-file respkg-clean
+.PHONY:: respkg-blueprints respkg-requires respkg respkg-file respkg-clean
+
+resource-blueprints:
+	# echo ubuntu-focal-base
+
+resource-requires:
+	echo build-essential python3-setuptools
+	# AppImage
+
+resource:
+	# make an AppImage of the linux-installer, this will run on the host os that is close to the target os
+	# this should take a profile and a path, and make a cpio of the installed OS
+	# do the bootstrap, config, packag install and update
+	# output a profile that installs the image finishes the config and installs the bootloader
+	touch resource
+
+resource-file:
+	echo $(shell ls *.appimage)
+
+resource-clean:
+
+
+.PHONY:: resource-blueprints resource-requires resource resource-file resource-clean
 
 # MCP targets
 
@@ -224,22 +305,22 @@ pkg-clean:
 pkg-dist-clean:
 	for dir in config-curator; do $(MAKE) -C $$dir dist-clean || exit $$?; done
 
-test-distros:
-	echo ubuntu-xenial
+test-blueprints:
+	echo ubuntu-focal-base
 
 test-requires:
-	for dir in src config-curator; do $(MAKE) -C $$dir test-requires || exit $$?; done
+	for dir in disks src config-curator; do $(MAKE) -C $$dir test-requires || exit $$?; done
 
 test:
-	for dir in src config-curator; do $(MAKE) -C $$dir test || exit $$?; done
+	for dir in disks src config-curator; do $(MAKE) -C $$dir test || exit $$?; done
 
 lint:
-	for dir in src config-curator; do $(MAKE) -C $$dir lint || exit $$?; done
+	for dir in disks src config-curator; do $(MAKE) -C $$dir lint || exit $$?; done
 
-.PHONY:: test-distros lint test-requires test
+.PHONY:: test-blueprints lint test-requires test
 
-dpkg-distros:
-	for dir in config-curator; do $(MAKE) -C $$dir dpkg-distros || exit $$?; done
+dpkg-blueprints:
+	for dir in config-curator; do $(MAKE) -C $$dir dpkg-blueprints || exit $$?; done
 
 dpkg-requires:
 	for dir in config-curator; do $(MAKE) -C $$dir dpkg-requires || exit $$?; done
@@ -253,10 +334,10 @@ dpkg:
 dpkg-file:
 	echo $(shell ls config-curator*.deb)
 
-.PHONY:: dpkg-distros dpkg-requires dpkg-file dpkg
+.PHONY:: dpkg-blueprints dpkg-requires dpkg-file dpkg
 
-rpm-distros:
-	for dir in config-curator; do $(MAKE) -C $$dir rpm-distros || exit $$?; done
+rpm-blueprints:
+	for dir in config-curator; do $(MAKE) -C $$dir rpm-blueprints || exit $$?; done
 
 rpm-requires:
 	for dir in config-curator; do $(MAKE) -C $$dir rpm-requires || exit $$?; done
@@ -270,4 +351,4 @@ rpm:
 rpm-file:
 	echo $(shell ls config-curator/rpmbuild/RPMS/*/config-curator-*.rpm)
 
-.PHONY:: rpm-distros rpm-requires rpm-file rpm
+.PHONY:: rpm-blueprints rpm-requires rpm-file rpm

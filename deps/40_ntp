@@ -1,0 +1,30 @@
+#!/bin/sh
+#SOURCE: https://www.eecis.udel.edu/~ntp/ntp_spool/ntp4/ntp-4.2.8p18.tar.gz
+#HASH: 9b5247a8576c6082900682c6de98c8d3c17fc15f
+
+set -e
+#set -x
+
+build()
+{
+  if [ "x$1" = "xx86_64" ]
+  then
+    ./configure --prefix= --disable-nls --disable-linuxcaps --without-net-snmp-config --disable-all-clocks --without-sntp --without-ntpsnmpd --without-threads --disable-thread-support --disable-debugging
+  elif [ "x$1" = "xarm64" ]
+  then
+    ./configure --prefix= --disable-nls --disable-linuxcaps --without-net-snmp-config --disable-all-clocks --without-sntp --without-ntpsnmpd --without-threads --disable-thread-support --disable-debugging --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+  fi
+  # we really don't need nor want the dns_sd aka the zeroconfig/bonjour auto config stuff
+  sed 's%#define HAVE_DNSREGISTRATION 1%//#define HAVE_DNSREGISTRATION 1%' -i config.h
+  make $2
+}
+
+install()
+{
+  cp -f ntpd/ntpd $1/bin
+}
+
+binaries()
+{
+  ls ntpd/ntpd
+}

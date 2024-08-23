@@ -519,7 +519,7 @@ int main( int argc, char **argv )
 
   info = getDriveInfo( &drive );
 
-  if( doTrimOrZero )
+  if( doTrimOrZero ) // TODO: support Sanitize
   {
     if( info->supportsTrim )
     {

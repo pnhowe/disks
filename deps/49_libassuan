@@ -1,0 +1,31 @@
+#!/bin/sh
+#SOURCE: https://gnupg.org/ftp/gcrypt/libassuan/libassuan-3.0.1.tar.bz2
+#HASH: 776aac6fe4a64f29406bb498e0b2b73f2622c799
+
+set -e
+#set -x
+
+build()
+{
+  if [ "x$1" = "xx86_64" ]
+  then
+    ./configure --prefix= --disable-doc
+  elif [ "x$1" = "xarm64" ]
+  then
+    ./configure --prefix= --disable-doc --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+  fi
+  make $2
+  make install
+}
+
+install()
+{
+  :
+}
+
+binaries()
+{
+  :
+}
+
+# only used by gpgv

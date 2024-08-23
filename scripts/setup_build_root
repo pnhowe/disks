@@ -1,0 +1,17 @@
+#!/bin/sh
+
+set -e
+set -x
+
+# $1 - target directory of build root
+
+cp scripts/setup_build_root_chroot $1
+
+fakechroot fakeroot chroot $1 /bin/bash -l -c '/setup_build_root_chroot'
+
+# yes this is odd that we pass the real path to something in chroot, but ldconfig is cutting some corner that fakechroot can't handle
+fakechroot fakeroot chroot $1 /bin/bash -l -c "ldconfig.real -C $1/etc/ld.so.cache"
+
+# copy in support files
+cp -ap configs $1
+cp scripts/build_dep_chroot $1

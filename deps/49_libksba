@@ -1,0 +1,31 @@
+#!/bin/sh
+#SOURCE: https://gnupg.org/ftp/gcrypt/libksba/libksba-1.6.7.tar.bz2
+#HASH: 781acfb012cbb5328f41efcf82f723524e8d0128
+
+set -e
+#set -x
+
+build()
+{
+  if [ "x$1" = "xx86_64" ]
+  then
+    ./configure --prefix= --disable-doc
+  elif [ "x$1" = "xarm64" ]
+  then
+    ./configure --prefix= --disable-doc --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+  fi
+  make $2
+  make install
+}
+
+install()
+{
+  :
+}
+
+binaries()
+{
+  :
+}
+
+# only used by gpgv

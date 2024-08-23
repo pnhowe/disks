@@ -48,21 +48,22 @@ install: all
 	mkdir -p $(DESTDIR)/usr/sbin
 	install -m 644 libhardware.so.$(LIB_VERSION) $(DESTDIR)/usr/lib
 	install -m 755 hardwareinfo $(DESTDIR)/usr/sbin
-	mkdir -p $(DESTDIR)/lib/python3.6/libhardware
-	cp __init__.py $(DESTDIR)/lib/python3.6/libhardware
-	cp libhardware.py $(DESTDIR)/lib/python3.6/libhardware
-	cp libhardware_h.py $(DESTDIR)/lib/python3.6/libhardware
+	mkdir -p $(DESTDIR)/lib/python3/libhardware
+	cp __init__.py $(DESTDIR)/lib/python3/libhardware
+	cp libhardware.py $(DESTDIR)/lib/python3/libhardware
+	cp libhardware_h.py $(DESTDIR)/lib/python3/libhardware
 
 # have to compile twice b/c the lib is 32-bit (esx's python is 32bit)
+# this target path is wrong, when esx is a thing again, it will need to be updated
 install-esx:
 	$(MAKE) clean
 	$(MAKE) esx-lib
-	cp libhardware.so.$(LIB_VERSION) ../plato-esx/lib/libhardware.so.$(LIB_CURRENT_VERSION)
+	cp libhardware.so.$(LIB_VERSION) ../esx-img/lib/libhardware.so.$(LIB_CURRENT_VERSION)
 	$(MAKE) clean
 	$(MAKE) hardwareinfo libhardware_h.py
-	cp libhardware.py ../plato-esx/lib/python2.6/site-packages/platoclient
-	cp libhardware_h.py ../plato-esx/lib/python2.6/site-packages/platoclient
-	cp hardwareinfo ../plato-esx/sbin
+	cp libhardware.py ../esx-img/lib/python2.6/site-packages/libhardware
+	cp libhardware_h.py ../esx-img/lib/python2.6/site-packages/libhardware
+	cp hardwareinfo ../esx-img/sbin
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -83,12 +84,12 @@ clean:
 
 full-clean: clean
 
-test:
-
 test-requires:
 	echo flake8
 
+test:
+
 lint:
-	flake8 --exclude *_h.py --ignore=E501,E201,E202,E111,E126,E114,E402,W605 --statistics .
+	flake8 --exclude=*_h.py --ignore=E501,E201,E202,E111,E126,E114,E402 --statistics .
 
 .PHONY: all clean esx-lib install-disks install-client-pkg install-esx test lint test-requires

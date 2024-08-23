@@ -1,1 +1,0 @@
-../trusty/apt.tpl

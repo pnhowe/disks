@@ -4,9 +4,8 @@ import base64
 import os
 import hashlib
 import pwd
-import grp
 from datetime import datetime
-from libconfig.jinja2 import FileSystemLoader, Environment, nodes
+from libconfig.jinja2 import FileSystemLoader, Environment, nodes, TemplateSyntaxError
 from libconfig.jinja2.ext import Extension, do as do_ext
 
 
@@ -46,23 +45,33 @@ class TargetWriter( Extension ):
     return nodes.CallBlock( self.call_method( '_write', args ), [], [], body ).set_lineno( lineno )
 
   def _write( self, filename, owner, mode, caller ):
+    file_mode = int( mode, 8 )
+    ( user, group ) = owner.split( '.' )
+    try:
+      file_owner = int( user )
+    except ValueError:
+      file_owner = pwd.getpwnam( user ).pw_uid
+
+    try:
+      file_group = int( group )
+    except ValueError:
+      file_group = pwd.getpwnam( group ).pw_uid
+
     self.environment.globals[ '_target_list' ].append( str( filename ) )
     if not self.environment.globals[ '_dry_run' ]:
       target_file = os.path.join( self.environment.globals[ '_root_dir' ], *( filename.split( '/' ) ) )
 
       if not os.path.exists( os.path.dirname( target_file ) ):
-        os.makedirs( os.path.dirname( target_file ) )
+        os.makedirs( os.path.dirname( target_file ), mode=( file_mode | ( ( file_mode & 0o444 ) >> 2 ) ) )  # copy the read bits and shift them over to exec
 
       fd = open( target_file, 'w' )
       fd.write( caller() )
       fd.close()
 
       if os.getuid() == 0:
-        ( user, group ) = owner.split( '.' )
+        os.chown( target_file, file_owner, file_group )
 
-        os.chown( target_file, pwd.getpwnam( user ).pw_uid, grp.getgrnam( group ).gr_gid )
-
-        os.chmod( target_file, int( mode, 8 ) )
+        os.chmod( target_file, file_mode )
       else:
         print( 'WARNING: not running as root, unable to set owner nor mode of target file' )
 
@@ -224,7 +233,10 @@ class Config():
     eng = Environment( loader=FileSystemLoader( os.path.join( self.template_dir, package ) ), extensions=[ TargetWriter, do_ext ] )
     eng.filters[ 'unique_list' ] = unique_list
     eng.globals.update( _dry_run=True )
-    tmpl = eng.get_template( '{0}.tpl'.format( template ) )
+    try:
+      tmpl = eng.get_template( '{0}.tpl'.format( template ) )
+    except TemplateSyntaxError as e:
+      raise ValueError( 'Error paring template: "{0}" on line {1} in "{2}"'.format( e.message, e.lineno, e.filename ) )
     tmpl.render( value_map )
     return eng.globals[ '_target_list' ]
 

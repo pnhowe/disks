@@ -1,0 +1,69 @@
+[kernel]
+
+[filesystem]
+partition_type=gpt
+fs_type=ext4
+boot_fs_type=ext4
+md_meta_version=1.0
+mtab=/proc/self/mounts
+extra_mount_1=proc:proc:/proc
+extra_mount_2=sysfs:sysfs:/sys
+extra_mount_3=:/dev:/dev:bind
+extra_mount_4=devpts:devpts:/dev/pts
+extra_mount_5=binfmt_misc:binfmt_misc:/proc/sys/fs/binfmt_misc
+
+[fstab]
+prefix_1=# <file system> <mount point>   <type>  <options>       <dump>  <pass>
+prefix_2=proc  /proc  proc  defaults  0  0
+
+[bootstrap]
+type=debbootstrap
+distro=bionic
+packages=gnupg
+
+[packaging]
+manager_type=apt
+prebase_templates=timezone
+selection_1=config-curator  config-curator/config-host       string {{ config_host }}
+selection_2=config-curator  config-curator/config-proxy      string {{ config_proxy }}
+selection_3=libc6           libraries/restart-without-asking select true
+selection_4=console-setup   console-setup/codeset47          select # Latin1 and Latin5 - western Europe and Turkic languages
+selection_5=console-setup   console-setup/fontface47         select Fixed
+selection_6=console-setup   console-setup/fontsize-text47    select 16
+selection_7=console-setup   console-setup/charmap47          select UTF-8
+selection_8=grub-pc         grub-pc/install_devices          multiselect {{ _installer.filesystem.boot_drives|join( ' ' ) }}
+selection_9=grub-pc         grub-pc/install_devices_disks_changed multiselect {{ _installer.filesystem.boot_drives|join( ' ' ) }}
+selection_10=grub-pc        grub-pc/install_devices_empty    boolean true
+selection_11=grub-pc        grub-pc/timeout                  string 5
+selection_12=grub-pc        grub2/linux_cmdline_default      string
+selection_13=grub-pc        grub-pc/hidden_timeout           boolean false
+prebase_cmd_1=/usr/sbin/dpkg-reconfigure -f noninteractive tzdata
+base=ubuntu-standard
+packages=console-setup language-pack-en-base
+source_templates=sources,apt
+divert_1=/sbin/initctl:/bin/true
+divert_2=/sbin/status:/bin/true
+divert_3=/sbin/start:/bin/true
+divert_4=/usr/sbin/service:/bin/true
+divert_5=/usr/sbin/invoke-rc.d:/bin/true
+
+[config]
+base_templates=netplan,hosts
+base_cmd=/usr/sbin/netplan apply
+
+[booting]
+bootloader_templates=grub
+bootloader_config=/usr/sbin/update-grub
+bootloader_install=/usr/sbin/grub-install {0}
+
+[general]
+after_cmd_1=sed s/"#PermitRootLogin [A-Za-z\-]*"/"PermitRootLogin yes"/ -i /etc/ssh/sshd_config
+
+[packages]
+bootloader_package_bios=grub-pc
+bootloader_package_efi=grub-efi-amd64
+kernel_package=linux-image-generic
+mdadm_package=mdadm
+bcache_package=bcache-tools
+lvm_package=lvm2
+filesystem_xfs_package=xfsprogs

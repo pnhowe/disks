@@ -1,0 +1,178 @@
+#!/bin/sh
+
+set -e
+set -x
+
+PWD=$(pwd)
+
+install_libc()
+{
+  #  $1 - target root fs dir
+  #  $2 - build fs dir
+
+  # install required libraries
+  # TODO compile libc and install that instead of taking it from the host system
+  mkdir -p $1/lib64
+  cp $2/lib64/ld-linux-x86-64.so.2 $1/lib64
+  cp $2/usr/sbin/ldconfig.real $1/sbin/ldconfig
+
+  for LIB in libc.so.6 libm.so.6 libutil.so.1 libdl.so.2 \
+    libpthread.so.0 libnsl.so.2 libnss_compat.so.2 libnss_files.so.2 \
+    libnss_dns.so.2 libresolv.so.2 librt.so.1
+  do
+    cp -L $2/lib/x86_64-linux-gnu/$LIB $1/lib
+  done
+
+  # setup locale
+  cp `which locale` $1/sbin/locale
+  mkdir -p $1/usr/lib/locale
+  localedef --prefix=$1 -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
+}
+
+install_dep()
+{
+  #  $1 - target root fs dir
+  #  $2 - name of dep
+  #  $3 - dep build dir
+
+  . $PWD/deps/*_$2
+
+  cwd=$PWD
+  cd $3
+
+  install $1
+
+  cd $cwd
+}
+
+install_src()
+{
+  #  $1 - target root fs dir
+  #  $2 - name of src
+  #  $3 - src dir
+
+  # for now we will do a big if statement, not all the src is "install" able
+  if [ "x$2" = "xttytee" ]
+  then
+    cp $3/ttytee/ttytee $1/sbin
+  elif [ "x$2" = "xnscd" ]
+  then
+    cp $3/nscd/nscd $1/sbin
+  elif [ "x$2" = "xcontractor" ]
+  then
+    DESTDIR="$1" make -C "$3/contractor" install
+  elif [ "x$2" = "xlibconfig" ]
+  then
+    DESTDIR="$1" make -C "$3/libconfig" install
+  elif [ "x$2" = "xlibdrive" ]
+  then
+    DESTDIR="$1" make -C "$3/libdrive" install
+  elif [ "x$2" = "xlibhardware" ]
+  then
+    DESTDIR="$1" make -C "$3/libhardware" install
+  else
+    echo "Unknown src target '$2'"
+    exit 1
+  fi
+}
+
+get_binaries()
+{
+  #  $1 - name of dep
+  #  $2 - dep build dir
+
+  . $PWD/deps/*_$1
+
+  cwd=$PWD
+  cd $2
+
+  binaries
+
+  cd $cwd
+}
+
+install_kernel()
+{
+  #  $1 - target root fs dir
+  #  $2 - dep build dir
+  #  $3 - arch
+
+  mkdir -p $1/boot
+
+  if [ "x$3" = "xx86_64" ]
+  then
+    cp "$2/linux/arch/x86_64/boot/bzImage" $1/boot/vmlinuz
+  elif [ "x$3" = "xarm64" ]
+  then
+    cp "$2/linux/arch/arm64/boot/gzImage" $1/boot/vmlinuz
+  fi
+
+  kernel_version=$(ls $2/../lib/modules/)
+
+  mkdir -p $1/lib/modules/
+
+  cp -a "$2/../lib/modules/$kernel_version" "$1/lib/modules/"
+  rm "$1/lib/modules/$kernel_version/build" || true
+  rm "$1/lib/modules/$kernel_version/source" || true
+}
+
+#  $1 - name of disk
+#  $2 - target root fs dir
+#  $3 - build fs dir
+#  $4 - build dir
+#  $5 - src dir
+#  $6 - arch
+
+. disks/$1/info
+
+mkdir -p $2
+cp -a rootfs/* $2
+cp -a disks/$1/root/* $2
+mkdir -p $2/usr/bin
+
+install_libc $2 $3
+
+for item in busybox kmod udev python $DEP_LIST
+do
+  install_dep $2 $item "$4/$item"
+done
+
+lib_list=""
+
+set +x
+for item in busybox kmod udev python $DEP_LIST
+do
+  binary_list="$(get_binaries $item "$4/$item")"
+
+  for binary in $binary_list 
+  do
+    temp_libs=$(fakechroot fakeroot chroot $3 /bin/bash -l -c "ldd $(realpath --relative-to=$3 "$4/$item/$binary")" | grep -v 'not found' | grep -v 'not a dynamic executable' | grep -v 'libfake' | awk '{print $3}' )
+  done
+
+  lib_list="$(echo "$lib_list $temp_libs" | sort -u)"
+done
+set -x
+
+for item in ttytee nscd contractor $SRC_LIST
+do
+  install_src $2 $item $5
+done
+
+# these are allready installed by setup_base, as a part of libc
+lib_list="$(echo $lib_list | sed -r 's/[^ ]*(libutil|libc|libm|libdl|libpthread|libnsl|libnss_compat|libnss_files|libnss_dns|libresolv|librt)\.so[^ ]* //g')"
+lib_list="$(readlink -f $lib_list | sort -u)"
+
+for LIB in $lib_list
+do
+  cp -L "$3/$LIB" "$2/lib"
+done
+
+install_kernel $2 $4 $6
+
+# set disk name
+echo $1 > $2/etc/disk_name
+
+image_extra $2
+
+# must go last, for the disks that install libs in the extra function
+sudo chroot $2 /sbin/ldconfig

@@ -379,7 +379,7 @@ int main( int argc, char **argv )
     goto err;
   }
 
-  if( ( setcache == 0 ) && ( drive.protocol == PROTOCOL_TYPE_ATA ) )
+  if( ( setcache == 0 ) && ( drive.protocol == PROTOCOL_TYPE_ATA ) )  // TODO: NVME
   {
     if( disableWriteCache( &drive ) )
     {
@@ -389,7 +389,7 @@ int main( int argc, char **argv )
     if( verbose )
       printf( "Write Cache Disabled\n" );
   }
-  else if( ( setcache == 1 ) && ( drive.protocol == PROTOCOL_TYPE_ATA ) )
+  else if( ( setcache == 1 ) && ( drive.protocol == PROTOCOL_TYPE_ATA ) ) // TODO: NVME
   {
     if( enableWriteCache( &drive ) )
     {

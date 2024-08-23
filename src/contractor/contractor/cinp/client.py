@@ -8,10 +8,10 @@ from datetime import datetime
 from tempfile import NamedTemporaryFile
 from urllib import request
 
-from contractor.cinp.common import URI
+from .common import URI
 
-__CLIENT_VERSION__ = '0.14.0'
-__CINP_VERSION__ = '0.9'
+__CLIENT_VERSION__ = '0.17.0'
+__CINP_VERSION__ = '1.0'
 
 __all__ = [ 'Timeout', 'ResponseError', 'InvalidRequest', 'InvalidSession',
             'NotAuthorized', 'NotFound', 'ServerError', 'CInP' ]
@@ -168,7 +168,7 @@ class CInP():
     if http_code not in ( 200, 201, 202, 400, 401, 403, 404, 500 ):
       raise ResponseError( 'HTTP code "{0}" unhandled'.format( resp.code ) )
 
-    logging.debug( 'cinp: got http code "{0}"'.format( http_code ) )
+    logging.debug( 'cinp: got HTTP code "{0}"'.format( http_code ) )
 
     if http_code == 401:
       resp.close()
@@ -255,7 +255,7 @@ class CInP():
     ( http_code, data, _ ) = self._request( 'DESCRIBE', uri, timeout=timeout )
 
     if http_code != 200:
-      logging.warning( 'cinp: unexpected HTTP Code "{0}" for DESCRIBE'.format( http_code ) )
+      logging.warning( 'cinp: Unexpected HTTP Code "{0}" for DESCRIBE'.format( http_code ) )
       raise ResponseError( 'Unexpected HTTP Code "{0}" for DESCRIBE'.format( http_code ) )
 
     return data
@@ -281,7 +281,7 @@ class CInP():
     ( http_code, id_list, header_map ) = self._request( 'LIST', uri, data=filter_value_map, header_map=header_map, timeout=timeout )
 
     if http_code != 200:
-      logging.warning( 'cinp: unexpected HTTP Code "{0}" for LIST'.format( http_code ) )
+      logging.warning( 'cinp: Unexpected HTTP Code "{0}" for LIST'.format( http_code ) )
       raise ResponseError( 'Unexpected HTTP Code "{0}" for LIST'.format( http_code ) )
 
     if not isinstance( id_list, list ):
@@ -309,7 +309,7 @@ class CInP():
     ( http_code, rec_values, header_map ) = self._request( 'GET', uri, header_map=header_map, timeout=timeout )
 
     if http_code != 200:
-      logging.warning( 'cinp: unexpected HTTP Code "{0}" for GET'.format( http_code ) )
+      logging.warning( 'cinp: Unexpected HTTP Code "{0}" for GET'.format( http_code ) )
       raise ResponseError( 'Unexpected HTTP Code "{0}" for GET'.format( http_code ) )
 
     if not isinstance( rec_values, dict ):
@@ -329,7 +329,7 @@ class CInP():
     ( http_code, rec_values, header_map ) = self._request( 'CREATE', uri, data=values, timeout=timeout )
 
     if http_code != 201:
-      logging.warning( 'cinp: unexpected HTTP Code "{0}" for CREATE'.format( http_code ) )
+      logging.warning( 'cinp: Unexpected HTTP Code "{0}" for CREATE'.format( http_code ) )
       raise ResponseError( 'Unexpected HTTP Code "{0}" for CREATE'.format( http_code ) )
 
     if not isinstance( rec_values, dict ):
@@ -358,7 +358,7 @@ class CInP():
     ( http_code, rec_values, _ ) = self._request( 'UPDATE', uri, data=values, header_map=header_map, timeout=timeout )
 
     if http_code != 200:
-      logging.warning( 'cinp: unexpected HTTP Code "{0}" for UPDATE'.format( http_code ) )
+      logging.warning( 'cinp: Unexpected HTTP Code "{0}" for UPDATE'.format( http_code ) )
       raise ResponseError( 'Unexpected HTTP Code "{0}" for UPDATE'.format( http_code ) )
 
     if not isinstance( rec_values, dict ):
@@ -375,7 +375,7 @@ class CInP():
     ( http_code, _, _ ) = self._request( 'DELETE', uri, timeout=timeout )
 
     if http_code != 200:
-      logging.warning( 'cinp: unexpected HTTP Code "{0}" for DELETE'.format( http_code ) )
+      logging.warning( 'cinp: Unexpected HTTP Code "{0}" for DELETE'.format( http_code ) )
       raise ResponseError( 'Unexpected HTTP Code "{0}" for DELETE'.format( http_code ) )
 
     return True
@@ -395,7 +395,7 @@ class CInP():
     ( http_code, return_value, _ ) = self._request( 'CALL', uri, data=args, header_map=header_map, timeout=timeout )
 
     if http_code != 200:
-      logging.warning( 'cinp: unexpected HTTP Code "{0}" for CALL'.format( http_code ) )
+      logging.warning( 'cinp: Unexpected HTTP Code "{0}" for CALL'.format( http_code ) )
       raise ResponseError( 'Unexpected HTTP Code "{0}" for CALL'.format( http_code ) )
 
     return return_value
@@ -493,7 +493,7 @@ class CInP():
 
     http_code = resp.code
     if http_code != 200:
-      logging.warning( 'cinp: unexpected HTTP Code "{0}" for File Get'.format( http_code ) )
+      logging.warning( 'cinp: Unexpected HTTP Code "{0}" for File Get'.format( http_code ) )
       raise ResponseError( 'Unexpected HTTP Code "{0}" for File Get'.format( http_code ) )
 
     try:
@@ -566,7 +566,7 @@ class CInP():
     ( http_code, data, _ ) = self._request( 'UPLOAD', uri_parser.build( namespace, model ), data=file_reader, header_map=header_map, timeout=timeout )
 
     if http_code != 202:
-      logging.warning( 'cinp: unexpected HTTP Code "{0}" for File Upload'.format( http_code ) )
+      logging.warning( 'cinp: Unexpected HTTP Code "{0}" for File Upload'.format( http_code ) )
       raise ResponseError( 'Unexpected HTTP Code "{0}" for File Upload'.format( http_code ) )
 
     return data[ 'uri' ]

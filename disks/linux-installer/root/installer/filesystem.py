@@ -22,7 +22,10 @@ mkfs_map[ 'xfs' ] = '/sbin/mkfs.xfs -f {block_device}'
 mkfs_map[ 'vfat' ] = '/sbin/mkfs.vfat {block_device}'
 mkfs_map[ 'swap' ] = '/sbin/mkswap {block_device}'
 
-FS_WITH_TRIM = ( 'ext4', 'xfs', 'btrfs' )
+FS_WITH_TRIM = ( 'ext4', 'xfs' )
+
+# TODO: get drive physical allocation size and align the partitions   https://rainbow.chard.org/2013/01/30/how-to-align-partitions-for-best-performance-using-parted/
+# TODO: partition recipe documentation
 
 # NOTE, bios grub partitions will be auto added to any drives holding /boot or / if there is no /boot
 # swap = swap_size / total swap partitions
@@ -94,6 +97,26 @@ partition_recipes[ 'dual-lvm' ] = [
                                     { 'lv': 0, 'name': 'root', 'mount_point': '/', 'size': '95%' }  # TODO: get the caculs right to get this to 100%
                                   ]
 
+partition_recipes[ 'bcache-var' ] = [
+                                      { 'target': 0, 'mount_point': '/boot', 'size': 'boot' },
+                                      { 'target': 0, 'mount_point': '/', 'size': '- swap' },
+                                      { 'target': 0, 'type': 'swap', 'size': 'end' },
+                                      { 'target': 1, 'type': 'bcache', 'group': 0, 'as': 'cache', 'size': 'end' },
+                                      { 'target': 2, 'type': 'bcache', 'group': 0, 'as': 'backing', 'size': 'end' },
+                                      { 'bcache': 0, 'mount_point': '/var', 'type': 'ext4', 'mode': 'writeback' }  # need a better way to refere to backing
+                                  ]
+"""
+    { "target": 1, "type": "md", "group": 0, "size": "end" },
+    { "target": 2, "type": "md", "group": 0, "size": "end" },
+    { "target": 3, "type": "md", "group": 1, "size": "end" },
+    { "target": 4, "type": "md", "group": 1, "size": "end" },
+    { "target": 5, "type": "md", "group": 1, "size": "end" },
+    { "target": 6, "type": "md", "group": 1, "size": "end" },
+    { "md": 0, "level": 0, "type": "bcache", "group": 0, "as": "cache" },
+    { "md": 1, "level": 10, "type": "bcache", "group": 0, "as": "backing" },
+    { "bcache": 0, "mount_point": "/var/lib/vz", "type": "xfs", "mode": "writeback" }
+"""
+
 
 class FileSystemException( Exception ):
   pass
@@ -103,16 +126,18 @@ class MissingDrives( Exception ):
   pass
 
 
-def _parted( block_device, cmd ):
-  execute( '/sbin/parted -s {0} -- {1}'.format( block_device, cmd ) )
+def _parted( block_device, cmd_list ):
+  execute( '/sbin/parted -s {0} -- {1}'.format( block_device, '\\ \n'.join( cmd_list ) ) )
 
 
 partition_counter = {}
 partition_pos = {}
 
+parted_task_map = {}
+
 
 def _addPartition( block_device, part_type, size ):  # size in M
-  global partition_counter
+  global partition_counter, parted_task_map
 
   size = int( size )  # just incase something gives us a float
   print( 'Creating Partition on "{0}" of type "{1}" size "{2}"...'.format( block_device, part_type, size ) )
@@ -124,9 +149,6 @@ def _addPartition( block_device, part_type, size ):  # size in M
   except KeyError:
     partition_counter[ block_device ] = 0
     start = 0
-
-  if part_type != 'blank':
-    partition_counter[ block_device ] += 1
 
   if size == 0:
     offsets = '{0}m -0'.format( start )
@@ -143,19 +165,25 @@ def _addPartition( block_device, part_type, size ):  # size in M
   if part_type == 'blank':  # we are only incramenting the position counters
     return
 
-  dev_name = '{0}{1}'.format( block_device, partition_counter[ block_device ] )
-  if part_type == 'bios_grub':
-    _parted( block_device, 'mkpart primary fat32 {0}'.format( offsets ) )
-    _parted( block_device, 'set 1 bios_grub on' )
+  partition_counter[ block_device ] += 1
 
-  elif part_type == 'fs':
-    _parted( block_device, 'mkpart primary ext2 {0}'.format( offsets ) )
+  if block_device.startswith( '/dev/nvme' ):
+    dev_name = '{0}p{1}'.format( block_device, partition_counter[ block_device ] )
+  else:
+    dev_name = '{0}{1}'.format( block_device, partition_counter[ block_device ] )
+
+  if part_type == 'bios_grub':
+    parted_task_map[ block_device ].append( 'mkpart primary fat32 {0}'.format( offsets ) )
+    parted_task_map[ block_device ].append( 'set 1 bios_grub on' )
+
+  elif part_type in ( 'fs', 'empty' ):
+    parted_task_map[ block_device ].append( 'mkpart primary ext2 {0}'.format( offsets ) )
 
   elif part_type == 'swap':
-    _parted( block_device, 'mkpart primary linux-swap {0}'.format( offsets ) )
+    parted_task_map[ block_device ].append( 'mkpart primary linux-swap {0}'.format( offsets ) )
 
   else:
-    raise Exception( 'Unknown partition type' )
+    raise Exception( 'Unknown partition type "{0}"'.format( part_type ) )
 
   return dev_name
 
@@ -174,6 +202,35 @@ def _addRAID( id, member_list, md_type, meta_version ):
   execute( '/sbin/mdadm {0} --create --run --force --metadata={1} --level={2} --raid-devices={3} {4}'.format( dev_name, meta_version, md_type, len( member_list ), ' '.join( member_list ) ) )
 
   return dev_name
+
+
+def _addBCache( id, backing_dev, cache_dev, mode ):  # until we find a way to get the device name from make-bcache, we hope that the ids start at 0 and incrament by one
+  dev_name = '/dev/bcache{0}'.format( id )
+
+  if not os.path.exists( '/sys/fs/bcache' ):
+    execute( '/sbin/modprobe bcache' )
+
+  print( 'Creating bcache "{0}" with backing "{1}" and cache "{2}"...'.format( dev_name, backing_dev, cache_dev ) )
+
+  execute( '/sbin/make-bcache --wipe-bcache {0} -B {1} -C {2}'.format( ( '--writeback' if mode == 'writeback' else '' ), backing_dev, cache_dev ) )
+
+  open( '/sys/fs/bcache/register', 'w' ).write( backing_dev )
+  open( '/sys/fs/bcache/register', 'w' ).write( cache_dev )
+
+  return dev_name
+
+
+def _mdSyncPercentange():
+  result = []
+
+  for line in open( '/proc/mdstat', 'r' ).readlines():
+    match = re.search( r'=[ ]+([0-9\.]+)%', line )
+    if not match:
+      continue
+
+    result.append( float( match.group( 1 ) ) )
+
+  return result
 
 
 def _targetsWithMount( recipe, mount_point ):
@@ -213,12 +270,13 @@ def _targetsWithMount( recipe, mount_point ):
 
 def _getTargetDrives( target_drives ):
   dm = DriveManager()  # must re-enumerate the drives everything we look for targets, incase the kernel is still enumerating/detecting
-  block_list = list( dm.drive_map.keys() )
+  block_map = dm.block_map
+  block_list = list( block_map.keys() )
   block_list.sort( key=lambda x: ( len( x ), x ) )
 
   drive_map = {}
-  for port in dm.drive_map:
-    drive_map[ port ] = dm.drive_map[ port ].drive
+  for block in block_map:
+    drive_map[ block ] = block_map[ block ].drive
 
   if not target_drives:
     return ( block_list, drive_map )
@@ -270,7 +328,7 @@ def _getTargetDrives( target_drives ):
 
 
 def partition( profile, value_map ):
-  global filesystem_list, boot_drives, partition_map
+  global filesystem_list, boot_drives, partition_map, parted_task_map
 
   partition_type = profile.get( 'filesystem', 'partition_type' )
   if partition_type not in ( 'gpt', 'msdos' ):
@@ -284,7 +342,7 @@ def partition( profile, value_map ):
   if boot_fs_type not in mkfs_map.keys():
     raise FileSystemException( 'Invalid boot_fs_type "{0}"'.format( boot_fs_type ) )
 
-  md_meta_version = profile.get( 'filesystem', 'md_meta_version' )
+  md_meta_version = profile.get( 'filesystem', 'md_meta_version' )  # TODO:  remove md_meta_version from the profiles, then detect if the disks are 4K, if so use version 1.2 else 1.1, then update _mdSyncPercentange
   try:
     if value_map[ 'md_meta_version' ]:
       md_meta_version = value_map[ 'md_meta_version' ]
@@ -367,6 +425,8 @@ def partition( profile, value_map ):
 
   md_list = {}
   pv_list = {}
+  bcache_cache_list = {}
+  bcache_backing_list = {}
 
   try:
     swap_size = swap_size / sum( [ 1 for i in recipe if 'type' in i and i[ 'type' ] == 'swap' ] )
@@ -384,11 +444,15 @@ def partition( profile, value_map ):
   boot_drives = [ target_drives[i] for i in boot_drives ]
 
   for target in targets:
-    _parted( target_drives[ target ], 'mklabel {0}'.format( partition_type ) )
+    parted_task_map[ target_drives[ target ] ] = [ 'mklabel {0}'.format( partition_type ) ]
 
   if partition_type == 'gpt':
     for drive in boot_drives:
-      filesystem_list.append( { 'type': 'vfat', 'block_device': _addPartition( drive, 'bios_grub', boot_rsvd_size ) } )
+      grub_partition = _addPartition( drive, 'bios_grub', boot_rsvd_size )
+      if os.path.exists( '/sys/firmware/efi' ):
+        filesystem_list.append( { 'mount_point': '/boot/efi', 'options': mounting_options, 'type': 'vfat', 'block_device': grub_partition } )
+      else:
+        filesystem_list.append( { 'type': 'vfat', 'block_device': grub_partition } )
 
   else:  # give room for MBR Boot sector
     for drive in boot_drives:
@@ -406,7 +470,7 @@ def partition( profile, value_map ):
     elif item[ 'ref_size' ] == 'swap':
       swap_size = tmp
 
-  # { 'target': < drive # >, [ 'type': '<swap|fs type|md|pv|blank>' if not specified, fs will be used], [ 'group': <md group> (if type == 'md') ][ 'group': <volume group group> (if type == 'pv') ][ 'options': '<mounting options other than the default>' (for type == 'fs') | 'priority': <swap memer priority other then 0> (for type == 'swap') ] [ 'mount_point': '< mount point >' if type is a fs type, set to None to not mount], 'size': '<see if statement>' }
+  # { 'target': < drive # >, [ 'type': '<swap|fs type|md|pv|blank>' if not specified, fs will be used], [ 'group': <md group> (if type == 'md') ][ 'group': <bcache group> (if type == 'bcache') ][ 'group': <volume group group> (if type == 'pv') ][ 'options': '<mounting options other than the default>' (for type == 'fs') | 'priority': <swap memer priority other then 0> (for type == 'swap') ] [ 'mount_point': '< mount point >' if type is a fs type, set to None to not mount], 'size': '<see if statement>' }
   for item in [ i for i in recipe if 'target' in i ]:
     target = int( item[ 'target' ] )
     target_drive = target_drives[ target ]
@@ -434,6 +498,8 @@ def partition( profile, value_map ):
 
       elif size <= 0.0 or size >= 1.0:  # yes inclusive, can't do a 0% nor a 100% sized disks
         raise Exception( 'Invalid size percentage "{0}"'.format( item[ 'size' ] ) )
+
+      else:
         size = int( ( drive_map[ target_drive ].drive.capacity * 1024 ) * size )  # drive.capacity is in Gb
 
     else:
@@ -461,8 +527,8 @@ def partition( profile, value_map ):
     if part_type == 'swap':
       block_device = _addPartition( target_drive, 'swap', size )
 
-    elif part_type == 'blank':
-      _addPartition( target_drive, 'blank', size )
+    elif part_type in ( 'blank', 'empty' ):
+      _addPartition( target_drive, part_type, size )
 
     else:
       block_device = _addPartition( target_drive, 'fs', size )
@@ -473,6 +539,12 @@ def partition( profile, value_map ):
       except KeyError:
         md_list[ int( item[ 'group' ] ) ] = [ ( block_device, drive_map[ target_drive ] ) ]
 
+    elif part_type == 'bcache':
+      if item[ 'as' ] == 'cache':
+        bcache_cache_list[ int( item[ 'group' ] ) ] = ( block_device )
+      elif item[ 'as' ] == 'backing':
+        bcache_backing_list[ int( item[ 'group' ] ) ] = ( block_device )
+
     elif part_type == 'pv':
       try:
         pv_list[ int( item[ 'group' ] ) ].append( ( block_device, drive_map[ target_drive ] ) )
@@ -482,7 +554,7 @@ def partition( profile, value_map ):
     elif part_type == 'swap':
       filesystem_list.append( { 'type': 'swap', 'priority': priority, 'block_device': block_device } )
 
-    elif part_type == 'blank':
+    elif part_type in ( 'blank', 'empty' ):
       pass
 
     else:
@@ -490,6 +562,10 @@ def partition( profile, value_map ):
         options.append( 'discard' )
 
       filesystem_list.append( { 'mount_point': item[ 'mount_point' ], 'type': part_type, 'options': options, 'block_device': block_device } )
+
+  for target in parted_task_map:
+    print( 'Setting up partitions on "{0}"...'.format( target ) )
+    _parted( target, parted_task_map[ target ] )
 
   # { 'md': <group #>, [ 'type': '<fs type>' if not specified, default fs will be used], 'level': <raid level> [ 'options': '<mounting options other than the default>' ], [ 'meta_version': <md meta version if not default ], 'mount_point': '<mount point>' }
   for item in [ i for i in recipe if 'md' in i ]:
@@ -520,11 +596,37 @@ def partition( profile, value_map ):
     if part_type == 'swap':
         filesystem_list.append( { 'type': 'swap', 'priority': priority, 'block_device': block_device } )
 
-    else:
+    elif part_type == 'bcache':
+      if item[ 'as' ] == 'cache':
+        bcache_cache_list[ int( item[ 'group' ] ) ] = ( block_device )
+      elif item[ 'as' ] == 'backing':
+        bcache_backing_list[ int( item[ 'group' ] ) ] = ( block_device )
+
+    elif 'mount_point' in item:
       if supportsTrim and part_type in FS_WITH_TRIM:
         options.append( 'discard' )
 
       filesystem_list.append( { 'mount_point': item[ 'mount_point' ], 'type': part_type, 'options': options, 'block_device': block_device, 'members': block_list } )
+
+  # { 'bcache': <group #>, 'backing': <list of block device>, [ 'type': '<fs type>' if not specified, default fs will be used], [ 'options': '<mounting options other than the default>' ], 'mount_point': '<mount point>' }
+  for item in [ i for i in recipe if 'bcache' in i ]:
+    try:
+      part_type = item[ 'type' ]
+    except KeyError:
+      part_type = fs_type
+
+    try:
+      if item[ 'options' ] != 'defaults':
+        options = item[ 'options' ].split( ',' )
+    except KeyError:
+      options = list( mounting_options )
+
+    block_device = _addBCache( int( item[ 'bcache' ] ), bcache_backing_list[ int( item[ 'bcache' ] ) ], bcache_cache_list[ int( item[ 'bcache' ] ) ], item.get( 'mode', None ) )
+
+    if part_type == 'swap':
+      filesystem_list.append( { 'type': 'swap', 'priority': priority, 'block_device': block_device } )
+    elif 'mount_point' in item:
+      filesystem_list.append( { 'mount_point': item[ 'mount_point' ], 'type': part_type, 'options': options, 'block_device': block_device } )  # 'members' could recursivly include the members of the backing, for now this will prevent support from booting from a bcache
 
   if pv_list:
     vg_names = {}
@@ -549,7 +651,7 @@ def partition( profile, value_map ):
       print( 'Creating LV "{0}" members {1}...'.format( vg_names[ vg ], block_list ) )
       execute( '/sbin/lvm vgcreate {0} {1}'.format( vg_names[ vg ], ' '.join( block_list ) ) )
       for line in execute_lines( '/sbin/lvm vgdisplay {0}'.format( vg_names[ vg ] ) ):
-        result = re.match( '[ ]*Total PE[ ]*([0-9\.]*)', line )
+        result = re.match( r'[ ]*Total PE[ ]*([0-9\.]*)', line )
         if result:
           vg_extents[ vg ] = int( result.group( 1 ) )
           break
@@ -614,16 +716,21 @@ def partition( profile, value_map ):
     except KeyError:
       pass
 
-  if md_list:
-    print( 'Giving RAIDs 3 min to sync....' )  # TODO: replace this with something better, mabey sync till / is 10% ?
+  if md_list:  # wait till the drives have synced to at least 2% or 10 min.
+    print( 'Letting the MD RAID(s) Sync...' )
+    start_at = time.time()
     open( '/proc/sys/dev/raid/speed_limit_min', 'w' ).write( '500000000' )
     open( '/proc/sys/dev/raid/speed_limit_max', 'w' ).write( '500000000' )
-    time.sleep( 180 )
-    open( '/proc/sys/dev/raid/speed_limit_min', 'w' ).write( '2000' )
+    perc_list = _mdSyncPercentange()  # this is empty if all the RAIDs are synced
+    while perc_list and min( perc_list ) < 0.5:
+      if time.time() - 300 > start_at:
+        break
 
-  print( 'Triggering udev...' )
-  execute( '/sbin/udevadm trigger' )
-  execute( '/sbin/udevadm settle' )
+      print( 'Curent Sync Percentage: {0}'.format( ', '.join( [ str( i ) for i in perc_list ] ) ) )
+      time.sleep( 30 )
+      perc_list = _mdSyncPercentange()
+
+    open( '/proc/sys/dev/raid/speed_limit_min', 'w' ).write( '2000' )
 
 
 def mkfs():
@@ -670,6 +777,9 @@ def mount( mount_point, profile ):
   for item in profile.items( 'filesystem' ):
     if item[0].startswith( 'extra_mount_' ):
       parts = [ i.strip() for i in item[1].split( ':' ) ]
+      if parts[0] == 'efivarfs' and not os.path.exists( '/sys/firmware/efi' ):
+        continue  # TODO: there should be a better way to do this
+
       if len( parts ) == 3:
         mount_points[ parts[2] ] = tuple( parts[:2] )
       else:
@@ -685,7 +795,7 @@ def mount( mount_point, profile ):
   for point in mount_order:
     _mount( '{0}{1}'.format( mount_point, point ), *mount_points[ point ] )
 
-  if not os.path.isdir( os.path.join( mount_point, 'etc' ) ):
+  if not os.path.isdir( os.path.join( mount_point, 'etc' ) ):  # for copying /etc/hostname and /etc/resolve.conf
     os.makedirs( os.path.join( mount_point, 'etc' ) )
 
   execute( 'ln -s /proc/self/mounts {0}'.format( os.path.join( mount_point, 'etc', 'mtab' ) ) )

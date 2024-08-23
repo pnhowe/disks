@@ -4,7 +4,7 @@ from ctypes import cdll, POINTER, pointer, Structure, c_int, c_char_p, create_st
 
 from libhardware.libhardware_h import dmi_entry, pci_entry
 
-__VERSION__ = "0.4.0"
+__VERSION__ = "0.5.0"
 
 libhardware = cdll.LoadLibrary( 'libhardware.so.' + __VERSION__.split( '.' )[0] )
 

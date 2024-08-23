@@ -6,85 +6,93 @@ import glob
 import os
 import hashlib
 import lib
+import random
 from contractor.client import getClient
 from libdrive.libdrive import DriveManager
 from libhardware.libhardware import dmiInfo, pciInfo
+from platforms import getPlatform
 
 contractor = getClient()
-
-dm = DriveManager()
-
-foundation_type = 'Manual'
-if os.path.exists( '/dev/ipmi0' ):
-  foundation_type = 'IPMI'
-elif os.path.exists( '/dev/mei0' ):
-  foundation_type = 'AMT'  # NOTE: Intel has pulled the AMT SDK, and I can't find any other tools to get the AMT's MAC and set the ip locally, for new we skip this... keep an eye on https://software.intel.com/en-us/amt-sdk
-else:
-  foundation_type == 'Unknown'
-
-if foundation_type == 'IPMI':
-  lib.ipmicommand( 'chassis identify force', True )
-
-primary_iface = open( '/tmp/dhcp-interface', 'r' ).read().strip()
-
-foundation_locator = None
 
 print( 'Getting Hardware Information...' )
 hardware = {}
 hardware[ 'dmi' ] = dmiInfo()
 hardware[ 'pci' ] = pciInfo()
-
 hardware[ 'total_ram' ] = lib.getRAMAmmount()
 hardware[ 'total_cpu_count' ] = lib.cpuLogicalCount()
 hardware[ 'total_cpu_sockets' ] = lib.cpuPhysicalCount()
 
+dm = DriveManager()
+
+print( 'Getting Platform Handler...' )
+platform = getPlatform( hardware )
+platform.startIdentify()
+
+print( 'Found "{0}" Platform.'.format( platform.type ) )
+
+primary_iface = open( '/tmp/dhcp-interface', 'r' ).read().strip()
+
+foundation_locator = None
+
 print( 'Generating unique Id...' )
 hasher = hashlib.sha256()
 
-for item in glob.glob( '/sys/class/net/eth*' ):
-  hasher.update( open( os.path.join( item, 'address' ), 'rb' ).read() )
+for item in hardware[ 'dmi' ][ 'Processor Information' ]:
+  hasher.update( item[ 'ID' ].encode() )
 
 for item in hardware[ 'dmi' ][ 'System Info' ]:
+  hasher.update( item[ 'Product Name' ].encode() )
+  hasher.update( item[ 'Version' ].encode() )
   hasher.update( item[ 'Serial Number' ].encode() )
   hasher.update( item[ 'UUID' ].encode() )
 
 for item in hardware[ 'dmi' ][ 'Base Board Information' ]:
+  hasher.update( item[ 'Product Name' ].encode() )
   hasher.update( item[ 'Serial Number' ].encode() )
   hasher.update( item[ 'Asset Tag' ].encode() )
 
 for item in hardware[ 'dmi' ][ 'Chassis Information' ]:
+  hasher.update( item[ 'Version' ].encode() )
   hasher.update( item[ 'Serial Number' ].encode() )
   hasher.update( item[ 'Asset Tag' ].encode() )
 
 identifier = hasher.hexdigest()
 
 print( 'My Identifier is "{0}"'.format( identifier ) )
-bootstrap = lib.Bootstrap( identifier, contractor )
+bootstrap = lib.Bootstrap( identifier, contractor )   # TODO: start a try block and post any exception to the Cartographer
 
 lib._setMessage = bootstrap.setMessage
+platform._setMessage = bootstrap.setMessage
 
 bootstrap.setMessage( 'Getting LLDP Information...' )
 print( 'Getting LLDP Information...' )
 lldp = lib.getLLDP()
 
+info_map = { 'hardware': hardware, 'lldp': lldp, 'ip_address': lib.getIpAddress( primary_iface ) }
+
+try:
+  info_map[ 'config_uuid' ] = os.environ.get[ 'config_uuid' ]
+except KeyError:
+  pass
+
 while not foundation_locator:
   print( 'Looking up....' )
-  lookup = bootstrap.lookup( { 'hardware': hardware, 'lldp': lldp, 'ip_address': lib.getIpAddress( primary_iface ) } )
+  lookup = bootstrap.lookup( info_map )
 
   if lookup[ 'matched_by' ] is None:
     bootstrap.setMessage( 'no match' )
-    print( 'Waiting 30 seconds....' )
-    time.sleep( 30 )
+    print( 'Waiting....' )
+    time.sleep( 10 + random.randint( 0, 41 ) )
 
   else:
     foundation_locator = lookup[ 'locator' ]
 
 print( '** Hello World! I am Foundation "{0}", nice to meet you! **'.format( foundation_locator ) )
-print( 'Lookedup by "{0}"'.format( lookup[ 'matched_by'] ) )
-bootstrap.setMessage( 'Looked up as "{0}"'.format( foundation_locator ) )
+print( 'Matched by "{0}"'.format( lookup[ 'matched_by' ] ) )
+bootstrap.setMessage( 'Matched as "{0}" by "{1}"'.format( foundation_locator, lookup[ 'matched_by' ] ) )
 
 config = contractor.getConfig( foundation_locator=foundation_locator )
-config[ 'ipmi_lan_channel' ] = config.get( 'ipmi_lan_channel', 1 )
+platform.setup( config )
 
 bootstrap.setMessage( 'Geting Hardware Information...' )
 print( 'Getting Network Information...' )
@@ -93,8 +101,7 @@ network = {}
 for item in glob.glob( '/sys/class/net/eth*' ):
   network[ item.split( '/' )[ -1 ] ] = { 'mac': open( os.path.join( item, 'address' ), 'r' ).read().strip() }
 
-if foundation_type == 'IPMI':
-  network[ 'ipmi' ] = { 'mac': lib.getIPMIMAC( config[ 'ipmi_lan_channel' ] ) }
+network.update( platform.getNetwork() )
 
 for iface in lldp:
   if iface not in network:
@@ -124,73 +131,31 @@ for drive in dm.drive_list:
   disks.append( item )
   drive.setFault( False )
 
-# print 'Getting SCSI/Disk Enclosure Information...'
-# nothing yet
+# 'Getting SCSI/Disk Enclosure Information...'
 
 bootstrap.setMessage( 'Reporting Hardware info...' )
-print( 'Setting new foundation to boot to bootstrap...' )
-bootstrap.setPXEBoot( foundation_locator, 'bootstrap' )  # should happen before the foundation get's it MAC addresses so if it get's rebooted it picks back up
-
 print( 'Reporting Hardware info to contractor...' )
 error = bootstrap.setIdMap( foundation_locator, { 'hardware': hardware, 'network': network, 'disks': disks } )
 if error is not None:
   bootstrap.setMessage( 'Hardware Error: "{0}"'.format( error ) )
+  bootstrap.logout()
   sys.exit( 20 )
 
 bootstrap.setMessage( 'Hardware Profile Verified' )
 
 iface_list = []
 
-if foundation_type == 'IPMI' and 'ipmi_ip_address' in config:  # TODO: when the interface on the ipmi foundation get's figured out, this will change
-  bootstrap.setMessage( 'Configuring IPMI...' )
+bootstrap.setMessage( 'Configuring {0}...'.format( platform.type ) )
 
-  tmp = config[ 'ipmi_ip_address' ].split( '.' )  # TODO: when the interface on the ipmi foundation get's figured out, this will change
-  tmp[3] = '1'
-  address = { 'address': config[ 'ipmi_ip_address' ], 'gateway': '.'.join( tmp ), 'netmask': '255.255.255.0', 'vlan': 0, 'tagged': False }
+changed = platform.setAuth()
 
-  # remove the other users first
-  lib.ipmicommand( 'user disable 5' )
-  # # lib.ipmicommand( 'user set name 5 {0}_'.format( ipmi_username ) )  # some ipmi's don't like you to set the username to the same as it is allready....Intel!!!
-  # lib.ipmicommand( 'user set name 5 {0}'.format( ipmi_username ) )
-  # lib.ipmicommand( 'user set password 5 {0}'.format( ipmi_password ) )  # make sure username and password match /plato/plato-pod/plato/lib/IPMI.py, SOL.py
-  # lib.ipmicommand( 'user enable 5' )
-  # lib.ipmicommand( 'user priv 5 4 {0}'.format( config[ 'ipmi_lan_channel' ] ) )  # 4 = ADMINISTRATOR
+changed != platform.setIp()
 
-  lib.ipmicommand( 'sol set force-encryption true {0}'.format( config[ 'ipmi_lan_channel' ] ), True )  # these two stopped working on some new SM boxes, not sure why.
-  lib.ipmicommand( 'sol set force-authentication true {0}'.format( config[ 'ipmi_lan_channel' ] ), True )
-  lib.ipmicommand( 'sol set enabled true {0}'.format( config[ 'ipmi_lan_channel' ] ) )
-  lib.ipmicommand( 'sol set privilege-level user {0}'.format( config[ 'ipmi_lan_channel' ] ), True )  # dosen't work on some SM boxes?
-  lib.ipmicommand( 'sol payload enable {0} 5'.format( config[ 'ipmi_lan_channel' ] ) )
+if changed:
+  print( 'Preping Platform...' )
+  bootstrap.setMessage( 'Preping Platform...' )
+  platform.prep()
 
-  lib.ipmicommand( 'lan set {0} arp generate off'.format( config[ 'ipmi_lan_channel' ] ), True )  # disable gratious arp, dosen't work on some Intel boxes?
-  lib.ipmicommand( 'lan set {0} ipsrc static'.format( config[ 'ipmi_lan_channel' ] ) )
-  lib.ipmicommand( 'lan set {0} ipaddr {1}'.format( config[ 'ipmi_lan_channel' ], address[ 'address' ] ) )
-  lib.ipmicommand( 'lan set {0} netmask {1}' .format( config[ 'ipmi_lan_channel' ], address[ 'netmask' ] ) )
-  if not address.get( 'gateway', None ):
-    address['gateway'] = '0.0.0.0'
-  lib.ipmicommand( 'lan set {0} defgw ipaddr {1}'.format( config[ 'ipmi_lan_channel' ], address[ 'gateway' ] ) )  # use the address 0.0.0.0 dosen't allways work for disabeling defgw
-
-  try:
-    if address[ 'vlan' ] and address[ 'tagged' ]:
-      lib.ipmicommand( 'lan set {0} vlan id {1}'.format( config[ 'ipmi_lan_channel' ], address[ 'vlan' ] ) )
-  except KeyError:
-    pass
-
-  bootstrap.setMessage( 'Letting IPMI settle...' )
-  print( 'Letting IPMI config settle...' )
-  time.sleep( 30 )  # make sure the bmc has saved everything
-
-  print( 'Resetting BMC...' )  # so the intel boards's BMCs like to go out to lunch and never come back, wich messes up power off and bios config in the subtask, have to do something here later
-  lib.ipmicommand( 'bmc reset cold' )  # reset the bmc, make sure it comes up the way we need it
-  print( 'Letting BMC come back up...' )
-  time.sleep( 60 )  # let the bmc restart
-
-  # bmc info can hang for ever use something like http://stackoverflow.com/questions/1191374/subprocess-with-timeout
-  # to kill it and restart and try again.
-  lib.ipmicommand( 'bmc info' )  # should hang untill it comes back, need a timeout for this
-  lib.ipmicommand( 'bmc info' )
-
-  lib.ipmicommand( 'sel clear', True )  # clear the eventlog, clean slate, everyone deserves it
 
 if config.get( 'bootstrap_wipe_mbr', False ):
   bootstrap.setMessage( 'Clearing MBRs...' )
@@ -217,6 +182,7 @@ if config.get( 'bootstrap_wipe_mbr', False ):
 #     proc = Popen( [ '/bin/wget', '-Yoff', '-q', '-O', local_config_file, url ] )
 #     if proc.wait() != 0:
 #       bootstrap.setMessage( 'Error getting bios config' )
+#       bootstrap.logout()
 #       sys.exit( 1 )
 #
 #     cmd = None
@@ -233,7 +199,8 @@ if config.get( 'bootstrap_wipe_mbr', False ):
 #       cmd = [ './sum', '1_5', bios_password, local_config_file ]
 #
 #     if cmd is None:
-#       print 'Motherboard "%s" not supported' % baseboard
+#       bootstrap.setMessage( 'Motherboard "{0}" not supported'.format( baseboard ) )
+#       bootstrap.logout()
 #       sys.exit( 1 )
 #
 #     proc = Popen( cmd )
@@ -245,13 +212,14 @@ if config.get( 'bootstrap_wipe_mbr', False ):
 #
 #   if not success:
 #     bootstrap.setMessage( 'BIOS Config Failed' )
+#     bootstrap.logout()
 #     sys.exit( 1 )
 
 bootstrap.setMessage( 'Cleaning up...' )
 
-if foundation_type == 'IPMI':
-  lib.ipmicommand( 'chassis identify 0', True )
+platform.stopIdentify()
 
 bootstrap.done()
+bootstrap.logout()
 print( 'All Done' )
 sys.exit( 0 )

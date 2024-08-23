@@ -5,12 +5,11 @@ import os
 import re
 import glob
 from subprocess import Popen, PIPE
-from libdrive.libdrive_h import struct_drive_info, struct_smart_attribs, set_verbose, get_drive_info, get_smart_attrs, smart_status, drive_last_selftest_passed, log_entry_count, PROTOCOL_TYPE_ATA, PROTOCOL_TYPE_SCSI
+from libdrive.libdrive_h import struct_drive_info, struct_smart_attribs, set_verbose, get_drive_info, get_smart_attrs, smart_status, drive_last_selftest_passed, log_entry_count, PROTOCOL_TYPE_ATA, PROTOCOL_TYPE_SCSI, PROTOCOL_TYPE_NVME
 
 __VERSION__ = '3.0.0'
 
 _MegaRAIDCLI = None
-_3WareCLI = None
 
 _driveCache = None
 
@@ -24,11 +23,9 @@ def setVerbose( verbose ):
   set_verbose( verbose )
 
 
-def setCLIs( tw_cli=None, megaraid=None ):
-  global _3WareCLI, _MegaRAIDCLI
+def setCLIs( megaraid=None ):
+  global _MegaRAIDCLI
 
-  if tw_cli:
-    _3WareCLI = tw_cli
   if megaraid:
     _MegaRAIDCLI = megaraid
 
@@ -73,7 +70,10 @@ class Drive( object ):
     self.pcipath = None
     self.scsi_generic = None
     if block_name is not None:
-      tmp_list = glob.glob( '/sys/block/{0}/device/scsi_disk/*'.format( block_name ) )
+      if port.type == 'NVME':
+        tmp_list = glob.glob( '/sys/block/{0}/device'.format( block_name ) )
+      else:
+        tmp_list = glob.glob( '/sys/block/{0}/device/scsi_disk/*'.format( block_name ) )
       if tmp_list:
         self.devpath = re.sub( '^/sys', '', os.path.realpath( tmp_list[0] ) )  # for use with udev
 
@@ -174,7 +174,7 @@ class Drive( object ):
     return self._info[ 'capacity' ]
 
   def __getattr__( self, name ):
-    if name in ( 'SMARTSupport', 'SMARTEnabled', 'supportsSelfTest', 'supportsLBA', 'supportsWriteSame', 'supportsTrim', 'isSSD', 'RPM', 'LogicalSectorSize', 'PhysicalSectorSize', 'LBACount', 'WWN' ):
+    if name in ( 'SMARTSupport', 'SMARTEnabled', 'supportsSelfTest', 'supportsLBA', 'supportsWriteSame', 'supportsTrim', 'isSSD', 'RPM', 'LogicalSectorSize', 'PhysicalSectorSize', 'LBACount', 'WWN', 'GUID' ):
       if not self._info:
         self._loadInfo()
 
@@ -195,6 +195,9 @@ class Drive( object ):
     elif tmp.protocol == PROTOCOL_TYPE_SCSI:
       self._info = { 'protocol': 'SCSI', 'vendor': str( tmp.vendor_id, 'utf-8' ).strip(), 'version': str( tmp.version, 'utf-8' ).strip() }
 
+    elif tmp.protocol == PROTOCOL_TYPE_NVME:
+      self._info = { 'protocol': 'NVME', 'firmware': str( tmp.firmware_rev, 'utf-8' ).strip() }
+
     else:
       raise Exception( 'Unkown Drive protocol "{0}"'.format( tmp.protocol ) )
 
@@ -204,8 +207,16 @@ class Drive( object ):
     for item in ( 'SMARTSupport', 'SMARTEnabled', 'supportsSelfTest', 'supportsLBA', 'supportsWriteSame', 'supportsTrim', 'isSSD' ):
       self._info[ item ] = ( getattr( tmp, item ) == '\x01' )
 
-    for item in ( 'RPM', 'LogicalSectorSize', 'PhysicalSectorSize', 'LBACount', 'WWN' ):
+    for item in ( 'RPM', 'LogicalSectorSize', 'PhysicalSectorSize', 'LBACount' ):
       self._info[ item ] = getattr( tmp, item )
+
+    guid = ''.join( [ '{:02x}'.format( tmp.WWN[i]) for i in range( 0, 16 ) ] )
+    if guid[ 0:16 ] == '0000000000000000':
+      self._info[ 'WWN' ] = guid[ 16: ]
+      self._info[ 'GUID' ] = ''
+    else:
+      self._info[ 'WWN' ] = ''
+      self._info[ 'GUID' ] = '{0}-{1}-{2}-{3}-{4}'.format( guid[0:8], guid[8:12], guid[12:16], guid[16:20], guid[20:] )
 
     self._info['capacity'] = ( tmp.LogicalSectorSize * tmp.LBACount ) / ( 1024.0 * 1024.0 * 1024.0 )  # in GiB
 
@@ -225,6 +236,11 @@ class Drive( object ):
     elif attrs.protocol == PROTOCOL_TYPE_SCSI:
       for i in range( 0, attrs.count ):
         result[ '{0}-{1}'.format( attrs.data.scsi[ i ].page_code, attrs.data.scsi[ i ].parm_code ) ] = ( attrs.data.scsi[ i ].value )
+
+    elif attrs.protocol == PROTOCOL_TYPE_NVME:
+      pass  # TODO: NVME
+      # for i in range( 0, attrs.count ):
+      #   result[ '{0}-{1}'.format( attrs.data.scsi[ i ].page_code, attrs.data.scsi[ i ].parm_code ) ] = ( attrs.data.scsi[ i ].value )
 
     else:
       raise Exception( 'Unknown protocol type: "{0}"'.format( attrs.protocol ) )
@@ -270,11 +286,6 @@ class Drive( object ):
     drive_status[ 'log' ] = self.logEntryCount()
     if self.port.type == 'MegaRAID':
       tmp = getMegaRAIDMemberState( self.port )
-      if tmp:
-        drive_status[ 'controller_state' ] = tmp
-
-    elif self.port.type == '3Ware':
-      tmp = get3WareMemberState( self.port )
       if tmp:
         drive_status[ 'controller_state' ] = tmp
 
@@ -371,15 +382,6 @@ class IDEPort( Port ):
 
 def getIDEPorts():
   ports = {}
-
-  if _kernelCompare( '2.6.28' ):
-    globfilter = '/sys/class/ide_port/{0}/device/*/block/hd*'
-    globdelim = '/'
-
-  else:  # for <= 2.6.26 kernel, when move off etch/lenny, can be removed
-    globfilter = '/sys/class/ide_port/{0}/device/*/block:hd*'
-    globdelim = ':'
-
   ide_list = []
   tmp_list = glob.glob( '/sys/class/ide_port/ide*' )
   for name in tmp_list:
@@ -389,9 +391,9 @@ def getIDEPorts():
 
   for ide in ide_list:
     port = IDEPort( i )
-    tmp_list = glob.glob( globfilter.format( ide ) )
+    tmp_list = glob.glob( '/sys/class/ide_port/{0}/device/*/block/hd*'.format( ide ) )
     if len( tmp_list ) > 0:
-      tmp = tmp_list[0].split( globdelim )[-1]
+      tmp = tmp_list[0].split( '/' )[-1]
       ports[ port ] = tmp
 
     else:
@@ -425,20 +427,8 @@ def getATAPorts():
   exclude_hosts = []
   double_hosts = []
 
-  if _kernelCompare( '2.6.28' ):
-    globfilter = '/sys/class/scsi_host/{0}/device/target*/*/block/sd*'
-    globdelim = '/'
-  else:  # for <= 2.6.26 kernel, when move off etch/lenny, can be removed
-    globfilter = '/sys/class/scsi_host/{0}/device/target*/*/block:sd*'
-    globdelim = ':'
-
   # add usb disks to exclude list
   tmp_list = glob.glob( '/sys/bus/usb/devices/*/host*' )
-  for name in tmp_list:
-    exclude_hosts.append( name.split( '/' )[-1] )
-
-  # add 3ware disks to exclude list
-  tmp_list = glob.glob( '/sys/bus/pci/drivers/3w-*/*/host*' )
   for name in tmp_list:
     exclude_hosts.append( name.split( '/' )[-1] )
 
@@ -508,24 +498,24 @@ def getATAPorts():
 
   for name in name_map:
     port = ATAPort( int( re.sub( '[^0-9]', '', name ) ), name_map[ name ] )
-    tmp_list = glob.glob( globfilter.format( name ) )
+    tmp_list = glob.glob( '/sys/class/scsi_host/{0}/device/target*/*/block/sd*'.format( name ) )
     if name in double_hosts:
       port2 = ATAPort( int( re.sub( '[^0-9]', '', name ) ), ( name_map[ name ] + 1 ) )
       if len( tmp_list ) > 1:
-        ports[ port ] = tmp_list[0].split( globdelim )[-1]
-        ports[port2] = tmp_list[1].split( globdelim )[-1]
+        ports[ port ] = tmp_list[0].split( '/' )[-1]
+        ports[ port2 ] = tmp_list[1].split( '/' )[-1]
 
       elif len( tmp_list ) > 0:
-        ports[ port ] = tmp_list[0].split( globdelim )[-1]
-        ports[port2] = None
+        ports[ port ] = tmp_list[0].split( '/' )[-1]
+        ports[ port2 ] = None
 
       else:
         ports[ port ] = None
-        ports[port2] = None
+        ports[ port2 ] = None
 
     else:
       if len( tmp_list ) > 0:
-        ports[ port ] = tmp_list[0].split( globdelim )[-1]
+        ports[ port ] = tmp_list[0].split( '/' )[-1]
 
       else:
         ports[ port ] = None
@@ -567,340 +557,51 @@ def getATAPorts_ESX():
   return ports
 
 
-# 3Ware
-class ThreeWarePort( Port ):
-  def __init__( self, host, controller, enclosure, slot, port, *args, **kwargs  ):
-    super( ThreeWarePort, self ).__init__( *args, **kwargs )
+# NVME
+class NVMEPort( Port ):
+  def __init__( self, controller, namespace, *args, **kwargs  ):
+    super( NVMEPort, self ).__init__( *args, **kwargs )
     self.controller = controller
-    self.enclosure = enclosure
-    self.slot = slot
-    self.port = port
-    self.host = int( host )
+    self.namespace = namespace
 
   @property
   def location( self ):
-    if self.enclosure is None:
-      if self.port is None:
-        return '3Ware {0}:Unknown'.format( self.controller )
-
-      else:
-        return '3Ware {0}:{1}'.format( self.controller, self.port )
-
-    else:
-      return '3Ware {0}:{1}:{2}'.format( self.controller, self.enclosure, self.slot )
+    return 'NVME {0}:{1}'.format( self.controller, self.namespace )
 
   @property
   def type( self ):
-    return '3Ware'
-
-  @property
-  def physical_location( self ):
-    if self.enclosure is None:
-      if self.port is None:
-        return None
-
-      else:
-        return '/c{0}/p{1}'.format( self.controller, self.port )
-
-    else:
-      return '/c{0}/e{1}/slot{2}'.format( self.controller, self.enclosure, self.slot )
-
-  @property
-  def vport( self ):
-    if self.port is None:
-      return None
-
-    else:
-      return '/c{0}/p{1}'.format( self.controller, self.port )
-
-  def setFault( self, value ):
-    set3WareFault( self.physical_location, value )
+    return 'NVME'
 
   def __hash__( self ):
-    return ( '3Ware {0} {1}'.format( self.controller, self.port ) ).__hash__()
-
-
-def _get3WareLists():
-  tmp = Popen( [ _3WareCLI, 'show' ], stdout=PIPE, stderr=PIPE )
-  ( stdout, stderr ) = tmp.communicate()
-  if tmp.returncode != 0:
-    raise Exception( 'got return code "{0}" when getting list of 3ware controllers'.format( tmp.returncode ) )
-
-  controller_list = []
-  enclosure_list = []
-  for line in stdout.splitlines():
-    result = re.match( 'c([0-9]+) ', line )
-    if result:
-      controller_list.append( int( result.group( 1 ) ) )
-
-    result = re.match( '/c([0-9]+)/e([0-9]+) ', line )
-    if result:
-      enclosure_list.append( ( int( result.group( 1 ) ), int( result.group( 2 ) ) ) )
-
-  return ( controller_list, enclosure_list )
-
-
-def get3WareSlots():
-  if not _3WareCLI or not( os.access( '/sys/bus/pci/drivers/3w-sas', os.R_OK ) or os.access( '/sys/bus/pci/drivers/3w-9xxx', os.R_OK ) ):
-    return {}
-
-  # I can't find anyway to get this info with out the cli...
-  if not os.access( _3WareCLI, os.X_OK ):
-    raise Exception( '3ware driver loaded but no 3ware cli' )
-
-  ports = {}
-
-  ( controller_list, enclosure_list ) = _get3WareLists()
-
-  if not controller_list:
-    return {}
-
-  if len( controller_list ) > 1:
-    raise Exception( 'I haven\'t figure out how to map multiple cards to hosts yet, now I get too!' )
-
-  host_list = []
-  host_list += glob.glob( '/sys/bus/pci/drivers/3w-sas/*/host*' )
-  host_list += glob.glob( '/sys/bus/pci/drivers/3w-9xxx/*/host*' )
-
-  if host_list:
-    host = int( re.sub( '[^0-9]', '', host_list[0].split( '/' )[-1] ) )
-  else:
-    raise Exception( 'Don\'t know where to go to get the host' )
-
-  if not enclosure_list:
-    for controller in controller_list:
-      tmp = Popen( [ _3WareCLI, '/c{0}'.format( controller ), 'show', 'drivestatus' ], stdout=PIPE, stderr=PIPE )
-      ( stdout, stderr ) = tmp.communicate()
-      if tmp.returncode != 0:
-        raise Exception( 'Got return code "{0}" when getting list of ports on controller "{1}"'.format( tmp.returncode, controller ) )
-
-      for line in stdout.splitlines():
-        result = re.match( 'p([0-9]+).*u([0-9]+)', line )
-        if result:
-          port = ThreeWarePort( host, controller, None, None, int( result.group( 1 ) ) )
-          tmp_list = glob.glob( '/sys/class/scsi_host/host{0}/device/target{1}:0:{2}/*/block/sd*'.format( host, host, int( result.group( 2 ) ) ) )
-          ports[ port ] = ( tmp_list[0].split( '/' )[-1], 'twa{0}:{1}'.format( controller, int( result.group( 1 ) ) ) )
-
-        else:
-          result = re.match( 'p([0-9]+).*-', line )
-          if result:
-            port = ThreeWarePort( host, controller, None, None, int( result.group( 1 ) ) )
-            ports[ port ] = ( None, 'twa{0}:{1}'.format( controller, int( result.group( 1 ) ) ) )
-
-  else:  # update _ESX version
-    slot_unit_map = {}
-
-    # print enclosure_list
-
-    for controller in controller_list:
-      tmp = Popen( [ _3WareCLI, '/c{0}'.format( controller ), 'show', 'drivestatus' ], stdout=PIPE, stderr=PIPE )
-      ( stdout, stderr ) = tmp.communicate()
-      if tmp.returncode != 0:
-        raise Exception( 'Got return code "{0}" when getting list of ports on controller "{1}"'.format( tmp.returncode, controller ) )
-
-      for line in stdout.splitlines():
-        # print line
-        result = re.match( 'p[0-9]+.*u([0-9]+).*/c([0-9]+)/e([0-9]+)/slt([0-9]+)', line )
-        if result:
-          slot_unit_map[ ( int( result.group( 2 ) ), int( result.group( 3 ) ), int( result.group( 4 ) ) ) ] = int( result.group( 1 ) )
-
-    # print slot_unit_map
-
-    for enclosure in enclosure_list:
-      ( controller, enclosure ) = enclosure
-      tmp = Popen( [ _3WareCLI, '/c{0}/e{1}'.format( controller, enclosure ), 'show', 'slots' ], stdout=PIPE, stderr=PIPE )
-      ( stdout, stderr ) = tmp.communicate()
-
-      if tmp.returncode != 0:
-        raise Exception( 'Got return code "{0}" when getting list of ports on enclosure "{1}"'.format( tmp.returncode, enclosure ) )
-
-      for line in stdout.splitlines():
-        line = line.lower().split()
-        if len( line ) != 4:
-          continue
-
-        result = re.match( 'slot([0-9]+)', line[0] )
-        if result:
-          slot = int( result.group( 1 ) )
-          result = re.match( '/c[0-9]+/p([0-9]+)', line[2] )
-
-          if result:
-            port = ThreeWarePort( host, controller, enclosure, slot, int( result.group( 1 ) ) )
-            tmp_list = glob.glob( '/sys/class/scsi_host/host{0}/device/target{1}:0:{2}/*/block/sd*'.format( host, host, slot_unit_map[ ( controller, enclosure, slot ) ]  ) )  # this is for singles, what about groups?
-            ports[ port ] = ( tmp_list[0].split( '/' )[-1], 'twl{0}:{1}'.format( controller, int( result.group( 1 ) ) ) )
-
-          else:  # empty
-            port = ThreeWarePort( host, controller, enclosure, slot, None )
-            ports[ port ] = ( None, None )
-
-  return ports
-
-
-def get3WareSlots_ESX():
-  hba_list = getESXHBAList( ( '3w-9xxx', '3w-sas' ) )
-
-  if not hba_list:
-    return {}
-
-  # I can't find anyway to get this info with out the cli...
-  if not os.access( _3WareCLI, os.X_OK ):
-    raise Exception( '3ware driver loaded but no 3ware cli' )
-
-  ports = {}
-
-  ( controller_list, enclosure_list ) = _get3WareLists()
-
-  if not controller_list:
-    return {}
-
-  if len( controller_list ) > 1 or len( hba_list ) > 1:
-    raise Exception( 'I haven\'t figure out how to map multiple cards to hosts yet, now I get too!' )
-
-  host = 0  # do hosts matter in ESX?
-
-  volume_map = getESXVolumeMap( hba_list )
-
-  if not enclosure_list:
-    for controller in controller_list:
-      tmp = Popen( [ _3WareCLI, '/c{0}'.format( controller ), 'show', 'drivestatus' ], stdout=PIPE, stderr=PIPE )
-      ( stdout, stderr ) = tmp.communicate()
-      if tmp.returncode != 0:
-        raise Exception( 'Got return code "{0}" when getting list of ports on controller "{1}"'.format( tmp.returncode, controller ) )
-
-      for line in stdout.splitlines():
-        result = re.match( 'p([0-9]+).*u([0-9]+)', line )
-        if result:
-          port = ThreeWarePort( host, controller, None, None, int( result.group( 1 ) ) )
-          ports[ port ] = ( volume_map[ 'C0:T{0}:L0'.format( int( result.group( 2 ) ) ) ], 'twavm{0}:{1}'.format( controller, int( result.group( 1 ) ) ) )
-
-  else:
-    raise Exception( 'Not implemented yet' )
-
-  return ports
-
-
-def get3WareMemberState( port ):
-  if not os.access( _3WareCLI, os.X_OK ):
-    raise Exception( '3ware drive requested but no 3ware cli' )
-
-  tmp = Popen( [ _3WareCLI, port.vport, 'show', 'status' ], stdout=PIPE, stderr=PIPE )
-  ( stdout, stderr ) = tmp.communicate()
-  if tmp.returncode != 0:
-    raise Exception( 'Got return code "{0}" when getting 3Ware disk info for {1}'.format( tmp.returncode, port.vport ) )
-
-  for line in stdout.splitlines():
-    result = re.match( '/c[0-9]+/p[0-9]+ Status = (.*)', line )
-    if result:
-      state = result.group( 1 ).strip()
-      if state not in ( 'OK' ):
-        return state
-
-      else:
-        return None
-
-
-def set3WareFault( physical_location, state ):
-  if not os.access( _3WareCLI, os.X_OK ):
-    raise Exception( '3ware drive requested but no 3ware cli' )
-
-  if not physical_location:
-    return
-
-  if state:
-    state = 'on'
-  else:
-    state = 'off'
-
-  tmp = Popen( [ _3WareCLI, physical_location, 'set', 'identify={0}'.format( state ) ], stdout=PIPE, stderr=PIPE )
-  ( stdout, stderr ) = tmp.communicate()
-  if tmp.returncode != 0:
-    raise Exception( 'got return code "{0}" when setting identify indicator on {1}'.format( tmp.returncode, physical_location ) )
-
-
-def get3WareBBUStatus():
-  if not _3WareCLI or not( os.access( '/sys/bus/pci/drivers/3w-sas', os.R_OK ) or os.access( '/sys/bus/pci/drivers/3w-9xxx', os.R_OK ) ):
-    return {}
-
-  if not os.access( _3WareCLI, os.X_OK ):
-    raise Exception( '3ware drive requested but no 3ware cli' )
-
-  ( controller_list, enclosure_list ) = _get3WareLists()
-
-  if not controller_list:
-    return {}
-
-  status = {}
-
-  for controller in controller_list:
-    tmp = Popen( [ _3WareCLI, '/c{0}/bbu'.format( controller ), 'show', 'all' ], stdout=PIPE, stderr=PIPE )
-    ( stdout, stderr ) = tmp.communicate()
-
-    if tmp.returncode == 1:  # returncode == 1 when there is no BBU
-      continue
-
-    elif tmp.returncode != 0:
-      raise Exception( 'Got return code "{0}" when getting 3Ware BBU info on controller "{1}"'.format( tmp.returncode, controller ) )
-
-    status[ controller ] = {}
-
-    for line in stdout.splitlines():
-      result = re.match( '/c[0-9]+/bbu Online State[ ]*= (.*)', line )
-      if result:
-        status[ controller ][ 'Online State' ] = result.group( 1 ).strip()
-
-      result = re.match( '/c[0-9]+/bbu BBU Status[ ]*= (.*)', line )
-      if result:
-        status[ controller ][ 'BBU Status' ] = result.group( 1 ).strip()
-
-      result = re.match( '/c[0-9]+/bbu BBU Ready[ ]*= (.*)', line )
-      if result:
-        status[ controller ][ 'BBU Ready' ] = result.group( 1 ).strip()
-
-      result = re.match( '/c[0-9]+/bbu Last Capacity Test[ ]*= (.*)', line )
-      if result:
-        status[ controller ][ 'Last Test' ] = result.group( 1 ).strip()
-
-      result = re.match( '/c[0-9]+/bbu Battery Installation Date[ ]*= (.*)', line )
-      if result:
-        status[ controller ][ 'Install Date' ] = result.group( 1 ).strip()
-
-      result = re.match( '/c[0-9]+/bbu Battery Temperature Value[ ]*= (.*)', line )
-      if result:
-        status[ controller ][ 'Battery Temp' ] = result.group( 1 ).strip()
-
-    return status
-
-
-def get3WareUnitStatus():
-  if not _3WareCLI or not( os.access( '/sys/bus/pci/drivers/3w-sas', os.R_OK ) or os.access( '/sys/bus/pci/drivers/3w-9xxx', os.R_OK ) ):
-    return {}
-
-  if not os.access( _3WareCLI, os.X_OK ):
-    raise Exception( '3ware drive requested but no 3ware cli' )
-
-  ( controller_list, enclosure_list ) = _get3WareLists()
-
-  if not controller_list:
-    return {}
-
-  status = {}
-
-  for controller in controller_list:
-    tmp = Popen( [ _3WareCLI, '/c{0}'.format( controller ), 'show', 'unitstatus' ], stdout=PIPE, stderr=PIPE )
-    ( stdout, stderr ) = tmp.communicate()
-    if tmp.returncode != 0:
-      raise Exception( 'Got return code "{0}" when getting 3Ware unitstatus info on controller "{1}"'.format( tmp.returncode, controller ) )
-
-    status[ controller ] = []
-
-    for line in stdout.splitlines():
-      parts = line.split()
-      if not parts:
-        continue
-      if parts[0].startswith( 'u' ):
-        status[ controller ].append( { 'Name': parts[0], 'Type': parts[1], 'Status': parts[2], 'Size': parts[6], 'Cache': parts[7], 'Auto Verify': parts[8] } )
-
-    return status
+    return ( 'NVME {0} {1}'.format( self.controller, self.namespace ).__hash__() )
+
+
+def getNVMEPorts():
+  port_map = {}
+  tmp_list = []  # the first part of the tuple is for PCI location sorting, the second is what we are after (when it is sorted)
+  for item in glob.glob( '/sys/devices/pci[0-9]*/[0-9]*/[0-9]*/[0-9]*/nvme/nvme*' ):
+    tmp = item.replace( ':', '' ).replace( '.', '' ).split( '/' )
+    tmp_list.append( ( '{0} {1} {2} {3} {4:04d}'.format( tmp[3], tmp[4], tmp[5], tmp[6], int( re.sub( '[^0-9]', '', tmp[8] ) ) ), tmp[8] ) )
+
+  for item in glob.glob( '/sys/devices/pci[0-9]*/[0-9]*/[0-9]*/nvme/nvme*' ):
+    tmp = item.replace( ':', '' ).replace( '.', '' ).split( '/' )
+    tmp_list.append( ( '{0} {1} {2} 000000000 {3:04d}'.format( tmp[3], tmp[4], tmp[5], int( re.sub( '[^0-9]', '', tmp[7] ) ) ), tmp[7] ) )
+
+  for item in glob.glob( '/sys/devices/pci[0-9]*/[0-9]*/nvme/nvme*' ):
+    tmp = item.replace( ':', '' ).replace( '.', '' ).split( '/' )
+    tmp_list.append( ( '{0} {1} 000000000 000000000 {2:04d}'.format( tmp[3], tmp[4], int( re.sub( '[^0-9]', '', tmp[6] ) ) ), tmp[6] ) )
+
+  tmp_list.sort()
+
+  for name in [ i[1] for i in tmp_list ]:
+    tmp_list = glob.glob( '/sys/class/nvme/{0}/{0}n*'.format( name ) )
+    for tmp in tmp_list:
+      block = tmp.split( '/' )[ -1 ]
+      namespace = int( block.split( 'n' )[-1] )
+      port = NVMEPort( re.sub( '[^0-9]', '', name ), namespace )
+      port_map[ port ] = ( block, '/dev/{0}:{1}'.format( name, namespace ) )
+
+  return port_map
 
 
 # MegaRAID
@@ -937,12 +638,12 @@ def _getMegaRAIDLists():
   enclosure_list = []
   tmpController = None
   for line in stdout.splitlines():
-    result = re.match( '\s*Number of enclosures on adapter ([0-9]+)', line )
+    result = re.match( r'\s*Number of enclosures on adapter ([0-9]+)', line )
     if result:
       tmpController = result.group( 1 )
       controller_list.append( tmpController )
 
-    result = re.match( '\s*Enclosure ([0-9]+):', line )
+    result = re.match( r'\s*Enclosure ([0-9]+):', line )
     if result:
       enclosure_list.append( '{0}-{1}'.format( tmpController, result.group( 1 ) ) )
 
@@ -961,7 +662,7 @@ def _getMegaRAIDLogicalVolumes( controller_list ):
       raise Exception( 'Got return code "{0}" when getting list of logical volumes on controller "{1}"'.format( tmp.returncode, controller ) )
 
     for line in stdout.splitlines():
-      result = re.match( 'Virtual Drive: ([0-9])* (Target Id: \([0-9])*\)', line )
+      result = re.match( r'Virtual Drive: ([0-9])* (Target Id: \([0-9])*\)', line )
       if result:
         logicalVolumes_list[ controller ].append( ( int( result.group( 1 ) ), int( result.group( 2 ) ) ) )
 
@@ -1235,17 +936,16 @@ def getMegaUnitStatus():
 
 # SAS
 class SASPort( Port ):
-  def __init__( self, sas_address, scsi_id, slot, slot_name, *args, **kwargs  ):
+  def __init__( self, scsi_id, slot, slot_name, *args, **kwargs  ):
     super( SASPort, self ).__init__( *args, **kwargs )
-    self.sas_address = sas_address
+    self.host = int( scsi_id.split( ':' )[0] )
     self.scsi_id = scsi_id
     self.slot = slot
     self.slot_name = slot_name
-    self.host = int( scsi_id.split( ':' )[0] )
 
   @property
   def location( self ):
-    return 'SAS {0}:{1}'.format( self.sas_address, self.slot )
+    return 'SAS {0}:{1}'.format( self.host, self.slot )
 
   @property
   def type( self ):
@@ -1256,11 +956,11 @@ class SASPort( Port ):
       setSASFault( self.scsi_id, self.slot_name, value )
 
   def __hash__( self ):
-    return ( 'SAS {0} {1}'.format( self.sas_address, self.slot ) ).__hash__()
+    return ( 'SAS {0} {1}'.format( self.host, self.slot ) ).__hash__()
 
 
 def getSASEnclosureList():
-  enclosure_list = {}
+  enclosure_list = []
 
   if not os.access( '/sys/class/sas_expander/', os.F_OK ) or not os.access( '/sys/class/enclosure/', os.F_OK ):
     return enclosure_list
@@ -1270,10 +970,7 @@ def getSASEnclosureList():
     if len( tmp_list ) < 1:
       continue
 
-    if not os.access( '/sys/class/sas_device/{0}/sas_address'.format( name ), os.F_OK ):
-      continue
-
-    enclosure_list[ tmp_list[0].split( '/' )[-2] ] = open( '/sys/class/sas_device/{0}/sas_address'.format( name ), 'r' ).read().strip()
+    enclosure_list.append( tmp_list[0].split( '/' )[-2] )
 
   return enclosure_list
 
@@ -1293,7 +990,7 @@ def _getEnclosurePortMap( enclosure ):  # TODO: Cache this? save some globbing?
   if re.match( '[A-E][0-9]+', ports[0] ):  # voyager gen3
     return dict( zip( ports, ports ) )
 
-  if re.match( 'SLOT[ 0-9]*\[[A-G],[ ]*[1-9]+\]', ports[0] ):  # pikes peak
+  if re.match( r'SLOT[ 0-9]*\[[A-G],[ ]*[1-9]+\]', ports[0] ):  # pikes peak
     result = {}
     for item in ports:
       ( bay, slot ) = item.split( '[' )[1].split( ']' )[0].split( ',' )
@@ -1310,12 +1007,12 @@ def _getEnclosurePortMap( enclosure ):  # TODO: Cache this? save some globbing?
   raise Exception( 'Unknown Port Naming System' )
 
 
-def getSASEnclosurePorts( enclosure, sas_address ):
+def getSASEnclosurePorts( enclosure ):
   port_map = _getEnclosurePortMap( enclosure )
 
   ports = {}
   for i in port_map:
-    port = SASPort( sas_address, enclosure, i, port_map[ i ] )
+    port = SASPort( enclosure, i, port_map[ i ] )
     block_list = glob.glob( '/sys/class/enclosure/{0}/{1}/device/block/sd*'.format( enclosure, port_map[ i ] ) )
     if len( block_list ) > 0:
       ports[ port ] = block_list[0].split( '/' )[-1]
@@ -1349,9 +1046,9 @@ def getSASDirectPorts():
   block_list = glob.glob( '/sys/class/scsi_host/host*/device/phy-*/port/end_device-*/target*/*/block/sd*' )  # phy not port so we can get the sas address
   for block in block_list:
     block_parts = block.split( '/' )
-    phy = '{0}/sas_phy/{1}'.format( '/'.join( block_parts[ 0:7 ] ), block_parts[6] )
+    # phy = '{0}/sas_phy/{1}'.format( '/'.join( block_parts[ 0:7 ] ), block_parts[6] )
 
-    port = SASPort( open( '{0}/sas_address'.format( phy ), 'r' ).read().strip(), block_parts[-3], block_parts[6].split( ':' )[-1], None )
+    port = SASPort( block_parts[-3], block_parts[6].split( ':' )[-1], None )
 
     ports[ port ] = block_parts[-1]
 
@@ -1400,7 +1097,7 @@ class DriveManager( object ):
   @property
   def port_list( self ):
     tmp = list( self._port_list )  # make a copy
-    tmp.sort( key=lambda drive: drive.name )
+    tmp.sort( key=lambda port: port.location )
     return tmp
 
   @property
@@ -1426,7 +1123,15 @@ class DriveManager( object ):
   def drive_map( self ):
     tmp = {}
     for drive in self.drive_list:
-      tmp[ '{0}'.format( drive.libdrive_name ) ] = drive.port
+      tmp[ drive.libdrive_name ] = drive.port
+    return tmp
+
+  @property
+  def block_map( self ):
+    tmp = {}
+    for drive in self.drive_list:
+      if drive.block_name is not None:
+        tmp[ os.path.join( '/dev', drive.block_name ) ] = drive.port
     return tmp
 
   @property
@@ -1454,13 +1159,6 @@ class DriveManager( object ):
           if block:
             self._drive_list.append( Drive( port, block, block, '/dev/{0}'.format( block ) ) )
       """
-      port_list = get3WareSlots_ESX()
-      if port_list:
-        for port in port_list:
-          ( block, libdrive ) = port_list[ port ]
-          self._port_list.append( port )
-          if block:
-            self._drive_list.append( Drive( port, libdrive, block, '/dev/{0}'.format( libdrive ) ) )
 
       port_list = getMegaRAIDPorts_ESX()
       if port_list:
@@ -1493,15 +1191,14 @@ class DriveManager( object ):
             block_list.append( block )
             self._drive_list.append( Drive( port, block, block, '/dev/{0}'.format( block ) ) )
 
-      port_list = get3WareSlots()
+      port_list = getNVMEPorts()
       if port_list:
         for port in port_list:
           ( block, libdrive ) = port_list[ port ]
           self._port_list.append( port )
-          if libdrive:
-            if block is not None and block not in block_list:
-              block_list.append( block )
-            self._drive_list.append( Drive( port, libdrive, block, '/dev/{0}'.format( libdrive ) ) )
+          if block and block not in block_list:
+            block_list.append( block )
+            self._drive_list.append( Drive( port, block, block, libdrive ) )
 
       port_list = getMegaRAIDPorts()
       if port_list:
@@ -1515,7 +1212,7 @@ class DriveManager( object ):
 
       enclosure_list = getSASEnclosureList()
       for enclosure in enclosure_list:
-        port_list = getSASEnclosurePorts( enclosure, enclosure_list[enclosure] )
+        port_list = getSASEnclosurePorts( enclosure )
         for port in port_list:
           block = port_list[ port ]
           self._port_list.append( port )

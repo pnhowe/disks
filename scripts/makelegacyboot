@@ -1,0 +1,68 @@
+#!/bin/bash
+
+set -e
+#set -x
+
+# $1 - target dir
+# $2 - mode "iso" or "img"
+# $3 - boot config
+
+. $3
+
+DEFAULT=$( echo "${CMDLINE_LIST[0]}" | cut -f1 )
+
+if [ "x$2" == "xiso" ]
+then
+  ISO_BIN="/usr/lib/ISOLINUX/isolinux.bin"
+  LD32="/usr/lib/syslinux/modules/bios/ldlinux.c32"
+
+  if [ ! -f "$LD32"  ];
+  then
+    echo "ldlinux.c32 not found install syslinux-common"
+    exit 1
+  fi
+
+  mkdir -p $1/isolinux
+  cp $ISO_BIN $1/isolinux
+  cp $LD32 $1/isolinux
+
+  EXTCFG=$1/isolinux.cfg
+  EXTMENU=$1/isolinux.menu
+  MENU_NAME="isolinux.menu"
+
+else
+
+  EXTCFG=$1/extlinux.cfg
+  EXTMENU=$1/extlinux.menu
+  MENU_NAME="extlinux.menu"
+fi
+
+echo "PROMPT 1
+TIMEOUT 50
+DISPLAY $MENU_NAME
+
+DEFAULT $DEFAULT
+" > $EXTCFG
+
+for item in "${CMDLINE_LIST[@]}"
+do
+  NAME=$( echo "$item" | cut -f1 )
+  CMDLINE=$( echo "$item" | cut -f3 )
+
+  echo "
+LABEL $NAME
+KERNEL /vmlinuz.img
+APPEND initrd=/initrd.img $CMDLINE" >> $EXTCFG
+done
+
+echo "1fT3kton Disks Boot Menu0f
+" > $EXTMENU
+
+for item in "${CMDLINE_LIST[@]}"
+do
+  NAME=$( echo "$item" | cut -f1 )
+  DESC=$( echo "$item" | cut -f2 )
+  echo "$NAME - $DESC" >> $EXTMENU
+done
+
+echo "" >> $EXTMENU

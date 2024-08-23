@@ -1,0 +1,28 @@
+#!/bin/sh
+#SOURCE: http://archive.ubuntu.com/ubuntu/pool/main/d/debootstrap/debootstrap_1.0.136ubuntu1.tar.gz
+#HASH: 39729740586252feef7a618e54563340db818874
+
+set -e
+#set -x
+
+build()
+{
+  make $2
+  # these two are so we don't have to sudo to install, the ownership get's washed out later anyway
+  sed s/"install -o root -g root -m 0644"/"install -m 0644"/ -i Makefile
+  sed s/"chown root:root"/"#chown root:root"/ -i Makefile
+
+  # we are going to do our own mounting, so disable deboostrap's mounting.
+  # deboostrap's mounting dose not keep up with new device creation
+  sed s/"setup_devices () {"/"setup_devices () { return 0"/ -i functions
+}
+
+install()
+{
+  DESTDIR=$1 make install
+}
+
+binaries()
+{
+  :
+}

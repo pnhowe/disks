@@ -53,7 +53,7 @@ make install DESTDIR=%{buildroot}/
 
 %post
 FLAGS=""
-HOST=http://controller  # would be nice to get this from a db_get type thing
+HOST=http://contractor  # would be nice to get this from a db_get type thing
 PROXY=
 
 if test -n "\$CONFIG_CURATOR_HOST"

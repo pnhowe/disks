@@ -1,0 +1,38 @@
+#!/bin/sh
+#SOURCE: https://mirrors.edge.kernel.org/pub/linux/kernel/people/tytso/e2fsprogs/v1.47.1/e2fsprogs-1.47.1.tar.gz
+#HASH: bf47ae2fe92f6feb5a4ee2eeebecd07c52b79a07
+
+set -e
+#set -x
+
+build()
+{
+  if [ "x$1" = "xx86_64" ]
+  then
+    ./configure --prefix=/ --disable-nls
+  elif [ "x$1" = "xarm64" ]
+  then
+    ./configure --prefix=/ --disable-nls --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+  fi
+  make $2
+}
+
+install()
+{
+  cp -f misc/mke2fs $1/sbin/mkfs.ext2
+  ln -sf mkfs.ext2 $1/sbin/mkfs.ext3
+  ln -sf mkfs.ext2 $1/sbin/mkfs.ext4
+  cp -f e2fsck/e2fsck $1/sbin/fsck.ext2
+  ln -sf fsck.ext2 $1/sbin/fsck.ext3
+  ln -sf fsck.ext2 $1/sbin/fsck.ext4
+  cp -f misc/tune2fs $1/sbin
+  cp -f misc/dumpe2fs $1/sbin
+}
+
+binaries()
+{
+  ls misc/mke2fs
+  ls e2fsck/e2fsck 
+  ls misc/tune2fs
+  ls misc/dumpe2fs
+}

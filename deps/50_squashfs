@@ -1,0 +1,30 @@
+#!/bin/sh
+#SOURCE: https://downloads.sourceforge.net/project/squashfs/squashfs/squashfs4.6.1/squashfs4.6.1.tar.gz
+#HASH: daad956aa77ccddf5df20db6a2eebcc4a226cab5
+
+set -e
+#set -x
+
+build()
+{
+  sed s/'#XZ_SUPPORT = 1'/'XZ_SUPPORT = 1'/ -i squashfs-tools/Makefile
+  if [ "x$1" = "xx86_64" ]
+  then
+    make -C squashfs-tools $2
+  elif [ "x$1" = "xarm64" ]
+  then
+    make CC=aarch64-linux-gnu-gcc -C squashfs-tools $2
+  fi
+}
+
+install()
+{
+  cp -f squashfs-tools/unsquashfs $1/bin/
+  cp -f squashfs-tools/mksquashfs $1/bin/
+}
+
+binaries()
+{
+  ls squashfs-tools/unsquashfs
+  ls squashfs-tools/mksquashfs
+}

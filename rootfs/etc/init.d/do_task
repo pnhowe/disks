@@ -3,6 +3,7 @@
 DEBUG=0
 NET_DEBUG=0
 CONFIG_SRC="remote"
+CONFIG_REMOTE_URL="http://contractor/config/pxe_template/"
 HTTP_PROXY=
 INTERFACE="any"
 INTERFACE_MAC=
@@ -15,8 +16,10 @@ DNS_SERVER=
 DNS_SEARCH_ZONE=
 HOSTNAME=
 CONTRACTOR_IP=
-CONTRACTOR_HOST="http://contractor"
+CONTRACTOR_HOST="contractor"
 CONTRACTOR_PROXY=
+CONFIG_UUID=
+JOB_ID=
 MEDIA_UUID=
 MEDIA_LABEL=
 
@@ -96,11 +99,20 @@ do
     local_config)
       CONFIG_SRC="local"
       ;;
+    config_remote_url=*)
+      CONFIG_REMOTE_URL="${x#config_remote_url=}"
+      ;;
+    config_uuid=*)
+      CONFIG_UUID="${x#config_uuid=}"
+      ;;
+    job_id=*)
+      JOB_ID="${x#job_id=}"
+      ;;
     media_uuid=*)
-      MEDIA_UUID=${x#media_uuid=}
+      MEDIA_UUID="${x#media_uuid=}"
       ;;
     media_label=*)
-      MEDIA_LABEL=${x#media_label=}
+      MEDIA_LABEL="${x#media_label=}"
       ;;
   esac
 done
@@ -109,7 +121,7 @@ if [ "x$CONTRACTOR_PROXY" != "x" ]
 then
   PING_HOST="$(echo $CONTRACTOR_PROXY | awk -F/ '{print $3}')"
 else
-  PING_HOST="$(echo $CONTRACTOR_HOST | awk -F/ '{print $3}')"
+  PING_HOST=$CONTRACTOR_HOST
 fi
 
 if [ "$NET_DEBUG" == "1" ]
@@ -372,8 +384,8 @@ fi
 
 if [ "x$MEDIA_UUID" != "x" ]
 then
+  echo "Mounting '$MEDIA_UUID' to /media..."
   mkdir /media
-  modprobe ext2 ext3 ext4 vfat
   /sbin/udevadm trigger
   /sbin/udevadm settle
   mount UUID=$MEDIA_UUID /media
@@ -384,8 +396,8 @@ then
   fi
 elif [ "x$MEDIA_LABEL" != "x" ]
 then
+  echo "Mounting '$MEDIA_LABEL' to /media..."
   mkdir /media
-  modprobe ext2 ext3 ext4 vfat
   /sbin/udevadm trigger
   /sbin/udevadm settle
   mount LABEL=$MEDIA_LABEL /media
@@ -408,8 +420,9 @@ then
   /media/config-init
 fi
 
-if [ "$CONFIG_SRC" == "local" ]
+if [ "x$CONFIG_SRC" == "xlocal" ]
 then
+  echo "Using Local Config..."
   if [ -r /media/config.json ]
   then
     export contractor_host="file://media/config.json"
@@ -421,15 +434,28 @@ then
     error_happened
   fi
 
-elif [ "$CONFIG_SRC" == "remote" ]
+  if [ -r /media/config ]
+  then
+    cp /media/config /config
+  fi
+
+elif [ "x$CONFIG_SRC" == "xremote" ]
 then
+  echo "Getting Remote Config from '$CONFIG_REMOTE_URL'..."
   if [ "$NO_IP" == "1" ]
   then
     echo "No IP to get config with!"
     error_happened
   fi
 
-  export contractor_host=$CONTRACTOR_HOST
+  wget -q -O /config $CONFIG_REMOTE_URL
+  #  TODO: sometimes this wget fails, it would be nice to set -e this script and have a wrapper that would deal with that
+
+  export contractor_host=http://$CONTRACTOR_HOST
+  export config_uuid=$CONFIG_UUID
+  export job_id=$JOB_ID
+  echo "config_uuid = '$CONFIG_UUID'"
+  echo "job_id = '$JOB_ID'"
 fi
 
 echo "contractor_host = '$CONTRACTOR_HOST'"
@@ -447,6 +473,9 @@ then
   /bin/logger "contractor_proxy: $CONTRACTOR_PROXY"
   export contractor_proxy=$CONTRACTOR_PROXY
 fi
+
+echo "Loading Job Config..."
+initJobConfig
 
 if [ "x$DEBUG" != "x1" ]
 then

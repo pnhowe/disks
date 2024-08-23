@@ -1,0 +1,28 @@
+#!/bin/sh
+#SOURCE: https://ftp.gnu.org/gnu/parted/parted-3.6.tar.xz
+#HASH: b83f10e654250a69dd9278f4425802c1b7fb0c74
+
+set -e
+#set -x
+
+build()
+{
+  if [ "x$1" = "xx86_64" ]
+  then
+    CFLAGS="-I`pwd`/../lvm2-x86_64/libdm/" LDFLAGS="-L`pwd`/../lvm2-x86_64/libdm/" ./configure --prefix= --disable-shared --without-readline
+  elif [ "x$1" = "xarm64" ]
+  then
+    ./configure --prefix= --disable-shared --without-readline --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+  fi
+  make $2
+}
+
+install()
+{
+  cp -f parted/parted $1/sbin
+}
+
+binaries()
+{
+  ls parted/parted
+}

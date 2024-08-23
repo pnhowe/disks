@@ -1,8 +1,0 @@
-PROMPT 1
-TIMEOUT 10
-
-DEFAULT utility
-
-LABEL utility
-KERNEL utility.vmlinuz
-APPEND initrd=utility.initrd no_config

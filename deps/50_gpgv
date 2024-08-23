@@ -1,0 +1,28 @@
+#!/bin/sh
+#SOURCE: https://www.gnupg.org/ftp/gcrypt/gnupg/gnupg-2.5.0.tar.bz2
+#HASH: eb33777782b1d5c766f449a26126ab1d9cef25ef
+
+set -e
+#set -x
+
+build()
+{
+  if [ "x$1" = "xx86_64" ]
+  then
+    ./configure --prefix= --disable-ntbtls --disable-gnutls --disable-ldap --disable-nls --disable-card-support --disable-dirmngr --disable-scdaemon --disable-gpgsm --disable-keyboxd --disable-tpm2d --disable-gpgtar --disable-wks-tools --disable-doc --without-readline --disable-tofu
+  elif [ "x$1" = "xarm64" ]
+  then
+    ./configure --prefix= --disable-ntbtls --disable-gnutls --disable-ldap --disable-nls --disable-card-support --disable-dirmngr --disable-scdaemon --disable-gpgsm --disable-keyboxd --disable-tpm2d --disable-gpgtar --disable-wks-tools --disable-doc --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+  fi
+  make $2
+}
+
+install()
+{
+  cp -f g10/gpgv $1/sbin
+}
+
+binaries()
+{
+  ls g10/gpgv
+}
