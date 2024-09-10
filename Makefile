@@ -90,7 +90,7 @@ $(DEPS_BUILD_FS)/.mount:
 		[ -d $(DEPS_BUILD_FS) ] || mkdir $(DEPS_BUILD_FS);              \
 		[ -d $(DEPS_BUILD_FS).upper ] || mkdir $(DEPS_BUILD_FS).upper;  \
 		[ -d $(DEPS_BUILD_FS).work ] || mkdir $(DEPS_BUILD_FS).work;    \
-		sudo mount -t overlay overlay -olowerdir=build/host,upperdir=$(DEPS_BUILD_FS).upper,workdir=$(DEPS_BUILD_FS).work $(DEPS_BUILD_FS); \
+		mountpoint -q $(DEPS_BUILD_FS) || sudo mount -t overlay overlay -olowerdir=build/host,upperdir=$(DEPS_BUILD_FS).upper,workdir=$(DEPS_BUILD_FS).work $(DEPS_BUILD_FS); \
 	fi
 	touch $@
 
@@ -114,13 +114,13 @@ $(DEPS_BUILD_DIR)/%.build: deps/*_% $(DEPS_BUILD_FS).setup build/%.download
 	touch $@
 
 clean-deps:
-	sudo umount $(DEPS_BUILD_FS) || true
+	mountpoint -q $(DEPS_BUILD_FS) && sudo umount $(DEPS_BUILD_FS)
 	$(RM) -r build
 
 .PHONY:: clean-deps
 
 # build utility targets
-build-shell:
+build-shell: $(DEPS_BUILD_FS)/.mount
 	fakechroot fakeroot chroot $(abspath $(DEPS_BUILD_FS)) /bin/bash -l || true
 
 .PHONY:: build-shell
