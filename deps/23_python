@@ -24,16 +24,16 @@ ac_cv_file__dev_ptc=yes" > config.site
   fi
   make python $2
   LIBSUBDIRS=$SUBDIRS make -e build_all $2
-  LIBSUBDIRS=$SUBDIRS make install -e libinstall
-  LIBSUBDIRS=$SUBDIRS make install -e sharedinstall
+  LIBSUBDIRS=$SUBDIRS TEST_MODULES=no make install -e libinstall
+  LIBSUBDIRS=$SUBDIRS TEST_MODULES=no make install -e sharedinstall
 }
 
 install()
 {
   cp -f python $1/bin/
 
-  prefix=$1 LIBSUBDIRS=$SUBDIRS make -e libinstall
-  prefix=$1 LIBSUBDIRS=$SUBDIRS make -e sharedinstall
+  prefix=$1 LIBSUBDIRS=$SUBDIRS TEST_MODULES=no make -e libinstall
+  prefix=$1 LIBSUBDIRS=$SUBDIRS TEST_MODULES=no make -e sharedinstall
 
   rm -fr $1/lib/python3.10/lib2to3
   rm $1/bin/2to3-3.10
