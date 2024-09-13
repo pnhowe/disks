@@ -160,11 +160,12 @@ done
 
 # these are allready installed by setup_base, as a part of libc
 lib_list="$(echo $lib_list | sed -r 's/[^ ]*(libutil|libc|libm|libdl|libpthread|libnsl|libnss_compat|libnss_files|libnss_dns|libresolv|librt)\.so[^ ]* //g')"
-lib_list="$(readlink -f $lib_list | sort -u)"
+
+lib_list="$(fakechroot fakeroot chroot $3 readlink -f $lib_list | sort -u)"
 
 for LIB in $lib_list
 do
-  cp -L "$3/$LIB" "$2/lib"
+  cp "$3/$LIB" "$2/lib"
 done
 
 install_kernel $2 $4 $6

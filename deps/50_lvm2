@@ -15,16 +15,15 @@ build()
     ./configure --prefix= --disable-selinux --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
   make $2
+  make install
 }
 
 install()
 {
   cp -f tools/lvm $1/sbin
-  cp -f libdm/libdevmapper.so.1.02 $1/lib
 }
 
 binaries()
 {
   ls tools/lvm 
-  #ls libdm/libdevmapper.so.1.02
 }

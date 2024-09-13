@@ -449,7 +449,7 @@ then
   fi
 
   wget -q -O /config $CONFIG_REMOTE_URL
-  #  TODO: sometimes this wget fails, it would be nice to set -e this script and have a wrapper that would deal with that
+  # TODO: sometimes this wget fails, it would be nice to set -e this script and have a wrapper that would deal with that
 
   export contractor_host=http://$CONTRACTOR_HOST
   export config_uuid=$CONFIG_UUID
@@ -499,7 +499,7 @@ fi
 rc=$?
 # exit status
 # 20 - reboot
-# 10 - Had an error, allready ran signalAlert
+# 10 - Had an error, already ran signalAlert
 # 0 - All good
 # anything else - Had Error, no notification has happened yet
 
