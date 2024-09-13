@@ -26,7 +26,7 @@ FILE *debug_fd;
 void sig_handle( int __attribute__((unused)) signo )
 {
 #ifdef DEBUG_TTY
-  fprintf( debug_fd, "---- stop signal recieved\n" );
+  fprintf( debug_fd, "---- stop signal recieved\r\n" );
 #endif
   cont = 0;
 }
@@ -299,7 +299,7 @@ int main( int argc, char *argv[] )
   }
 
 #ifdef DEBUG_TTY
-  fprintf( debug_fd, "pts: %s linked to %s, fd: %i\n", source_name, tty_names[0], ttys[0] );
+  fprintf( debug_fd, "pts: %s linked to %s, fd: %i\r\n", source_name, tty_names[0], ttys[0] );
 #endif
 
   efd = epoll_create( 1 );
@@ -326,7 +326,7 @@ int main( int argc, char *argv[] )
       goto error;
     }
 #ifdef DEBUG_TTY
-    fprintf( debug_fd, "target: %s opend as fd: %i\n", tty_names[i], ttys[i] );
+    fprintf( debug_fd, "target: %s opend as fd: %i\r\n", tty_names[i], ttys[i] );
 #endif
 
     if( fstat( ttys[i], &sb ) )
@@ -344,12 +344,16 @@ int main( int argc, char *argv[] )
         goto error;
       }
 #ifdef DEBUG_TTY
-    fprintf( debug_fd, "target: %s event added\n", tty_names[i] );
+    fprintf( debug_fd, "target: %s event added\r\n", tty_names[i] );
 #endif
     }
   }
 
   events = calloc( tty_count, sizeof( event ) );
+
+#ifdef DEBUG_TTY
+    fprintf( debug_fd, "Waiting for input...\r\n" );
+#endif
 
   while( cont )
   {
@@ -363,7 +367,7 @@ int main( int argc, char *argv[] )
       continue;
 
 #ifdef DEBUG_TTY
-    fprintf( debug_fd, "epoll_count: %i\n", epoll_count );
+    fprintf( debug_fd, "epoll_count: %i\r\n", epoll_count );
 #endif
 
     for( i = 0; i < epoll_count; i++ )
@@ -371,7 +375,7 @@ int main( int argc, char *argv[] )
       if( ( events[i].events & EPOLLERR ) || ( events[i].events & EPOLLHUP ) )
       {
 #ifdef DEBUG_TTY
-        fprintf( debug_fd, "error with data: %i fd: %i name: %s\n", events[i].data.u32, ttys[ events[i].data.u32 ], tty_names[ events[i].data.u32 ] );
+        fprintf( debug_fd, "error with data: %i fd: %i name: %s\r\n", events[i].data.u32, ttys[ events[i].data.u32 ], tty_names[ events[i].data.u32 ] );
 #endif
         if( events[i].data.u32 == 0 )
           fprintf( stderr, "Error polling source\n" );
@@ -387,7 +391,7 @@ int main( int argc, char *argv[] )
         if( byte_count < 1 )
           continue;
 #ifdef DEBUG_TTY
-        fprintf( debug_fd, "read %i from %i\n", byte_count, ttys[events[i].data.u32] );
+        fprintf( debug_fd, " Read %i from %i\r\n", byte_count, ttys[events[i].data.u32] );
         for( k = 0; k < byte_count; k += DEBUG_COL_WIDTH )
         {
           fprintf( debug_fd, "%i:\t", k );
@@ -405,7 +409,7 @@ int main( int argc, char *argv[] )
 
           for( l = 0; ( l < DEBUG_COL_WIDTH ) && ( k + l < byte_count ); l++ )
             fprintf( debug_fd, " %02x", wrk_buff[k + l] );
-          fprintf( debug_fd, "\n" );
+          fprintf( debug_fd, "\r\n" );
         }
 #endif
         if( events[i].data.u32 == 0 )
@@ -415,14 +419,14 @@ int main( int argc, char *argv[] )
             if( write( ttys[j], wrk_buff, byte_count ) != byte_count )
             {
 #ifdef DEBUG_TTY
-              fprintf( debug_fd, "Error writting all data to '%s'\n", tty_names[j] );
+              fprintf( debug_fd, "Error writting all data to '%s'\r\n", tty_names[j] );
 #endif
               fprintf( stderr, "Error writting all data to '%s'\n", tty_names[j] );
               cont = 0;
               continue;
             }
 #ifdef DEBUG_TTY
-            fprintf( debug_fd, "wrote %i to %i\n", byte_count, ttys[j] );
+            fprintf( debug_fd, " Wrote %i to %i\r\n", byte_count, ttys[j] );
 #endif
           }
         }
@@ -431,14 +435,14 @@ int main( int argc, char *argv[] )
           if( write( ttys[0], wrk_buff, byte_count ) != byte_count )
           {
 #ifdef DEBUG_TTY
-              fprintf( debug_fd, "Error writting all data to source\n" );
+              fprintf( debug_fd, "Error writting all data to source\r\n" );
 #endif
               fprintf( stderr, "Error writting all data to source\n" );
               cont = 0;
               continue;
           }
 #ifdef DEBUG_TTY
-          fprintf( debug_fd, "wrote %i to %i\n", byte_count, ttys[0] );
+          fprintf( debug_fd, " Wrote %i to %i\r\n", byte_count, ttys[0] );
 #endif
         }
 #ifdef DEBUG_TTY
@@ -449,7 +453,7 @@ int main( int argc, char *argv[] )
   }
 
 #ifdef DEBUG_TTY
-  fprintf( debug_fd, "cleaning up...\n" );
+  fprintf( debug_fd, "cleaning up...\r\n" );
 #endif
 
   unlink( tty_names[0] );
@@ -457,7 +461,7 @@ int main( int argc, char *argv[] )
   free( events );
 
 #ifdef DEBUG_TTY
-  fprintf( debug_fd, "done!\n" );
+  fprintf( debug_fd, "done!\r\n" );
 #endif
 
 #ifdef DEBUG_TTY
@@ -468,7 +472,7 @@ int main( int argc, char *argv[] )
 error:
 #ifdef DEBUG_TTY
   if( debug_fd )
-    fprintf( debug_fd, "error!\n" );
+    fprintf( debug_fd, "error!\r\n" );
 #endif
   if( ttys != NULL )
     free( ttys );

@@ -17,13 +17,20 @@ build()
     ./configure --prefix= --enable-intf-lanplus --enable-intf-open --disable-intf-serial --disable-solaris-opt --enable-intf-lan --disable-intf-usb --disable-intf-free --disable-intf-imb --disable-intf-lipmi --disable-intf-bmc --disable-intf-dummy --disable-ipmishell --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
 
+  # should be removed on next release of ipmitool
+  sed 's#assignments/enterprise-numbers#assignments/enterprise-numbers.txt#' -i Makefile
+
   make $2
+
+  make enterprise-numbers
 }
 
 install()
 {
   # do we need to copy IANA PEN dictionary to /share/misc ?
   cp -f src/ipmitool $1/bin
+
+  DESTDIR=$1 make install-pen-database
 }
 
 binaries()

@@ -15,13 +15,13 @@ build()
     ./configure --with-json --with-privsep-user=root --with-privsep-group=root --with-privsep-chroot=/ --without-xml --prefix=/ --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
   make $2
+  make install
 }
 
 install()
 {
   cp -f src/client/.libs/lldpcli $1/sbin
   cp -f src/daemon/lldpd $1/sbin
-  cp -f src/lib/.libs/liblldpctl.so.4.9.1 $1/lib
 }
 
 
@@ -29,5 +29,4 @@ binaries()
 {
   ls src/client/.libs/lldpcli
   ls src/daemon/lldpd
-  #ls ../../lib/liblldpctl.so*
 }

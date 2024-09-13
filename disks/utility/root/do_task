@@ -10,6 +10,7 @@ then
   chmod 600 /etc/shadow
   mkdir -p /var/run/sshd
   mkdir -m 700 /var/empty
+  touch /var/log/lastlog
   /bin/ssh-keygen -A
   /sbin/sshd
 fi

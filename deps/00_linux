@@ -1,6 +1,6 @@
 #!/bin/sh
-#SOURCE: https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.10.3.tar.xz
-#HASH: 27366a4488677c64023255f13f61db19d9b27191
+#SOURCE: https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.10.10.tar.xz
+#HASH: 86a9682a45d5d45dbc5f0d67b24c38ba1cc53446
 
 # NOTE: check glibc when updating kernel, might need to update ./configure paramater
 
@@ -9,11 +9,11 @@ set -e
 
 build()
 {
+  rm -fr /usr/lib/modules
+  make mrproper
   if [ "x$1" = "xx86_64" ]
   then
-    make mrproper
     cp ../../configs/linux.x86_64 .config
-    # make  HOSTCC="gcc --sysroot=/host" $2
     make $2
     make modules_install
     make INSTALL_HDR_PATH=/usr headers_install
@@ -21,7 +21,7 @@ build()
   then
     cp ../../configs/linux.arm64 .config
     make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- $2
-    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- modules $2
+    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- modules_install $2
     make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- headers_install
   fi
 }

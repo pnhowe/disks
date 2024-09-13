@@ -80,18 +80,15 @@ build/host.build:
 	fakechroot fakeroot debootstrap --variant=minbase jammy build/host
 	fakechroot fakeroot chroot build/host sed 's/ main/ main universe multiverse/' -i /etc/apt/sources.list
 	fakechroot fakeroot chroot build/host apt update
-	fakechroot fakeroot chroot build/host apt -y install build-essential less bison flex bc gawk python3 pkg-config uuid-dev libblkid-dev libudev-dev liblzma-dev zlib1g-dev libxml2-dev libdevmapper-dev libssl-dev libreadline-dev libsqlite3-dev libbz2-dev libelf-dev  libksba-dev libnpth0-dev gperf rsync autoconf automake libtool curl libsmartcols-dev libaio-dev libinih-dev liburcu-dev liblz4-dev
+	fakechroot fakeroot chroot build/host apt -y install build-essential less bison flex bc gawk python3 pkg-config uuid-dev libblkid-dev libudev-dev liblzma-dev zlib1g-dev libxml2-dev libssl-dev libreadline-dev libsqlite3-dev libbz2-dev libelf-dev  libksba-dev libnpth0-dev gperf rsync autoconf automake libtool curl libsmartcols-dev libaio-dev libinih-dev liburcu-dev liblz4-dev libffi-dev
+	fakechroot fakeroot chroot build/host apt -y remove libdevmapper*
 	touch $@
 
-$(DEPS_BUILD_FS)/.mount:
-# would be better to see if $(DEPS_BUILD_FS) is a mount
-	if [ ! -f $(DEPS_BUILD_FS)/.mount ];                             \
-	then                                                             \
-		[ -d $(DEPS_BUILD_FS) ] || mkdir $(DEPS_BUILD_FS);              \
-		[ -d $(DEPS_BUILD_FS).upper ] || mkdir $(DEPS_BUILD_FS).upper;  \
-		[ -d $(DEPS_BUILD_FS).work ] || mkdir $(DEPS_BUILD_FS).work;    \
-		mountpoint -q $(DEPS_BUILD_FS) || sudo mount -t overlay overlay -olowerdir=build/host,upperdir=$(DEPS_BUILD_FS).upper,workdir=$(DEPS_BUILD_FS).work $(DEPS_BUILD_FS); \
-	fi
+$(DEPS_BUILD_FS)/.mount: build/host.build
+	[ -d $(DEPS_BUILD_FS) ] || mkdir $(DEPS_BUILD_FS)
+	[ -d $(DEPS_BUILD_FS).upper ] || mkdir $(DEPS_BUILD_FS).upper
+	[ -d $(DEPS_BUILD_FS).work ] || mkdir $(DEPS_BUILD_FS).work
+	mountpoint -q $(DEPS_BUILD_FS) || sudo mount -t overlay overlay -olowerdir=build/host,upperdir=$(DEPS_BUILD_FS).upper,workdir=$(DEPS_BUILD_FS).work $(DEPS_BUILD_FS)
 	touch $@
 
 $(DEPS_BUILD_FS).setup: $(DEPS_BUILD_FS)/.mount build/host.build scripts/setup_build_root scripts/setup_build_root_chroot scripts/build_dep_chroot
@@ -114,7 +111,7 @@ $(DEPS_BUILD_DIR)/%.build: deps/*_% $(DEPS_BUILD_FS).setup build/%.download
 	touch $@
 
 clean-deps:
-	mountpoint -q $(DEPS_BUILD_FS) && sudo umount $(DEPS_BUILD_FS)
+	[ -d $(DEPS_BUILD_FS) ] && mountpoint -q $(DEPS_BUILD_FS) && sudo umount $(DEPS_BUILD_FS) || true
 	$(RM) -r build
 
 .PHONY:: clean-deps
@@ -251,7 +248,7 @@ respkg-requires:
 	echo respkg fakeroot bc gperf python3-dev python3-setuptools pkg-config gettext python3-pip bison flex gawk
 ifeq ($(ARCH),x86_64)
 	echo build-essential
-# uuid-dev libblkid-dev libudev-dev libgpg-error-dev liblzma-dev zlib1g-dev libxml2-dev libdevmapper-dev libssl-dev libreadline-dev libsqlite3-dev libbz2-dev libgcrypt-dev libelf-dev libassuan-dev libksba-dev libnpth0-dev
+# uuid-dev libblkid-dev libudev-dev libgpg-error-dev liblzma-dev zlib1g-dev libxml2-dev libssl-dev libreadline-dev libsqlite3-dev libbz2-dev libgcrypt-dev libelf-dev libassuan-dev libksba-dev libnpth0-dev
 endif
 ifeq ($(ARCH),arm64)
 	echo crossbuild-essential-arm64
