@@ -16,3 +16,5 @@ contractor/linux-installer-profiles
 __pycache__
 
 external/*
+
+.vscode
