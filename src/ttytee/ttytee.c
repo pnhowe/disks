@@ -391,7 +391,7 @@ int main( int argc, char *argv[] )
         if( byte_count < 1 )
           continue;
 #ifdef DEBUG_TTY
-        fprintf( debug_fd, "read %i from %i\r\n", byte_count, ttys[events[i].data.u32] );
+        fprintf( debug_fd, " Read %i from %i\r\n", byte_count, ttys[events[i].data.u32] );
         for( k = 0; k < byte_count; k += DEBUG_COL_WIDTH )
         {
           fprintf( debug_fd, "%i:\t", k );
@@ -426,7 +426,7 @@ int main( int argc, char *argv[] )
               continue;
             }
 #ifdef DEBUG_TTY
-            fprintf( debug_fd, "wrote %i to %i\r\n", byte_count, ttys[j] );
+            fprintf( debug_fd, " Wrote %i to %i\r\n", byte_count, ttys[j] );
 #endif
           }
         }
@@ -442,7 +442,7 @@ int main( int argc, char *argv[] )
               continue;
           }
 #ifdef DEBUG_TTY
-          fprintf( debug_fd, "wrote %i to %i\r\n", byte_count, ttys[0] );
+          fprintf( debug_fd, " Wrote %i to %i\r\n", byte_count, ttys[0] );
 #endif
         }
 #ifdef DEBUG_TTY

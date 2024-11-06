@@ -22,6 +22,7 @@ ac_cv_file__dev_ptc=yes" > config.site
   then
     ./configure --prefix=/ --enable-ipv6 --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
+
   make python $2
   LIBSUBDIRS=$SUBDIRS make -e build_all $2
   LIBSUBDIRS=$SUBDIRS TEST_MODULES=no make install -e libinstall
