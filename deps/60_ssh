@@ -1,6 +1,6 @@
 #!/bin/sh
-#SOURCE: https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-9.8p1.tar.gz
-#HASH: a0bb501b11349f5c5c33a269351be091dc2c2727
+#SOURCE: https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-9.9p1.tar.gz
+#HASH: 5ded7eb0add0b02b5d1a1c4bf5cb2c89d2117b53
 
 set -e
 #set -x
