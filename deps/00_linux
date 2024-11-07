@@ -1,6 +1,6 @@
 #!/bin/sh
-#SOURCE: https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.10.10.tar.xz
-#HASH: 86a9682a45d5d45dbc5f0d67b24c38ba1cc53446
+#SOURCE: https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.10.14.tar.xz
+#HASH: 72b57fde9d3aa1f36bfdc4f57f0e1712b4156529
 
 # NOTE: check glibc when updating kernel, might need to update ./configure paramater
 
