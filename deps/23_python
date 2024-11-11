@@ -7,7 +7,7 @@ set -e
 
 # we don't need everything, so only these subdirs
 # lib2to3 is there b/c the install will not work with out it, going to remove that during the install function
-SUBDIRS="encodings serial json config ctypes logging sqlite3 collections urllib email http asyncio concurrent concurrent/futures multiprocessing importlib lib2to3 time"
+SUBDIRS="encodings serial json config ctypes logging sqlite3 collections urllib email http asyncio concurrent concurrent/futures multiprocessing importlib lib2to3 time zoneinfo"
 
 build()
 {
@@ -17,10 +17,10 @@ ac_cv_file__dev_ptc=yes" > config.site
   export CONFIG_SITE=config.site
   if [ "x$1" = "xx86_64" ]
   then
-    ./configure --prefix=/ --enable-ipv6
+    ./configure --prefix=/ --enable-ipv6 --with-tzpath=/etc/zoneinfo
   elif [ "x$1" = "xarm64" ]
   then
-    ./configure --prefix=/ --enable-ipv6 --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+    ./configure --prefix=/ --enable-ipv6 --with-tzpath=/etc/zoneinfo --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
 
   make python $2
@@ -53,6 +53,8 @@ import sys
 
 sys.path.append( '/lib/python3/' )
 CUSTOMIZE
+
+  cp -a /usr/share/zoneinfo $1/etc
 }
 
 binaries()
