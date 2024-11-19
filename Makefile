@@ -80,7 +80,7 @@ build/host.build:
 	fakechroot fakeroot debootstrap --variant=minbase jammy build/host
 	fakechroot fakeroot chroot build/host sed 's/ main/ main universe multiverse/' -i /etc/apt/sources.list
 	fakechroot fakeroot chroot build/host apt update
-	fakechroot fakeroot chroot build/host apt -y install build-essential less bison flex bc gawk python3 pkg-config uuid-dev libblkid-dev libudev-dev liblzma-dev zlib1g-dev libxml2-dev libssl-dev libreadline-dev libsqlite3-dev libbz2-dev libelf-dev  libksba-dev libnpth0-dev gperf rsync autoconf automake libtool curl libsmartcols-dev libaio-dev libinih-dev liburcu-dev liblz4-dev libffi-dev
+	fakechroot fakeroot chroot build/host apt -y install build-essential less bison flex bc gawk python3 pkg-config uuid-dev libblkid-dev libudev-dev liblzma-dev zlib1g-dev libxml2-dev libreadline-dev libsqlite3-dev libbz2-dev libelf-dev  libksba-dev libnpth0-dev gperf rsync autoconf automake libtool curl libsmartcols-dev libaio-dev libinih-dev liburcu-dev liblz4-dev libffi-dev
 	fakechroot fakeroot chroot build/host apt -y remove libdevmapper*
 	touch $@
 
@@ -112,6 +112,7 @@ $(DEPS_BUILD_DIR)/%.build: deps/*_% $(DEPS_BUILD_FS).setup build/%.download
 
 clean-deps:
 	[ -d $(DEPS_BUILD_FS) ] && mountpoint -q $(DEPS_BUILD_FS) && sudo umount $(DEPS_BUILD_FS) || true
+	sudo $(RM) -r $(DEPS_BUILD_FS).work
 	$(RM) -r build
 
 .PHONY:: clean-deps
@@ -248,7 +249,7 @@ respkg-requires:
 	echo respkg fakeroot bc gperf python3-dev python3-setuptools pkg-config gettext python3-pip bison flex gawk
 ifeq ($(ARCH),x86_64)
 	echo build-essential
-# uuid-dev libblkid-dev libudev-dev libgpg-error-dev liblzma-dev zlib1g-dev libxml2-dev libssl-dev libreadline-dev libsqlite3-dev libbz2-dev libgcrypt-dev libelf-dev libassuan-dev libksba-dev libnpth0-dev
+# uuid-dev libblkid-dev libudev-dev libgpg-error-dev liblzma-dev zlib1g-dev libxml2-dev libreadline-dev libsqlite3-dev libbz2-dev libgcrypt-dev libelf-dev libassuan-dev libksba-dev libnpth0-dev
 endif
 ifeq ($(ARCH),arm64)
 	echo crossbuild-essential-arm64
