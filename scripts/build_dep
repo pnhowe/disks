@@ -34,3 +34,5 @@ fakechroot fakeroot chroot $3 /bin/bash -l -c "/build_dep_chroot $(realpath --re
 # $2 - build dir
 # $3 - arch
 # $4 - make paramaters
+
+fakechroot fakeroot chroot $3 /bin/bash -l -c "ldconfig.real -C $3/etc/ld.so.cache"

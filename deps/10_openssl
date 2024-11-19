@@ -1,0 +1,31 @@
+#!/bin/sh
+#SOURCE: https://github.com/openssl/openssl/releases/download/openssl-3.4.0/openssl-3.4.0.tar.gz
+#HASH: 5c2f33c3f3601676f225109231142cdc30d44127
+
+set -e
+#set -x
+
+build()
+{
+  # remove what was installed by bootstrapping the build host
+  dpkg -P --force-depends openssl libssl3
+  if [ "x$1" = "xx86_64" ]
+  then
+    ./Configure --prefix=/ --openssldir=/etc/ssl --libdir=/lib shared zlib-dynamic
+  elif [ "x$1" = "xarm64" ]
+  then
+    ./Configure --prefix=/ --openssldir=/etc/ssl --libdir=/lib shared zlib-dynamic --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
+  fi
+  make $2
+  make install
+}
+
+install()
+{
+  cp -f apps/openssl $1/bin
+}
+
+binaries()
+{
+  ls apps/openssl
+}

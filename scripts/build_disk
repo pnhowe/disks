@@ -132,7 +132,7 @@ mkdir -p $2/usr/bin
 
 install_libc $2 $3
 
-for item in busybox kmod udev python $DEP_LIST
+for item in busybox openssl kmod udev python $DEP_LIST
 do
   install_dep $2 $item "$4/$item"
 done
