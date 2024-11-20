@@ -4,6 +4,7 @@ set -e
 set -x
 
 PWD=$(pwd)
+BASE_DEPS="busybox openssl kmod udev python"
 
 install_libc()
 {
@@ -132,7 +133,7 @@ mkdir -p $2/usr/bin
 
 install_libc $2 $3
 
-for item in busybox openssl kmod udev python $DEP_LIST
+for item in $BASE_DEPS $DEP_LIST
 do
   install_dep $2 $item "$4/$item"
 done
@@ -140,7 +141,7 @@ done
 lib_list=""
 
 set +x
-for item in busybox kmod udev python $DEP_LIST
+for item in $BASE_DEPS $DEP_LIST
 do
   binary_list="$(get_binaries $item "$4/$item")"
 
