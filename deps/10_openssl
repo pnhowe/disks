@@ -7,8 +7,36 @@ set -e
 
 build()
 {
+  # we are creating a fake openssl and libssl3 package, eventually this needs to go into a shared script for others to use
+  apt install -y equivs
+  cwd=$(pwd)
+  cd /tmp
+  mkdir openssl
+  cd openssl
+  cat /var/lib/dpkg/status | awk 'BEGIN {p=0}
+/Package: openssl/ {p=1}
+/^\s*$/ {p=0}
+NF { if( p == 1 ) print $0}' > openssl
+  equivs-build openssl
+  mv *.deb ..
+  cd ..
+  mkdir libssl3
+  cd libssl3
+  cat /var/lib/dpkg/status | awk 'BEGIN {p=0}
+/Package: libssl3/ {p=1}
+/^\s*$/ {p=0}
+NF { if( p == 1 ) print $0}' > libssl3
+  equivs-build libssl3
+  mv *.deb ..
+  cd ..
   # remove what was installed by bootstrapping the build host
   dpkg -P --force-depends openssl libssl3
+
+  dpkg -i *.deb
+  rm -fr openssl
+  rm -fr libssl3
+  cd "$cwd"
+  # now to build the library we just removed
   if [ "x$1" = "xx86_64" ]
   then
     ./Configure --prefix=/ --openssldir=/etc/ssl --libdir=/lib shared zlib-dynamic
