@@ -50,7 +50,12 @@ NF { if( p == 1 ) print $0}' > libssl3
 
 install()
 {
+  mkdir -p $1/etc/ssl/certs
+  mkdir -p $1/etc/ssl/private
   cp -f apps/openssl $1/bin
+  [ -f $1/etc/ssl/openssl.cnf ] || cp -f apps/openssl.cnf $1/etc/ssl
+  # this comes from the build container, good for default trusting
+  [ -f $1/etc/ssl/certs/ca-certificates.crt ] || cp -f /etc/ssl/certs/ca-certificates.crt $1/etc/ssl/certs
 }
 
 binaries()
