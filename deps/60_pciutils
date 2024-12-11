@@ -1,0 +1,35 @@
+#!/bin/sh
+#SOURCE: https://www.kernel.org/pub/software/utils/pciutils/pciutils-3.13.0.tar.xz
+#HASH: 83ea1394a2095442731f639b16f38292be67201f
+
+set -e
+#set -x
+
+build()
+{
+  # getting the latest ids
+  curl http://pci-ids.ucw.cz/v2.2/pci.ids > pci.ids
+
+  if [ "x$1" = "xx86_64" ]
+  then
+    make ZLIB=yes SHARED=yes DNS=no $2
+  elif [ "x$1" = "xarm64" ]
+  then
+    make ZLIB=yes SHARED=yes DNS=no CC=aarch64-linux-gnu-gcc $2
+  fi
+  make ZLIB=yes SHARED=yes DNS=no install
+}
+
+install()
+{
+  cp -f lspci $1/bin
+  cp -f setpci $1/bin
+  mkdir -p $1/usr/local/share/
+  cp pci.ids.gz $1/usr/local/share/
+}
+
+binaries()
+{
+  ls lspci
+  ls setpci
+}

@@ -39,11 +39,27 @@ do
       tmp=${x#console=}
       if [ "x$tmp" != "x" ]
       then
-        CONSOLE_LIST="$CONSOLE_LIST /dev/${tmp%,*}"
+        # look for the "," we assume this means it is a serial port
+        if [[ "$tmp" =~ "," ]]
+        then
+          # for now, we are just going to lean on setserial, eventuall ttytee should be smarter
+          # also, we are taking out the baudrate, might not be bad to set baud rate with it
+          # also https://stackoverflow.com/questions/2530096/how-to-find-all-serial-devices-ttys-ttyusb-on-linux-without-opening-them
+          tmp="${tmp%,*}"
+          uart="$(setserial -g /dev/$tmp | awk '{print $3}')"
+          if [ "x$uart" == "xunknown," ]
+          then
+            echo "tty '$tmp' does not seem to be a serial port, UART: '$uart', not using it for console."
+            continue
+          fi
+        fi
+        CONSOLE_LIST="$CONSOLE_LIST /dev/${tmp}"
       fi
       ;;
   esac
 done
+
+echo "TTY list: '$CONSOLE_LIST'"
 
 if [ "x$CONSOLE_LIST" == "x" ]
 then

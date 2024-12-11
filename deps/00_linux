@@ -9,6 +9,7 @@ set -e
 
 build()
 {
+  [ -f ../../configs/logo_linux_clut224.ppm ] && cp ../../configs/logo_linux_clut224.ppm drivers/video/logo/logo_linux_clut224.ppm
   rm -fr /usr/lib/modules
   make mrproper
   if [ "x$1" = "xx86_64" ]

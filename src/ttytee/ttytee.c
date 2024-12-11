@@ -86,6 +86,7 @@ int open_tty( char *filename )
   int fd;
   struct termios ttyinfo;
 
+  // ignore anything that might look like a flag, ie: starts with '-'
   if( strncmp( filename, "-", 1 ) == 0 )
     return 1;
 
