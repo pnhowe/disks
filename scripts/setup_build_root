@@ -24,6 +24,6 @@ ppmquant 224 /tmp/logo_resized.ppm | pnmnoraw > $1/configs/logo_linux_clut224.pp
 # pnmnorm /tmp/logo_resized.ppm | pgmtopbm -thresh | pbmtoascii -2x4 > $1/configs/logo.ascii
 
 # for now use caca-utils, when we switch to netpnm remove caca-utils from the packages list in the Makefile
-img2txt -f utf8 -H 25 /tmp/logo_resized.ppm > $1/configs/logo.ascii
+img2txt -f utf8 -H 10 /tmp/logo_resized.ppm > $1/configs/logo.utf8
 
-cat $1/configs/logo.ascii| sed s#\$#'\\n\"\\'# | sed s#\^#\"# > $1/configs/logo.h
+cat $1/configs/logo.utf8 | sed s#\$#'\\n\"\\'# | sed s#\^#\"# > $1/configs/logo.h

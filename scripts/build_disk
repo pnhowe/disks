@@ -174,7 +174,7 @@ install_kernel $2 $4 $6
 # set disk name
 echo $1 > $2/etc/disk_name
 
-image_extra $2
+image_extra $2 $3
 
 # must go last, for the disks that install libs in the extra function
 sudo chroot $2 /sbin/ldconfig
