@@ -9,5 +9,5 @@ SRC_LIST="libdrive"
 
 image_extra()
 {
-  :
+  cp $2/configs/logo.utf8 $1/etc/motd
 }
