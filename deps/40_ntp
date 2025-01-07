@@ -1,5 +1,5 @@
 #!/bin/sh
-#SOURCE: https://www.eecis.udel.edu/~ntp/ntp_spool/ntp4/ntp-4.2.8p18.tar.gz
+#SOURCE: https://downloads.nwtime.org/ntp/4.2.8/ntp-4.2.8p18.tar.gz
 #HASH: 9b5247a8576c6082900682c6de98c8d3c17fc15f
 
 set -e
