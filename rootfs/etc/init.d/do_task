@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 DEBUG=0
 NET_DEBUG=0
 CONFIG_SRC="remote"
@@ -448,8 +450,25 @@ then
     error_happened
   fi
 
+  set +e
   wget -q -O /config $CONFIG_REMOTE_URL
-  # TODO: sometimes this wget fails, it would be nice to set -e this script and have a wrapper that would deal with that
+  rc=$?
+  set -e
+
+  if [ "$rc" -ne "0" ]
+  then
+    echo "Error getting config from '$CONFIG_REMOTE_URL'."
+    read -t 1 IGNORE  #clear out any garbage that might of been entered
+    read -t 30 -n 1 -p "Press \"D\" to enter Debug, any other key to reboot (30 second timeout)..." tmp_DEBUG
+    if [ "x$tmp_DEBUG" == "xd" ] || [ "x$tmp_DEBUG" == "xD" ]
+    then
+        echo -e "\nType \"exit\" to continue exit and reboot...\n"
+        /bin/cttyhack /bin/sh -l
+    fi
+    echo -e "\Rebooting...\n"
+    /sbin/reboot
+    exit 0
+  fi
 
   export contractor_host=http://$CONTRACTOR_HOST
   export config_uuid=$CONFIG_UUID
@@ -491,9 +510,11 @@ fi
 
 if [ "x$DEBUG" == "x1" ]
 then
-  echo -e "\nType \"exit\" to continue the PXE process...\n"
+  echo -e "\nType \"exit\" to continue to the task...\n"
   /bin/cttyhack /bin/sh -l
 fi
+
+set +e
 
 ./do_task
 rc=$?
@@ -503,9 +524,14 @@ rc=$?
 # 0 - All good
 # anything else - Had Error, no notification has happened yet
 
+# push /tmp/output.log to $OUTPUT_UPLOAD_URL
+# file name is <hostname>-<endtime>-<uptime>.log
+
+set -e
+
 if [ "$rc" -eq "20" ]
 then
-  echo "Rebooting..."
+  echo -e "\n\n\nRebooting...\n"
   /sbin/reboot
   exit 0
 elif [ "$rc" -eq "10" ]
@@ -518,5 +544,5 @@ then
   error_happened
 fi
 
-echo "Powering off..."
+echo -e "\n\n\nPowering off...\n"
 /sbin/poweroff

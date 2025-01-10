@@ -148,9 +148,8 @@ do
   for binary in $binary_list 
   do
     temp_libs=$(fakechroot fakeroot chroot $3 /bin/bash -l -c "ldd $(realpath --relative-to=$3 "$4/$item/$binary")" | grep -v 'not found' | grep -v 'not a dynamic executable' | grep -v 'libfake' | awk '{print $3}' )
+    lib_list="$(echo "$lib_list $temp_libs" | sort -u)"
   done
-
-  lib_list="$(echo "$lib_list $temp_libs" | sort -u)"
 done
 set -x
 
