@@ -457,9 +457,11 @@ then
 
   if [ "$rc" -ne "0" ]
   then
+    set +e
     echo "Error getting config from '$CONFIG_REMOTE_URL'."
     read -t 1 IGNORE  #clear out any garbage that might of been entered
     read -t 30 -n 1 -p "Press \"D\" to enter Debug, any other key to reboot (30 second timeout)..." tmp_DEBUG
+    set -e
     if [ "x$tmp_DEBUG" == "xd" ] || [ "x$tmp_DEBUG" == "xD" ]
     then
         echo -e "\nType \"exit\" to continue exit and reboot...\n"
@@ -498,8 +500,10 @@ initJobConfig
 
 if [ "x$DEBUG" != "x1" ]
 then
+  set +e
   read -t 1 IGNORE  #clear out any garbage that might of been entered
   read -t 5 -n 1 -p "Press \"D\" to enter Debug, any other key to continue (5 second timeout)..." tmp_DEBUG
+  set -e
   if [ "x$tmp_DEBUG" == "xd" ] || [ "x$tmp_DEBUG" == "xD" ]
   then
     DEBUG="1"
