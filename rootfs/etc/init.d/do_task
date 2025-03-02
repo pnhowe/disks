@@ -497,6 +497,8 @@ fi
 
 echo "Loading Job Config..."
 initJobConfig
+# need to catch errors from get job config
+# need to wrap do_task in a handler that will fail gracefully
 
 if [ "x$DEBUG" != "x1" ]
 then

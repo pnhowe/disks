@@ -80,7 +80,7 @@ build/host.build:
 	fakechroot fakeroot debootstrap --variant=minbase jammy build/host
 	fakechroot fakeroot chroot build/host sed 's/ main/ main universe multiverse/' -i /etc/apt/sources.list
 	fakechroot fakeroot chroot build/host apt update
-	fakechroot fakeroot chroot build/host apt -y install build-essential less bison flex bc gawk python3 pkg-config uuid-dev libblkid-dev libudev-dev liblzma-dev zlib1g-dev libxml2-dev libreadline-dev libsqlite3-dev libbz2-dev libelf-dev libksba-dev libnpth0-dev gperf rsync autoconf automake libtool curl libsmartcols-dev libaio-dev libinih-dev liburcu-dev liblz4-dev libffi-dev
+	fakechroot fakeroot chroot build/host apt -y install build-essential less bison flex bc gawk python3 pkg-config uuid-dev libblkid-dev libudev-dev liblzma-dev zlib1g-dev libxml2-dev libreadline-dev libsqlite3-dev libbz2-dev libelf-dev libksba-dev libnpth0-dev gperf rsync autoconf automake libtool curl libsmartcols-dev libaio-dev libinih-dev liburcu-dev liblz4-dev libffi-dev unzip
 	fakechroot fakeroot chroot build/host apt -y remove libdevmapper*
 	touch $@
 
@@ -246,7 +246,7 @@ respkg-blueprints:
 # deb http://ports.ubuntu.com/ubuntu-ports bionic main universe multiverse
 # qemu-user-static
 respkg-requires:
-	echo respkg fakeroot bc gperf python3-dev python3-setuptools pkg-config gettext python3-pip bison flex gawk netpbm caca-utils
+	echo respkg fakeroot bc gperf python3-dev python3-setuptools pkg-config gettext python3-pip bison flex gawk netpbm caca-utils locales
 ifeq ($(ARCH),x86_64)
 	echo build-essential
 # uuid-dev libblkid-dev libudev-dev libgpg-error-dev liblzma-dev zlib1g-dev libxml2-dev libreadline-dev libsqlite3-dev libbz2-dev libgcrypt-dev libelf-dev libassuan-dev libksba-dev libnpth0-dev

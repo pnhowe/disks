@@ -87,9 +87,13 @@ echo "Starting Interaface lo..."
 /sbin/ip addr add 127.0.0.1/8 dev lo
 /sbin/ip link set lo up
 
+echo "Saving boot output..."
+echo "-- Boot --" > /tmp/output.log
+/bin/dmesg >> /tmp/output.log
+echo "-- Task --" >> /tmp/output.log
+
 echo "Starting ttytee..."
 CONSOLE_LIST="$CONSOLE_LIST /tmp/output.log"
-
 /sbin/ttytee -d /dev/mastertty $CONSOLE_LIST
 
 sleep 2 # give udev a bit to get things created

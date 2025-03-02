@@ -1,6 +1,6 @@
 #!/bin/sh
-#SOURCE: https://www.python.org/ftp/python/3.10.9/Python-3.10.9.tar.xz
-#HASH: a6ab44fa6c7dc31506ee262b2f6ad10735ffe750
+#SOURCE: https://www.python.org/ftp/python/3.12.9/Python-3.12.9.tar.xz
+#HASH: 465d8a664e63dc5aa1f0d90cd1d0000a970ee2fb
 
 set -e
 #set -x
@@ -25,30 +25,28 @@ ac_cv_file__dev_ptc=yes" > config.site
 
   make python $2
   LIBSUBDIRS=$SUBDIRS make -e build_all $2
-  LIBSUBDIRS=$SUBDIRS TEST_MODULES=no make install -e libinstall
-  LIBSUBDIRS=$SUBDIRS TEST_MODULES=no make install -e sharedinstall
+  prefix=/pythonlib LIBSUBDIRS=$SUBDIRS TEST_MODULES=no make install -e libinstall
+  prefix=/pythonlib LIBSUBDIRS=$SUBDIRS TEST_MODULES=no make install -e sharedinstall
+
+  rm -fr /pythonlib/lib/python3.1*/lib2to3
+  rm -fr /pythonlib/lib/python3.*/*.dist-info
+  rm -fr /pythonlib/include
+  rm -fr /pythonlib/share
+  rm -fr /pythonlib/bin
+
+  find /pythonlib -type d -name __pycache__ -exec rm -fr {} +
 }
 
 install()
 {
   cp -f python $1/bin/
-
-  prefix=$1 LIBSUBDIRS=$SUBDIRS TEST_MODULES=no make -e libinstall
-  prefix=$1 LIBSUBDIRS=$SUBDIRS TEST_MODULES=no make -e sharedinstall
-
-  rm -fr $1/lib/python3.10/lib2to3
-  rm $1/bin/2to3-3.10
-  rm $1/bin/idle3.10
-  rm $1/bin/pydoc3.10
-  #find $1/lib/ -name *.py -exec rm {} \;  # python3 dosen't let us use the the compiled files? would be nice to get rid of uncompiled source, it takes up a lot of space, mabey compress it
+  cp -a ../../pythonlib/* $1
 
   ln -sf python $1/bin/python3
 
-  pip3 install --no-compile --target $1/lib/python3.10/ python-dateutil
+  pip3 install --no-compile --target $1/lib/python3/ python-dateutil
 
-  rm -fr $1/lib/python3.10/*.dist-info
-
-  cat <<CUSTOMIZE > $1/lib/python3.10/sitecustomize.py
+  cat <<CUSTOMIZE > $1/lib/python3.12/sitecustomize.py
 import sys
 
 sys.path.append( '/lib/python3/' )
@@ -60,5 +58,5 @@ CUSTOMIZE
 binaries()
 {
   ls python
-  ls ../../lib/python3.10/lib-dynload/*.so
+  ls ../../pythonlib/lib/python3.12/lib-dynload/*.so
 }

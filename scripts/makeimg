@@ -15,9 +15,9 @@ DISK_SIZE="68k"
 
 MOUNT_POINT="build.images/mnt"
 
-if ! which sfdisk parted > /dev/null
-then
-  print "sfdisk and/or parted is missing, please install"
+if ! which sfdisk parted extlinux > /dev/null
+then,
+  print "sfdisk, parted, and/or extlinux is missing, please install"
   exit 1
 fi
 
@@ -37,12 +37,6 @@ MBR_BIN="/usr/lib/syslinux/mbr/mbr.bin"
 if [ ! -f "$MBR_BIN" ]
 then
   echo "mbr.bin not found install syslinux-common"
-  exit 1
-fi
-
-if [ ! -f /usr/bin/extlinux ]
-then
-  echo "extlinux not found install extlinux"
   exit 1
 fi
 

@@ -115,6 +115,9 @@ install_kernel()
   cp -a "$2/../lib/modules/$kernel_version" "$1/lib/modules/"
   rm "$1/lib/modules/$kernel_version/build" || true
   rm "$1/lib/modules/$kernel_version/source" || true
+
+  mkdir -p $1/lib
+  cp -a $2/../lib_firmware $1/lib/firmware
 }
 
 #  $1 - name of disk
