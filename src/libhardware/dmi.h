@@ -27,7 +27,7 @@ typedef struct {
 } dmiu64;
 #endif
 
-// returns -1 for error other wise the number of enteries avaiable, note this may be bigger than count
+// returns -1 for error other wise the number of enteries avaiable, note this may be bigger than list_size
 // list_size -> number of entries allocated to list
 int getDMIList( struct dmi_entry list[], const int list_size );
 
