@@ -34,12 +34,12 @@
 # Environment example: interface=eth0
 
 #exec >/dev/null
-exec >> "/tmp/dhcpdc.out"  #debug
+exec >> "/tmp/dhcpdc.$interface.out"  #debug
 exec 2>&1
 
 RESOLV_CONF='/etc/resolv.conf'
 
-env > '/tmp/dhcpdc.env'
+env > "/tmp/dhcpdc.$interface.env"
 
 echo "`date`: Params: $*"
 
@@ -47,7 +47,10 @@ case "$1" in
   deconfig)
     /sbin/ip addr flush dev $interface
     /sbin/ip link set $interface up
-    rm -f /tmp/dhcp-interface
+    if [ "x$(cat /tmp/dhcp-interface )" == "x$interface" ]
+    then
+      rm -f /tmp/dhcp-interface
+    fi
     ;;
 
   bound)
@@ -64,14 +67,21 @@ case "$1" in
       vconfig add $interface $vlanid
     fi
 
-    echo "# auto generated at `date`" > $RESOLV_CONF
-    echo "domain ${domain%% *}" >> $RESOLV_CONF
-    echo "search $domain" >> $RESOLV_CONF
-    for server in $dns;
-    do
-      echo "nameserver $server" >> $RESOLV_CONF
-    done
-    echo "$interface" > /tmp/dhcp-interface
+    if [ "x$dns" != "x" ]
+    then
+      echo "# auto generated at `date`" > $RESOLV_CONF
+      echo "domain ${domain%% *}" >> $RESOLV_CONF
+      echo "search $domain" >> $RESOLV_CONF
+      for server in $dns;
+      do
+        echo "nameserver $server" >> $RESOLV_CONF
+      done
+    fi
+
+    if [ "x$RECORD_INTERFACE" == "xyes" ]
+    then
+      echo "$interface" > /tmp/dhcp-interface
+    fi
     ;;
 
   renew)

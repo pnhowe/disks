@@ -79,6 +79,9 @@ echo "Starting syslogd..."
 /sbin/syslogd -D -C1024
 /sbin/klogd -c1
 
+echo "Starting acpid..."
+/sbin/acpid
+
 echo "Starting Name Cache"
 /sbin/nscd
 
@@ -88,11 +91,12 @@ echo "Starting Interaface lo..."
 /sbin/ip link set lo up
 
 echo "Saving boot output..."
-echo "-- Boot --" > /tmp/output.log
+cat /proc/cmdline > /tmp/output.log
+echo "----- Boot -----" >> /tmp/output.log
 /bin/dmesg >> /tmp/output.log
-echo "-- Task --" >> /tmp/output.log
+echo "----- Task -----" >> /tmp/output.log
 
-echo "Starting ttytee..."
+echo "Starting ttytee for '$CONSOLE_LIST'..."
 CONSOLE_LIST="$CONSOLE_LIST /tmp/output.log"
 /sbin/ttytee -d /dev/mastertty $CONSOLE_LIST
 

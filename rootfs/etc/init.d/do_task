@@ -239,7 +239,8 @@ then
     fi
   fi
 
-  echo "Starting Interface $INTERFACE..."
+  echo "Starting Interface '$INTERFACE'..."
+  /bin/logger "interface: $INTERFACE"
 
   if [ "x$HOSTNAME" == "x" ]
   then
@@ -254,7 +255,8 @@ then
       HOSTNAME="mac$(cat /sys/class/net/$INTERFACE/address | sed s/://g)"
     fi
   fi
-  echo "Hostname: $HOSTNAME"
+  echo "Hostname is '$HOSTNAME'"
+  /bin/logger "hostname: $HOSTNAME"
   hostname $HOSTNAME
   echo "127.0.1.1 $HOSTNAME" >> /etc/hosts
   echo "$HOSTNAME" > /etc/hostname
@@ -282,7 +284,7 @@ then
     counter=1
     while [ "x$rc" != "x0" ]
     do
-      echo "Pinging Gateway $GATEWAY, ($counter/10)...."
+      echo "Pinging Gateway '$GATEWAY', ($counter/10)...."
       ping -q -c4 $GATEWAY > /dev/null 2> /dev/null
       rc=$?
       counter=$(( counter + 1 ))
@@ -321,8 +323,9 @@ then
     do
       for iface in $INTERFACE_LIST
       do
-        echo "Bringing up $iface..."
+        echo "Bringing up '$iface'..."
         /sbin/ip link set $iface up
+        echo -n "  Waiting ."
         counter=1
         while [ "x$(cat /sys/class/net/$iface/operstate)" != "xup" ] && [ "$counter" -lt "30" ]
         do
@@ -340,7 +343,7 @@ then
           continue
         fi
         echo "DHCPing on '$iface'..."
-        /sbin/udhcpc --interface=$iface -x:hostname $HOSTNAME --vendorclass=t3ktondisk --timeout=10 --syslog --arping --release
+        RECORD_INTERFACE=yes /sbin/udhcpc --interface=$iface -x:hostname $HOSTNAME --vendorclass=t3ktondisk --timeout=10 --syslog --arping --release
         if [ -f /tmp/dhcp-interface ];
         then
           if [ "x$CONFIG_SRC" == "xremote" ]
@@ -422,7 +425,13 @@ then
   /media/config-init
 fi
 
-if [ "x$CONFIG_SRC" == "xlocal" ]
+echo "Config Source is '$CONFIG_SRC'"
+/bin/logger "config_src: $CONFIG_SRC"
+if [ "x$CONFIG_SRC" == "xnone" ]
+then
+  export contractor_host="none://"
+
+elif [ "x$CONFIG_SRC" == "xlocal" ]
 then
   echo "Using Local Config..."
   if [ -r /media/config.json ]
@@ -434,11 +443,6 @@ then
   else
     echo "No Local Config!"
     error_happened
-  fi
-
-  if [ -r /media/config ]
-  then
-    cp /media/config /config
   fi
 
 elif [ "x$CONFIG_SRC" == "xremote" ]
@@ -479,7 +483,8 @@ then
   echo "job_id = '$JOB_ID'"
 fi
 
-echo "contractor_host = '$CONTRACTOR_HOST'"
+echo "Contractor is '$contractor_host'"
+/bin/logger "contractor_host: $contractor_host"
 if [ "x$HTTP_PROXY" != "x" ]
 then
   echo "Setting 'http_proxy' to $HTTP_PROXY..."
@@ -530,6 +535,8 @@ rc=$?
 # 0 - All good
 # anything else - Had Error, no notification has happened yet
 
+# echo "----- Log -----" >> /tmp/output.log
+# /sbin/logread >> /tmp/output.log
 # push /tmp/output.log to $OUTPUT_UPLOAD_URL
 # file name is <hostname>-<endtime>-<uptime>.log
 
@@ -545,7 +552,7 @@ then
   error_happened
 elif [ "$rc" -ne "0" ]
 then
-  echo "do_task returned $rc"
+  echo "do_task returned '$rc'"
   signalAlert "do_task error"
   error_happened
 fi
