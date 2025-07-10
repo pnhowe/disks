@@ -117,6 +117,8 @@ int open_tty( char *filename )
   }
   else
   {
+    lseek( fd, 0, SEEK_END );
+
     flags = fcntl( fd, F_GETFL, 0 );
     if (flags == -1)
     {

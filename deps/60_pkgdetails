@@ -1,6 +1,6 @@
 #!/bin/sh
-#SOURCE: https://bazaar.launchpad.net/~ubuntu-installer/base-installer/master/download/head:/pkgdetails.c
-#HASH: de416aa945313666e9fe160bee0705f1f8da75bd
+#SOURCE: https://salsa.debian.org/installer-team/base-installer/-/raw/master/pkgdetails.c
+#HASH: 6f5417b2696b3a74dcc7884694f4fcc14d0285fb
 
 set -e
 # set -x
