@@ -1,6 +1,6 @@
 #!/bin/sh
-#SOURCE: http://archive.ubuntu.com/ubuntu/pool/main/d/debootstrap/debootstrap_1.0.137ubuntu3.tar.gz
-#HASH: 9a97b49fa9bc87ef61a582b78539b56296b922ba
+#SOURCE: http://archive.ubuntu.com/ubuntu/pool/main/d/debootstrap/debootstrap_1.0.141.tar.gz
+#HASH: da8d890c221e904da1d4583a7fbaec9ceb0f30ff
 
 set -e
 #set -x

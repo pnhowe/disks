@@ -77,11 +77,10 @@ clean-downloads:
 # do not install package list: libgcrypt-dev libgpg-error-dev libassuan-dev libksba-dev
 build/host.build:
 	mkdir -p build/host
-	fakechroot fakeroot debootstrap --variant=minbase jammy build/host
+	fakechroot fakeroot debootstrap --variant=fakechroot noble build/host
 	fakechroot fakeroot chroot build/host sed 's/ main/ main universe multiverse/' -i /etc/apt/sources.list
 	fakechroot fakeroot chroot build/host apt update
 	fakechroot fakeroot chroot build/host apt -y install build-essential less bison flex bc gawk python3 pkg-config uuid-dev libblkid-dev libudev-dev liblzma-dev zlib1g-dev libxml2-dev libreadline-dev libsqlite3-dev libbz2-dev libelf-dev libksba-dev libnpth0-dev gperf rsync autoconf automake libtool curl libsmartcols-dev libaio-dev libinih-dev liburcu-dev liblz4-dev libffi-dev unzip
-	fakechroot fakeroot chroot build/host apt -y remove libdevmapper*
 	touch $@
 
 $(DEPS_BUILD_FS)/.mount: build/host.build
@@ -228,13 +227,13 @@ templates:
 
 clean: clean-deps clean-images clean-src respkg-clean pkg-clean resource-clean
 
-dist-clean: clean-deps clean-images clean-src clean-downloads pkg-dist-clean
+dist-clean: clean-deps clean-images clean-src clean-downloads respkg-clean pkg-dist-clean resource-clean
 
 .PHONY:: all all-pxe all-imgs clean clean-src clean-downloads clean-deps clean-images dist-clean pxe-targets templates images/%
 
 contractor/linux-installer-profiles.touch: $(shell find disks/linux-installer/profiles -type f -print)
 	mkdir -p  contractor/linux-installer-profiles/var/www/static/disks
-	for DISTRO in trusty xenial bionic focal jammy; do tar -h -czf contractor/linux-installer-profiles/var/www/static/disks/ubuntu-$$DISTRO-profile.tar.gz -C disks/linux-installer/profiles/ubuntu/$$DISTRO . ; done
+	for DISTRO in trusty xenial bionic focal jammy noble; do tar -h -czf contractor/linux-installer-profiles/var/www/static/disks/ubuntu-$$DISTRO-profile.tar.gz -C disks/linux-installer/profiles/ubuntu/$$DISTRO . ; done
 	for DISTRO in buster; do tar -h -czf contractor/linux-installer-profiles/var/www/static/disks/debian-$$DISTRO-profile.tar.gz -C disks/linux-installer/profiles/debian/$$DISTRO . ; done
 	for DISTRO in 6 7; do tar -h -czf contractor/linux-installer-profiles/var/www/static/disks/centos-$$DISTRO-profile.tar.gz -C disks/linux-installer/profiles/centos/$$DISTRO . ; done
 	touch contractor/linux-installer-profiles.touch
@@ -267,9 +266,9 @@ respkg-file:
 	echo $(shell ls *.respkg)
 
 respkg-clean:
-	$(RM) linux-installer-profiles.touch
-	$(RM) -fr resources/var/www/disks
-	$(RM) -fr contractor/linux-installer-profiles
+	$(RM) -r resources/var/www/disks
+	$(RM) contractor/linux-installer-profiles.touch
+	$(RM) -r contractor/linux-installer-profiles
 
 .PHONY:: respkg-blueprints respkg-requires respkg respkg-file respkg-clean
 

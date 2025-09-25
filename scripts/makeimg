@@ -16,7 +16,7 @@ DISK_SIZE="68k"
 MOUNT_POINT="build.images/mnt"
 
 if ! which sfdisk parted extlinux > /dev/null
-then,
+then
   print "sfdisk, parted, and/or extlinux is missing, please install"
   exit 1
 fi
