@@ -739,10 +739,16 @@ def mkfs():
       print( 'Making Filesystem "{0}" on "{1}"...'.format( fs[ 'type' ], fs[ 'block_device' ] ) )
       execute( mkfs_map[ fs[ 'type' ] ].format( **fs ) )
       for line in execute_lines( '/sbin/blkid -o export {0}'.format( fs[ 'block_device' ] ) ):
-        ( key, value ) = line.split( '=' )
-        if key.endswith( 'UUID' ):
-          fs[ 'uuid' ] = value
-          break
+        part_list = line.split( ' ' )
+        for part in part_list:
+          try:
+            ( key, value ) = part.split( '=' )
+          except ValueError:
+            continue
+
+          if key == 'UUID':
+            fs[ 'uuid' ] = value
+            break
 
 
 def _mount( mount_point, fstype, fs, options=[] ):

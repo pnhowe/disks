@@ -77,6 +77,7 @@ clean-downloads:
 # do not install package list: libgcrypt-dev libgpg-error-dev libassuan-dev libksba-dev
 build/host.build:
 	mkdir -p build/host
+# https://bugs.launchpad.net/ubuntu/+source/mawk/+bug/2052392
 	fakechroot fakeroot debootstrap --variant=fakechroot noble build/host
 	fakechroot fakeroot chroot build/host sed 's/ main/ main universe multiverse/' -i /etc/apt/sources.list
 	fakechroot fakeroot chroot build/host apt update
@@ -236,6 +237,7 @@ contractor/linux-installer-profiles.touch: $(shell find disks/linux-installer/pr
 	for DISTRO in trusty xenial bionic focal jammy noble; do tar -h -czf contractor/linux-installer-profiles/var/www/static/disks/ubuntu-$$DISTRO-profile.tar.gz -C disks/linux-installer/profiles/ubuntu/$$DISTRO . ; done
 	for DISTRO in buster; do tar -h -czf contractor/linux-installer-profiles/var/www/static/disks/debian-$$DISTRO-profile.tar.gz -C disks/linux-installer/profiles/debian/$$DISTRO . ; done
 	for DISTRO in 6 7; do tar -h -czf contractor/linux-installer-profiles/var/www/static/disks/centos-$$DISTRO-profile.tar.gz -C disks/linux-installer/profiles/centos/$$DISTRO . ; done
+	tar -h -czf contractor/linux-installer-profiles/var/www/static/disks/cloudinit-noble-profile.tar.gz -C disks/linux-installer/profiles/cloudinit/noble .
 	touch contractor/linux-installer-profiles.touch
 
 respkg-blueprints:

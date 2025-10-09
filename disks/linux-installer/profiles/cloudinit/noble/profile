@@ -1,0 +1,47 @@
+[kernel]
+
+[filesystem]
+partition_type=gpt
+fs_type=ext4
+boot_fs_type=ext4
+md_meta_version=1.0
+mtab=/proc/self/mounts
+extra_mount_1=proc:proc:/proc
+extra_mount_2=sysfs:sysfs:/sys
+extra_mount_3=:/dev:/dev:bind
+extra_mount_4=devpts:devpts:/dev/pts
+extra_mount_5=binfmt_misc:binfmt_misc:/proc/sys/fs/binfmt_misc
+extra_mount_6=efivarfs:efivarfs:/sys/firmware/efi/efivars
+
+[fstab]
+prefix_1=# <file system> <mount point>   <type>  <options>       <dump>  <pass>
+prefix_2=proc  /proc  proc  defaults  0  0
+
+[bootstrap]
+type=tarxz
+image=noble-server-cloudimg-amd64-root.tar.xz
+
+[packaging]
+manager_type=apt
+source_templates=
+prebase_templates=
+packages=
+
+[config]
+base_templates=cloud-init
+
+[booting]
+bootloader_templates=grub
+bootloader_config=/usr/sbin/update-grub
+bootloader_install=/usr/sbin/grub-install {0}
+
+[general]
+
+[packages]
+bootloader_package_bios=grub-pc
+bootloader_package_efi=grub-efi-amd64
+kernel_package=linux-image-generic
+mdadm_package=mdadm
+bcache_package=bcache-tools
+lvm_package=lvm2
+filesystem_xfs_package=xfsprogs

@@ -39,7 +39,7 @@ def getProfile():
   configfp = StringIO( template.render( values ) )
   profile = configparser.RawConfigParser()
   try:
-    profile.readfp( configfp )
+    profile.read_file( configfp )
 
   except configparser.Error as e:
     raise Exception( 'Error Parsing distro profile: "{0}"'.format( e ) )

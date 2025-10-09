@@ -5,7 +5,6 @@ set -e
 DEBUG=0
 NET_DEBUG=0
 CONFIG_SRC="remote"
-CONFIG_REMOTE_URL="http://contractor/config/pxe_template/"
 HTTP_PROXY=
 INTERFACE="any"
 INTERFACE_MAC=
@@ -18,7 +17,8 @@ DNS_SERVER=
 DNS_SEARCH_ZONE=
 HOSTNAME=
 CONTRACTOR_IP=
-CONTRACTOR_HOST="contractor"
+# if this changes update the disks.toml so the default is properly ignored
+CONTRACTOR_HOST="http://contractor"
 CONTRACTOR_PROXY=
 CONFIG_UUID=
 JOB_ID=
@@ -27,11 +27,14 @@ MEDIA_LABEL=
 
 error_happened()
 {
-  echo "And Error occured..."
+  echo "And Error occured... "
   while true
   do
+    # read does not timeout if set -e
+    set +e
     read -t 1 IGNORE  #clear out any garbage that might of been entered
     read -s -n 1 -p "(R)eboot  (P)ower Off  (S)hell" RESPONSE
+    set -e
     if [ "$RESPONSE" == "R" ] || [ "$RESPONSE" == "r" ]
     then
       /sbin/reboot
@@ -89,6 +92,9 @@ do
     contractor_proxy=*)
       CONTRACTOR_PROXY=${x#contractor_proxy=}
       ;;
+    contractor_host=*)
+      CONTRACTOR_HOST=${x#contractor_host=}
+      ;;
     debug)
       DEBUG=1
       ;;
@@ -100,9 +106,6 @@ do
       ;;
     local_config)
       CONFIG_SRC="local"
-      ;;
-    config_remote_url=*)
-      CONFIG_REMOTE_URL="${x#config_remote_url=}"
       ;;
     config_uuid=*)
       CONFIG_UUID="${x#config_uuid=}"
@@ -119,11 +122,16 @@ do
   esac
 done
 
+CONTRACTOR_NAME=$(echo "$CONTRACTOR_HOST" | cut -d / -f3 | cut -d : -f1 )
+
+echo "Contractor Name: '$CONTRACTOR_NAME'"
+/bin/logger "contractor_host: $contractor_host"
+
 if [ "x$CONTRACTOR_PROXY" != "x" ]
 then
   PING_HOST="$(echo $CONTRACTOR_PROXY | awk -F/ '{print $3}')"
 else
-  PING_HOST=$CONTRACTOR_HOST
+  PING_HOST=$CONTRACTOR_NAME
 fi
 
 if [ "$NET_DEBUG" == "1" ]
@@ -263,7 +271,7 @@ then
 
   if [ "x$CONTRACTOR_IP" != "x" ]
   then
-    echo "$CONTRACTOR_IP $CONTRACTOR_HOST" >> /etc/hosts
+    echo "$CONTRACTOR_IP $CONTRACTOR_NAME" >> /etc/hosts
   fi
 
   if [ "x$IP_ADDRESS" != "x" ]
@@ -425,6 +433,21 @@ then
   /media/config-init
 fi
 
+if [ "x$HTTP_PROXY" != "x" ]
+then
+  echo "Setting 'http_proxy' to $HTTP_PROXY..."
+  /bin/logger "http_proxy: $HTTP_PROXY"
+  export http_proxy=$HTTP_PROXY
+  export https_proxy=$HTTP_PROXY
+fi
+
+if [ "x$CONTRACTOR_PROXY" != "x" ]
+then
+  echo "Setting 'contractor_proxy' to $CONTRACTOR_PROXY..."
+  /bin/logger "contractor_proxy: $CONTRACTOR_PROXY"
+  export contractor_proxy=$CONTRACTOR_PROXY
+fi
+
 echo "Config Source is '$CONFIG_SRC'"
 /bin/logger "config_src: $CONFIG_SRC"
 if [ "x$CONFIG_SRC" == "xnone" ]
@@ -447,12 +470,33 @@ then
 
 elif [ "x$CONFIG_SRC" == "xremote" ]
 then
-  echo "Getting Remote Config from '$CONFIG_REMOTE_URL'..."
   if [ "$NO_IP" == "1" ]
   then
     echo "No IP to get config with!"
     error_happened
   fi
+
+  export contractor_host=$CONTRACTOR_HOST
+  export config_uuid=$CONFIG_UUID
+  export job_id=$JOB_ID
+  /bin/logger "config_uuid: $CONFIG_UUID"
+  /bin/logger "job_id: $job_id"
+fi
+
+echo "Contractor config source '$contractor_host'"
+/bin/logger "contractor_host: $contractor_host"
+
+echo "Loading Job Config..."
+if ! initJobConfig
+then
+  echo "Error getting Job Config!"
+  error_happened
+fi
+
+if [ "x$CONFIG_SRC" == "xremote" ]
+then
+  CONFIG_REMOTE_URL="$(grep __pxe_template_location /etc/job.config | cut -d \" -f4)"
+  echo "Getting Remote Config from '$CONFIG_REMOTE_URL'..."
 
   set +e
   wget -q -O /config $CONFIG_REMOTE_URL
@@ -475,35 +519,7 @@ then
     /sbin/reboot
     exit 0
   fi
-
-  export contractor_host=http://$CONTRACTOR_HOST
-  export config_uuid=$CONFIG_UUID
-  export job_id=$JOB_ID
-  echo "config_uuid = '$CONFIG_UUID'"
-  echo "job_id = '$JOB_ID'"
 fi
-
-echo "Contractor is '$contractor_host'"
-/bin/logger "contractor_host: $contractor_host"
-if [ "x$HTTP_PROXY" != "x" ]
-then
-  echo "Setting 'http_proxy' to $HTTP_PROXY..."
-  /bin/logger "http_proxy: $HTTP_PROXY"
-  export http_proxy=$HTTP_PROXY
-  export https_proxy=$HTTP_PROXY
-fi
-
-if [ "x$CONTRACTOR_PROXY" != "x" ]
-then
-  echo "Setting 'contractor_proxy' to $CONTRACTOR_PROXY..."
-  /bin/logger "contractor_proxy: $CONTRACTOR_PROXY"
-  export contractor_proxy=$CONTRACTOR_PROXY
-fi
-
-echo "Loading Job Config..."
-initJobConfig
-# need to catch errors from get job config
-# need to wrap do_task in a handler that will fail gracefully
 
 if [ "x$DEBUG" != "x1" ]
 then
@@ -527,6 +543,7 @@ fi
 
 set +e
 
+# TODO: need to wrap do_task in a handler that will fail gracefully
 ./do_task
 rc=$?
 # exit status
