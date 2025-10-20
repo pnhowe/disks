@@ -1,0 +1,5 @@
+#!/bin/sh
+
+/bin/logger "Got ACPI Power off"
+echo "\n\n\nGot ACPI Power Off!\n" > /dev/tty0
+/sbin/poweroff

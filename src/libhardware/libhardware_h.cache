@@ -20,4 +20,10 @@ pci_entry._fields_ = [
     ('device', c_ubyte),
     ('function', c_ubyte),
 ]
-__all__ = ['pci_entry', 'dmi_entry']
+class vpd_entry(Structure):
+    pass
+vpd_entry._fields_ = [
+    ('id', c_char * 3),
+    ('value', c_char * 256),
+]
+__all__ = ['pci_entry', 'dmi_entry', 'vpd_entry']

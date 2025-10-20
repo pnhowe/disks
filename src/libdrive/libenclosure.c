@@ -13,13 +13,7 @@ int verbose = 0;
 #define MAX_SUBENC 10
 #define MAX_DIAG_PAGE_SIZE 2048
 
-int min( int a, int b )
-{
-  if( a < b )
-    return a;
-  else
-    return b;
-}
+#define min(a,b) (((a) < (b)) ? (a) : (b))
 
 int _test_and_open( struct device_handle *encolsure, const char *device, char *errStr )
 {

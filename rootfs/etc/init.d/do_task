@@ -5,7 +5,6 @@ set -e
 DEBUG=0
 NET_DEBUG=0
 CONFIG_SRC="remote"
-CONFIG_REMOTE_URL="http://contractor/config/pxe_template/"
 HTTP_PROXY=
 INTERFACE="any"
 INTERFACE_MAC=
@@ -18,7 +17,8 @@ DNS_SERVER=
 DNS_SEARCH_ZONE=
 HOSTNAME=
 CONTRACTOR_IP=
-CONTRACTOR_HOST="contractor"
+# if this changes update the disks.toml so the default is properly ignored
+CONTRACTOR_HOST="http://contractor"
 CONTRACTOR_PROXY=
 CONFIG_UUID=
 JOB_ID=
@@ -27,11 +27,14 @@ MEDIA_LABEL=
 
 error_happened()
 {
-  echo "And Error occured..."
+  echo "And Error occured... "
   while true
   do
+    # read does not timeout if set -e
+    set +e
     read -t 1 IGNORE  #clear out any garbage that might of been entered
     read -s -n 1 -p "(R)eboot  (P)ower Off  (S)hell" RESPONSE
+    set -e
     if [ "$RESPONSE" == "R" ] || [ "$RESPONSE" == "r" ]
     then
       /sbin/reboot
@@ -89,6 +92,9 @@ do
     contractor_proxy=*)
       CONTRACTOR_PROXY=${x#contractor_proxy=}
       ;;
+    contractor_host=*)
+      CONTRACTOR_HOST=${x#contractor_host=}
+      ;;
     debug)
       DEBUG=1
       ;;
@@ -100,9 +106,6 @@ do
       ;;
     local_config)
       CONFIG_SRC="local"
-      ;;
-    config_remote_url=*)
-      CONFIG_REMOTE_URL="${x#config_remote_url=}"
       ;;
     config_uuid=*)
       CONFIG_UUID="${x#config_uuid=}"
@@ -119,11 +122,16 @@ do
   esac
 done
 
+CONTRACTOR_NAME=$(echo "$CONTRACTOR_HOST" | cut -d / -f3 | cut -d : -f1 )
+
+echo "Contractor Name: '$CONTRACTOR_NAME'"
+/bin/logger "contractor_host: $contractor_host"
+
 if [ "x$CONTRACTOR_PROXY" != "x" ]
 then
   PING_HOST="$(echo $CONTRACTOR_PROXY | awk -F/ '{print $3}')"
 else
-  PING_HOST=$CONTRACTOR_HOST
+  PING_HOST=$CONTRACTOR_NAME
 fi
 
 if [ "$NET_DEBUG" == "1" ]
@@ -239,7 +247,8 @@ then
     fi
   fi
 
-  echo "Starting Interface $INTERFACE..."
+  echo "Starting Interface '$INTERFACE'..."
+  /bin/logger "interface: $INTERFACE"
 
   if [ "x$HOSTNAME" == "x" ]
   then
@@ -254,14 +263,15 @@ then
       HOSTNAME="mac$(cat /sys/class/net/$INTERFACE/address | sed s/://g)"
     fi
   fi
-  echo "Hostname: $HOSTNAME"
+  echo "Hostname is '$HOSTNAME'"
+  /bin/logger "hostname: $HOSTNAME"
   hostname $HOSTNAME
   echo "127.0.1.1 $HOSTNAME" >> /etc/hosts
   echo "$HOSTNAME" > /etc/hostname
 
   if [ "x$CONTRACTOR_IP" != "x" ]
   then
-    echo "$CONTRACTOR_IP $CONTRACTOR_HOST" >> /etc/hosts
+    echo "$CONTRACTOR_IP $CONTRACTOR_NAME" >> /etc/hosts
   fi
 
   if [ "x$IP_ADDRESS" != "x" ]
@@ -282,7 +292,7 @@ then
     counter=1
     while [ "x$rc" != "x0" ]
     do
-      echo "Pinging Gateway $GATEWAY, ($counter/10)...."
+      echo "Pinging Gateway '$GATEWAY', ($counter/10)...."
       ping -q -c4 $GATEWAY > /dev/null 2> /dev/null
       rc=$?
       counter=$(( counter + 1 ))
@@ -321,8 +331,9 @@ then
     do
       for iface in $INTERFACE_LIST
       do
-        echo "Bringing up $iface..."
+        echo "Bringing up '$iface'..."
         /sbin/ip link set $iface up
+        echo -n "  Waiting ."
         counter=1
         while [ "x$(cat /sys/class/net/$iface/operstate)" != "xup" ] && [ "$counter" -lt "30" ]
         do
@@ -340,7 +351,7 @@ then
           continue
         fi
         echo "DHCPing on '$iface'..."
-        /sbin/udhcpc --interface=$iface -x:hostname $HOSTNAME --vendorclass=t3ktondisk --timeout=10 --syslog --arping --release
+        RECORD_INTERFACE=yes /sbin/udhcpc --interface=$iface -x:hostname $HOSTNAME --vendorclass=t3ktondisk --timeout=10 --syslog --arping --release
         if [ -f /tmp/dhcp-interface ];
         then
           if [ "x$CONFIG_SRC" == "xremote" ]
@@ -422,7 +433,28 @@ then
   /media/config-init
 fi
 
-if [ "x$CONFIG_SRC" == "xlocal" ]
+if [ "x$HTTP_PROXY" != "x" ]
+then
+  echo "Setting 'http_proxy' to $HTTP_PROXY..."
+  /bin/logger "http_proxy: $HTTP_PROXY"
+  export http_proxy=$HTTP_PROXY
+  export https_proxy=$HTTP_PROXY
+fi
+
+if [ "x$CONTRACTOR_PROXY" != "x" ]
+then
+  echo "Setting 'contractor_proxy' to $CONTRACTOR_PROXY..."
+  /bin/logger "contractor_proxy: $CONTRACTOR_PROXY"
+  export contractor_proxy=$CONTRACTOR_PROXY
+fi
+
+echo "Config Source is '$CONFIG_SRC'"
+/bin/logger "config_src: $CONFIG_SRC"
+if [ "x$CONFIG_SRC" == "xnone" ]
+then
+  export contractor_host="none://"
+
+elif [ "x$CONFIG_SRC" == "xlocal" ]
 then
   echo "Using Local Config..."
   if [ -r /media/config.json ]
@@ -436,19 +468,35 @@ then
     error_happened
   fi
 
-  if [ -r /media/config ]
-  then
-    cp /media/config /config
-  fi
-
 elif [ "x$CONFIG_SRC" == "xremote" ]
 then
-  echo "Getting Remote Config from '$CONFIG_REMOTE_URL'..."
   if [ "$NO_IP" == "1" ]
   then
     echo "No IP to get config with!"
     error_happened
   fi
+
+  export contractor_host=$CONTRACTOR_HOST
+  export config_uuid=$CONFIG_UUID
+  export job_id=$JOB_ID
+  /bin/logger "config_uuid: $CONFIG_UUID"
+  /bin/logger "job_id: $job_id"
+fi
+
+echo "Contractor config source '$contractor_host'"
+/bin/logger "contractor_host: $contractor_host"
+
+echo "Loading Job Config..."
+if ! initJobConfig
+then
+  echo "Error getting Job Config!"
+  error_happened
+fi
+
+if [ "x$CONFIG_SRC" == "xremote" ]
+then
+  CONFIG_REMOTE_URL="$(grep __pxe_template_location /etc/job.config | cut -d \" -f4)"
+  echo "Getting Remote Config from '$CONFIG_REMOTE_URL'..."
 
   set +e
   wget -q -O /config $CONFIG_REMOTE_URL
@@ -471,32 +519,7 @@ then
     /sbin/reboot
     exit 0
   fi
-
-  export contractor_host=http://$CONTRACTOR_HOST
-  export config_uuid=$CONFIG_UUID
-  export job_id=$JOB_ID
-  echo "config_uuid = '$CONFIG_UUID'"
-  echo "job_id = '$JOB_ID'"
 fi
-
-echo "contractor_host = '$CONTRACTOR_HOST'"
-if [ "x$HTTP_PROXY" != "x" ]
-then
-  echo "Setting 'http_proxy' to $HTTP_PROXY..."
-  /bin/logger "http_proxy: $HTTP_PROXY"
-  export http_proxy=$HTTP_PROXY
-  export https_proxy=$HTTP_PROXY
-fi
-
-if [ "x$CONTRACTOR_PROXY" != "x" ]
-then
-  echo "Setting 'contractor_proxy' to $CONTRACTOR_PROXY..."
-  /bin/logger "contractor_proxy: $CONTRACTOR_PROXY"
-  export contractor_proxy=$CONTRACTOR_PROXY
-fi
-
-echo "Loading Job Config..."
-initJobConfig
 
 if [ "x$DEBUG" != "x1" ]
 then
@@ -520,6 +543,7 @@ fi
 
 set +e
 
+# TODO: need to wrap do_task in a handler that will fail gracefully
 ./do_task
 rc=$?
 # exit status
@@ -528,6 +552,8 @@ rc=$?
 # 0 - All good
 # anything else - Had Error, no notification has happened yet
 
+# echo "----- Log -----" >> /tmp/output.log
+# /sbin/logread >> /tmp/output.log
 # push /tmp/output.log to $OUTPUT_UPLOAD_URL
 # file name is <hostname>-<endtime>-<uptime>.log
 
@@ -543,7 +569,7 @@ then
   error_happened
 elif [ "$rc" -ne "0" ]
 then
-  echo "do_task returned $rc"
+  echo "do_task returned '$rc'"
   signalAlert "do_task error"
   error_happened
 fi

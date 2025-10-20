@@ -17,7 +17,11 @@ DELAY_MULTIPLIER = 15
 
 def getClient( job_config=None ):
   host = os.environ.get( 'contractor_host', 'http://contractor' )
-  if host.startswith( 'file://' ):
+
+  if host.startswith( 'none://' ):
+    client = NoConfigClient()
+
+  elif host.startswith( 'file://' ):
     client = LocalFileClient( host[ 7: ] )
 
   else:
@@ -68,6 +72,10 @@ class Client():
 
   def signalComplete( self ):
     print( '### Complete ###' )
+
+
+class NoConfigClient( Client ):
+  pass
 
 
 class HTTPClient( Client ):

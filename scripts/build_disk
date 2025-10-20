@@ -18,7 +18,7 @@ install_libc()
   cp $2/usr/sbin/ldconfig.real $1/sbin/ldconfig
 
   for LIB in libc.so.6 libm.so.6 libutil.so.1 libdl.so.2 \
-    libpthread.so.0 libnsl.so.2 libnss_compat.so.2 libnss_files.so.2 \
+    libpthread.so.0 libnsl.so.1 libnss_compat.so.2 libnss_files.so.2 \
     libnss_dns.so.2 libresolv.so.2 librt.so.1
   do
     cp -L $2/lib/x86_64-linux-gnu/$LIB $1/lib
@@ -115,6 +115,9 @@ install_kernel()
   cp -a "$2/../lib/modules/$kernel_version" "$1/lib/modules/"
   rm "$1/lib/modules/$kernel_version/build" || true
   rm "$1/lib/modules/$kernel_version/source" || true
+
+  mkdir -p $1/lib
+  cp -a $2/../lib_firmware $1/lib/firmware
 }
 
 #  $1 - name of disk
@@ -145,7 +148,7 @@ for item in $BASE_DEPS $DEP_LIST
 do
   binary_list="$(get_binaries $item "$4/$item")"
 
-  for binary in $binary_list 
+  for binary in $binary_list
   do
     temp_libs=$(fakechroot fakeroot chroot $3 /bin/bash -l -c "ldd $(realpath --relative-to=$3 "$4/$item/$binary")" | grep -v 'not found' | grep -v 'not a dynamic executable' | grep -v 'libfake' | awk '{print $3}' )
     lib_list="$(echo "$lib_list $temp_libs" | sort -u)"

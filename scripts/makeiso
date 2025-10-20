@@ -13,6 +13,12 @@ set -e
 
 ISO_BOOT="/usr/lib/ISOLINUX/isohdpfx.bin"
 
+if ! which xorriso > /dev/null
+then
+  echo "xorriso not found install xorriso"
+  exit 1
+fi
+
 if [ ! -f "$ISO_BOOT"  ];
 then
   echo "isolinux.bin not found install isolinux"
@@ -24,12 +30,6 @@ WORK_DIR="build.images/isotmp"
 if [ -d $WORK_DIR ]
 then
   rm -ifr ./${WORK_DIR}/
-fi
-
-if [ ! -f "/usr/bin/xorriso"  ];
-then
-  echo "xorriso not found install xorriso"
-  exit 1
 fi
 
 rm -f $1

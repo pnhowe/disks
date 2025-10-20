@@ -44,3 +44,19 @@ int get_pci_info( struct pci_entry *pci_list, int *count, char *errStr )
 
   return 0;
 }
+
+int get_vpd_info( struct pci_entry *entry, struct vpd_entry *vpd_list, int *count, char *errStr )
+{
+  int rc;
+
+  rc = getVPDInfo( entry, vpd_list, *count );
+  if( rc == -1 )
+  {
+    sprintf( errStr, "Error Getting VPDInfo, errno %i.\n", errno );
+    return -1;
+  }
+
+  *count = rc;
+
+  return 0;
+}

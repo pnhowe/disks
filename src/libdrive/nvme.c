@@ -46,7 +46,7 @@ int exec_cmd_nvme( struct device_handle *drive, const enum cdb_command command, 
     cdb.nsid = 0;   // want to talk to the controller
     cdb.cdw10 = 1;  // controller data sctucture  see Figure 244
 
-    // this should get us 5.15.2.2 Identify Controller data structure (CNS 01h) - Figure 247
+    // this should get us 5.15.2.2 Identify Controller data structure (CNS 01h) - Figure 247 (Base Specification)
 
     if( drive->driver_cmd( drive, rw, (unsigned char *)&cdb, sizeof( cdb ), &ident_data_controller, sizeof( ident_data_controller ), timeout ) )
       return -1;
@@ -252,7 +252,7 @@ void nvme_close( struct device_handle *drive )
 
 void nvme_info_mask( __attribute__((unused)) struct drive_info *info )
 {
-
+  return;
 }
 
 int nvme_open( const char *device, struct device_handle *drive )  // just over PCI for now, mabey FC later

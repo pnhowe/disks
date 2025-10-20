@@ -10,7 +10,7 @@
 """
 import operator
 import re
-from collections import Mapping
+from collections.abc import Mapping
 from libconfig.jinja2.runtime import Undefined
 from libconfig.jinja2._compat import text_type, string_types, integer_types
 import decimal
