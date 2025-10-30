@@ -1,13 +1,15 @@
 import os
-import time
 
-from platoclient.libhardware import dmiInfo
+from libhardware.libhardware import dmiInfo
 
-from handler import Handler
+from ..handler import Handler
 
 """
 afudos is a DOS cli for updating the firmware in American Megatrends BIOSes
 """
+PRIORITY = 20
+NAME = 'AfuDOS'
+
 
 class AfudosTarget( object ):
   def __init__( self, model, version ):
@@ -15,15 +17,15 @@ class AfudosTarget( object ):
     self.version = version
 
   def __str__( self ):
-    return 'AfudosTarget model: %s' % self.model
+    return f'AfudosTarget model: "{self.model}"'
 
   def __repr__( self ):
-    return 'AfudosTarget model: %s version: %s' % ( self.model, self.version )
+    return f'AfudosTarget model: "{self.model}" version: "{self.version}"'
 
 
 class Afudos( Handler ):
-  def __init__( self, *args, **kwargs ):
-    super( Afudos, self ).__init__( *args, **kwargs )
+  def __init__( self ):
+    super().__init__()
 
   def getTargets( self ):
     dmi = dmiInfo()
@@ -31,14 +33,12 @@ class Afudos( Handler ):
     try:
       bios = dmi[ 'BIOS Info' ][0]
     except ( KeyError, IndexError ):
-      print 'Unable to get BIOS Info'
-      return None
+      raise Exception( 'Unable to get BIOS Info' )
 
     try:
       board = dmi[ 'Base Board Information' ][0]
     except ( KeyError, IndexError ):
-      print 'Unable to get Board Info'
-      return None
+      raise Exception( 'Unable to get Board Info' )
 
     if bios[ 'Vendor' ] != 'American Megatrends Inc.':
       return []
@@ -53,13 +53,13 @@ class Afudos( Handler ):
     filename_list = []
     filename_list.append( filename )
 
-    cmd = """
+    cmd = f"""
 echo "Updating..."
 
-echo "afudos.exe  %s  /P  /B  /N  /K  /R /FDT /MER /OPR"
+echo "afudos.exe  {os.path.basename( filename )}  /P  /B  /N  /K  /R /FDT /MER /OPR"
 
 echo "Done."
-""" % ( os.path.basename( filename ) )
+"""
 
     filename_list.append( '/resources/afudos.exe' )
 
@@ -68,7 +68,7 @@ echo "Done."
       return False
 
     return False
-    #time.sleep( 30 )
-    #self._execute( 'ipmi_cycle', [ '/bin/ipmitool', 'power', 'cycle' ] )
+    # time.sleep( 30 )
+    # self._execute( 'ipmi_cycle', [ '/bin/ipmitool', 'power', 'cycle' ] )
 
-    #return True
+    # return True

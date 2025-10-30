@@ -2,19 +2,20 @@
 
 set -e
 
-. /tmp/config_file
+if [ -f /config ]
+then
+  /bin/postMessage "Getting Handler Resources..."
+  . /config
+  for URL in $RESOURCE_URL_LIST
+  do
+    echo "Retrieving Resource '$URL'..."
+    wget -q -O- $URL | tar -C / -xz
+  done
+fi
 
 /bin/postMessage "Starting Firmware Update..."
 
-if [ ! -f /config.json ];
-then
-  echo "Nothing to do."
-  /bin/postMessage "Firmware Update Skipped."
-  /bin/signalComplete
-  exit 0
-fi
-
-./firmware-update "$RESOURCE_LOCATION" "$HTTP_PROXY" && rc=0 || rc=$?
+./firmware.py && rc=0 || rc=$?
 
 if [ "$rc" -eq "20" ];
 then

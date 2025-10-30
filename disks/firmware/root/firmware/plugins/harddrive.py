@@ -1,10 +1,13 @@
 
-from handler import Handler
-from platoclient.libdrive import DriveManager
+from ..handler import Handler
+from libdrive.libdrive import DriveManager
+
+PRIORITY = 100
+NAME = 'Harddrive'
+
 
 class Harddrive( Handler ):
   def __init__( self, *args, **kwargs ):
-    super( Harddrive, self ).__init__( *args, **kwargs )
     self.dm = DriveManager()
 
   def getTargets( self ):
@@ -16,6 +19,6 @@ class Harddrive( Handler ):
 
   def updateTarget( self, target, filename ):
     return False
-    ( rc, _ ) = self._execute( 'harddrive_update_%s' % target.serial, '/sbin/hdparm --yes-i-know-what-i-am-doing --please-destroy-my-drive --fwdownload %s %s' ( filename, target.blockdev ) )
+    ( rc, _ ) = self._execute( f'harddrive_update_{target.serial}', f'/sbin/hdparm --yes-i-know-what-i-am-doing --please-destroy-my-drive --fwdownload {filename} {target.blockdev}' )
 
     return rc == 0

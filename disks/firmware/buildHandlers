@@ -1,0 +1,39 @@
+#!/bin/bash
+
+set -e
+
+if [ "x$1" == "x" ]
+then
+  echo "Specify which handlers to build"
+  exit 1
+fi
+
+set -x
+
+if [ -d build ]
+then
+  rm -fr build
+fi
+
+mkdir -p build/firmware/plugins
+export DESTDIR="$(pwd)/build"
+cwd="$(pwd)"
+
+for handler in $@
+do
+  if [ ! -d "handlers/$handler" ]
+  then
+    echo "handler '$handler' not found"
+    exit 1
+  fi
+  echo "----- doing $handler -----"
+  cp -a "handlers/$handler/plugin/"* build/firmware/plugins
+  cd "handlers/$handler/tools"
+  make install
+  make clean
+  cd "$cwd"
+done
+
+echo "Building Handler Export...."
+tar -C build -czf firmware-handlers.tar.gz .
+echo "Done!"

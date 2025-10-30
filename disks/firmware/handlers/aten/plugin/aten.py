@@ -1,11 +1,14 @@
 
-from platoclient.libhardware import dmiInfo
+from libhardware.libhardware import dmiInfo
 
-from handler import Handler
+from ..handler import Handler
 
 """
 for ATEN IPMI's, commonly found on Supermicro Motherboards
 """
+PRIORITY = 40
+NAME = 'ATEN'
+
 
 class AtenTarget( object ):
   def __init__( self, model, version ):
@@ -13,15 +16,15 @@ class AtenTarget( object ):
     self.version = version
 
   def __str__( self ):
-    return 'AtenTarget model: %s' % self.model
+    return f'AtenTarget model: "{self.model}"'
 
   def __repr__( self ):
-    return 'AtenTarget model: %s version: %s' % ( self.model, self.version )
+    return f'AtenTarget model: "{self.model}" version: "{self.version}"'
 
 
 class Aten( Handler ):
-  def __init__( self, *args, **kwargs ):
-    super( Aten, self ).__init__( *args, **kwargs )
+  def __init__( self ):
+    super().__init__()
 
   def _ipmiVersion( self ):
     ( rc, lines ) = self._execute( 'aten_getversion', '/bin/ipmitool mc info' )
@@ -41,13 +44,11 @@ class Aten( Handler ):
     try:
       board = dmi[ 'Base Board Information' ][0]
     except ( KeyError, IndexError ):
-      print 'Unable to get Board Info'
-      return None
+      raise Exception( 'Unable to get Board Info' )
 
     version = self._ipmiVersion()
-    if version is None:
-      print 'Unable to IPMI version'
-      return None
+    if version is None:  # TODO: what do to for Dells?
+      raise Exception( 'Unable to IPMI version' )
 
     if board[ 'Product Name' ] in ( 'X9DRE-TF+/X9DR7-TF+', ):
       target = AtenTarget( board[ 'Product Name'], version )
@@ -61,6 +62,8 @@ class Aten( Handler ):
     return False
     # lUpdate -f fwuperade.bin -i kcs -r y
     # do the update, sleep for 2 min, then allow reboot
+
+
 """
 [stgr01lab] root@plato{~}: ipmitool mc info
 Device ID                 : 32
