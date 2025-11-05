@@ -1,6 +1,8 @@
 #!/bin/sh
 
-echo "Doing front"
+echo "Doing Front"
+
+/bin/postMessage "Wiping Front"
 
 for item in $@;
 do
@@ -20,7 +22,9 @@ done
 echo "Waiting..."
 wait
 
-echo "Doing back"
+echo "Doing Back"
+
+/bin/postMessage "Wiping Back"
 
 for item in $@;
 do

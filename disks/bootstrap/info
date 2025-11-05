@@ -2,7 +2,7 @@
 
 set -e
 
-DEP_LIST="lldp ipmitool"
+DEP_LIST="lldp ipmitool efibootmgr"
 SRC_LIST="libdrive libhardware"
 
 image_extra()

@@ -1,6 +1,7 @@
 #TODO: rename these something with unique, with the standard aliases to override the contractor-resources ones.  this way some things can depend the enhanced installers here?
 #TODO: find a way for a blueprint to provide a config template?
 #TODO: find a way for a bluepriont to provide static config files?
+#TODO: reqork linux-installer urls to prefix them with "linux_installer"
 
 #Ubuntu
 [ structure.ubuntu-base ]
@@ -206,7 +207,7 @@ PROFILE_URL_LIST="{{ profile_url }} {{ extra_template_list|join( ' ' ) }}"
 [ pxe.disk-wipe ]
   description = 'T3kton Disks - Disk Wipe'
   boot_script = '''echo Linux Installer
-kernel {{ __pxe_location }}disks/disk-wipe.vmlinuz initrd=disk-wipe.initrd interface_mac={{ _provisioning_interface_mac }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ _hostname }} config_uuid={{ _structure_config_uuid }} job_id={{ _foundation_job_id|default( _structure_job_id ) }}{% if __contractor_host != 'http://contractor' %} contractor_host={{ __contractor_host }}{% endif %}{% if _console.startswith("ttyS") %} console={{ _console }},115200 console=tty1{% endif %}
+kernel {{ __pxe_location }}disks/disk-wipe.vmlinuz initrd=disk-wipe.initrd mode=mbr interface_mac={{ _provisioning_interface_mac }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ _hostname }} config_uuid={{ _structure_config_uuid }} job_id={{ _foundation_job_id|default( _structure_job_id ) }}{% if __contractor_host != 'http://contractor' %} contractor_host={{ __contractor_host }}{% endif %}{% if _console.startswith("ttyS") %} console={{ _console }},115200 console=tty1{% endif %}
 initrd {{ __pxe_location }}disks/disk-wipe.initrd
 boot
 '''
@@ -220,3 +221,19 @@ initrd {{ __pxe_location }}disks/disk-wipe.initrd
 boot
 '''
   template = '# Disk Wipe - Single Pass'
+
+[ pxe.firmware ]
+  description = 'T3kton Disks - Firmware'
+  boot_script = '''echo Firmware Update
+kernel {{ __pxe_location }}disks/firmware.vmlinuz initrd=firmware.initrd interface_mac={{ _provisioning_interface_mac }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ _hostname }} config_uuid={{ _structure_config_uuid }} job_id={{ _foundation_job_id|default( _structure_job_id ) }}{% if __contractor_host != 'http://contractor' %} contractor_host={{ __contractor_host }}{% endif %}{% if _console.startswith("ttyS") %} console={{ _console }},115200 console=tty1{% endif %}
+initrd {{ __pxe_location }}disks/firmware.initrd
+boot
+'''
+  template = '''# Firmware
+
+RESOURCE_URL_LIST=" "
+for resource in {{ firmware_handler_resources|join( ' ' ) }}
+do
+  RESOURCE_URL_LIST="$RESOURCE_URL_LIST {{ firmware_resource_location }}${resource}"
+done
+'''

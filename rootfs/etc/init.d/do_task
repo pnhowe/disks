@@ -310,7 +310,7 @@ then
     echo "Getting ip address..."
     if [ "x$INTERFACE" == "xany" ]
     then
-      INTERFACE_LIST="$( ls /sys/class/net/ | grep -v bond | grep -v lo | grep -v sit )"
+      INTERFACE_LIST="$( ls /sys/class/net/ | grep -v bond | grep -v lo | grep -v sit | sort)"
     elif [ "x$INTERFACE" != "x" ]
     then
       INTERFACE_LIST=$INTERFACE
@@ -346,7 +346,7 @@ then
         then
           echo "Interface '$iface' didn't come up, skipping..."
           echo "Random delay before trying next interface..."
-          /bin/sleep $(( $RANDOM % 120 ))
+          /bin/sleep $(( $RANDOM % 60 ))
           /sbin/ip link set $iface down
           continue
         fi

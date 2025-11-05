@@ -374,9 +374,9 @@ def partition( profile, value_map ):
   print( 'Target Block Devices: "{0}"'.format( '", "'.join( target_drives ) ) )
 
   if partition_type == 'gpt':
-    boot_rsvd_size = 5
+    boot_rsvd_size = 100
   else:
-    boot_rsvd_size = 1
+    boot_rsvd_size = 5
 
   swap_size = 512
   try:

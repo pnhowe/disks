@@ -2,7 +2,7 @@
 
 set -e
 
-DEP_LIST=""
+DEP_LIST="efibootmgr"
 SRC_LIST="libdrive"
 
 image_extra()

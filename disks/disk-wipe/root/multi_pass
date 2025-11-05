@@ -1,6 +1,8 @@
 #!/bin/sh
 
-echo "Doing zeros"
+echo "Doing Zeros"
+
+/bin/postMessage "Wiping With Zeros"
 
 for item in $@;
 do
@@ -22,6 +24,8 @@ wait
 
 echo "Doing Pattern"
 
+/bin/postMessage "Wiping With Pattern"
+
 for item in $@;
 do
   drive="$( echo $item | cut -d ':' -f 1 )"
@@ -40,7 +44,9 @@ done
 echo "Waiting..."
 wait
 
-echo "Doing ones"
+echo "Doing Ones"
+
+/bin/postMessage "Wiping With Ones"
 
 for item in $@;
 do
@@ -61,6 +67,8 @@ echo "Waiting..."
 wait
 
 echo "Doing zeros"
+
+/bin/postMessage "Wiping With Zeros"
 
 for drive in $@;
 do

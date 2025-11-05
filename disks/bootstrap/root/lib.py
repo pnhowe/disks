@@ -56,7 +56,7 @@ def getLLDP():
       break
 
     else:
-      if counter >= 10:
+      if counter >= 3:  # 30 seconds should be enough, lldp was started before bootstrap started
         _setMessage( 'lldp timeout waiting for data, skipping...' )
         return results
 

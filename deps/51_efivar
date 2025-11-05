@@ -1,0 +1,34 @@
+#!/bin/sh
+#SOURCE: https://github.com/rhboot/efivar/archive/39/efivar-39.tar.gz
+#HASH: 107fbb2a8bb936bf791d5c9e8cc229c05d08f3dd
+
+set -e
+#set -x
+
+build()
+{
+  if [ "x$1" = "xx86_64" ]
+  then
+    make ENABLE_DOCS=0 LIBDIR=/lib $2
+  elif [ "x$1" = "xarm64" ]
+  then
+    make ENABLE_DOCS=0 LIBDIR=/lib ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- $2
+  fi
+
+  make install ENABLE_DOCS=0 LIBDIR=/lib
+  # for some reason make install dosen't install the header files and it should and I don't want to figure it out right now
+  mkdir -p /usr/include/
+  cp src/include/efivar/efi* /usr/include/efivar
+}
+
+install()
+{
+  cp -f src/efisecdb $1/bin/
+  cp -f src/efivar $1/bin/
+}
+
+binaries()
+{
+  ls src/efisecdb
+  ls src/efivar
+}

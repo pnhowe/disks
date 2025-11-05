@@ -1,0 +1,29 @@
+#!/bin/sh
+#SOURCE: https://github.com/rhboot/efibootmgr/archive/18/efibootmgr-18.tar.gz
+#HASH: 60b0f6201eb1a70bc6069ff1d77635331a95c94c
+
+set -e
+#set -x
+
+build()
+{
+  if [ "x$1" = "xx86_64" ]
+  then
+    make EFIDIR=. EFI_LOADER=grubx64.efi $2
+  elif [ "x$1" = "xarm64" ]
+  then
+    make EFIDIR=. EFI_LOADER=grubx64.efi ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- $2
+  fi
+}
+
+install()
+{
+  cp -f src/efibootdump  $1/bin/
+  cp -f src/efibootmgr  $1/bin/
+}
+
+binaries()
+{
+  ls src/efibootdump
+  ls src/efibootmgr
+}

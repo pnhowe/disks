@@ -71,7 +71,7 @@ lldp = lib.getLLDP()
 info_map = { 'hardware': hardware, 'lldp': lldp, 'ip_address': lib.getIpAddress( primary_iface ) }
 
 try:
-  info_map[ 'config_uuid' ] = os.environ.get[ 'config_uuid' ]
+  info_map[ 'config_uuid' ] = os.environ.get( 'config_uuid' )
 except KeyError:
   pass
 
@@ -164,6 +164,13 @@ if config.get( 'bootstrap_wipe_mbr', False ):
       tmp = open( drive.block_path, 'r+b' )
       tmp.write( bytes( [ 0, 0, 0, 0, 0 ] ) )
       tmp.close()
+
+
+#  if config.get( 'clear_boot', False ):
+#    for item in efibootmgr
+#       item.delete
+#  add item for the ip interface that we have an ip on
+
 
 # if config.get( 'bios_config', False ) and config.get( 'bios_config_location', False ):
 #   bootstrap.setMessage( 'Loading Initial BIOS Config' )

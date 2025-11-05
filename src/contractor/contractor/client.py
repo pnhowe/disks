@@ -28,7 +28,7 @@ def getClient( job_config=None ):
     client = HTTPClient( host=host, proxy=os.environ.get( 'contractor_proxy', None ) )  # TODO: have do_task put on the http
 
   if job_config is not None:
-    job = json.loads( open( '/etc/job.config', 'r' ).read() )[ 'job' ]
+    job = json.loads( open( job_config, 'r' ).read() )[ 'job' ]
     client.job_id = job[ 'job_id' ]
     client.cookie = job[ 'cookie' ]
 
@@ -144,7 +144,7 @@ class HTTPClient( Client ):
     if resp != 'Recieved':
       print( 'WARNING! Complete Signaling Failed: "{0}"'.format( resp ) )
 
-  def getConfig( self, config_uuid=None, foundation_locator=None ):
+  def getConfig( self, config_uuid=None, foundation_locator=None ):  # TODO: Cache this, also preload the cache from "job_config" (see getClient) if it exists
     if config_uuid is None:
       config_uuid = os.environ.get( 'config_uuid', None )
       if not config_uuid:
