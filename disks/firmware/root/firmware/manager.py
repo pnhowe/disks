@@ -1,13 +1,6 @@
 import os
 import importlib
 
-# Handler Priorities
-# 20s - BIOS
-# 40s - BMC/IPMI
-# 60s - HBA/RAID
-# 80s - NIC/Infiniband
-# 100s - Harddrives/SSD/NVME
-
 
 class Manager( object ):
   def __init__( self ):
@@ -28,6 +21,6 @@ class Manager( object ):
     name_list = [ i[0] for i in sorted( self.handler_priority_map.items(), key=lambda x: x[1] ) ]
     for name in name_list:
       module = self.handler_module_map[ name ]
-      result.append( ( name, getattr( module, module.NAME ) ) )
+      result.append( ( name, getattr( module, module.NAME )() ) )
 
     return result

@@ -56,7 +56,7 @@ class Afudos( Handler ):
     cmd = f"""
 echo "Updating..."
 
-echo "afudos.exe  {os.path.basename( filename )}  /P  /B  /N  /K  /R /FDT /MER /OPR"
+echo "afudos.exe {os.path.basename( filename )} /P /B /N /K /R /FDT /MER /OPR"
 
 echo "Done."
 """
@@ -67,7 +67,7 @@ echo "Done."
     if line_list is None:
       return False
 
-    return False
+    return True
     # time.sleep( 30 )
     # self._execute( 'ipmi_cycle', [ '/bin/ipmitool', 'power', 'cycle' ] )
 

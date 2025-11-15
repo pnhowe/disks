@@ -28,11 +28,20 @@ class Handler( object ):
   def __init__( self ):
     self.WORK_DIR = '/wrk'
 
+  def setup( self ):  # run before any getTargets are run
+    pass
+
   def getTargets( self ):
     return []  # return list of ( target_handle, model, version ), return None on failure
 
   def updateTarget( self, target, filename ):
-    return False
+    return False  # TODO: return a tuple to indicate if a reboot is needed before doing the next handler
+
+  def beforeUpdates( self ):  # run before any updates for this handler is run
+    pass
+
+  def afterUpdates( self ):  # run after all updates for this handler have completed
+    pass
 
   def _prep_wrk_dir( self ):
     try:

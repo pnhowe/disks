@@ -21,3 +21,15 @@ MT_0000000838 = '28.46.3048'
 
 Set "firmware_resource_location" as the host and root path to where the firmware files are stored.  Also set "firmware_proxy" if a proxy is required to get to them.
 set the value "firmware_handler_resources" to a list of paths relitive to "firmware_resource_location" to download handlers in .tar.gz
+
+
+tty4 has the console output from the handler commands
+
+Handler Priorities
+------------------
+20s - BIOS
+40s - BMC/IPMI
+60s - HBA/RAID
+80s - NIC/Infiniband
+100s - Harddrives/SSD/NVME
+120s - GPUs/CoProcessors

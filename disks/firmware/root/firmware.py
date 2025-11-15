@@ -37,7 +37,7 @@ if not firmware_targets:
   print( 'firmware_targets not defined.' )
   sys.exit( 1 )
 
-print( f'Using "{resource_location}" for resource sources via proxy "{proxy}"' )
+print( f'Using "{resource_location}" for firmware resource via proxy "{proxy}"' )
 
 if proxy:
   print( 'Using Proxy "{0}" for getting resources'.format( proxy ) )
@@ -65,9 +65,13 @@ filename_cache = {}
 
 dirty = False
 
+contractor.postMessage( 'Setting up handlers...' )
+for ( name, handler ) in handler_list:
+  print( f'Setting Up Handler "{name}"...' )
+  handler.setup()
+
 contractor.postMessage( 'Checking for Updates....' )
-for ( name, handler_class ) in handler_list:
-  handler = handler_class()
+for ( name, handler ) in handler_list:
   try:
     version_map = firmware_targets[ name ]
   except KeyError:
@@ -101,6 +105,9 @@ for ( name, handler_class ) in handler_list:
     if version == target_version:
       print( '    All Good Skipping...' )
       continue
+
+    if not dirty:  # dirty is set after the first update, we will barrow that to know if it is the first update
+      handler.beforeUpdates()
 
     try:
       model_map = firmware_map[ model ]
@@ -140,7 +147,9 @@ for ( name, handler_class ) in handler_list:
     dirty = True
 
   # TODO: add a flag to the handler to determin if a reboot is really needed
+  # TODO: add a value to indicate how many processes can be done at the same time per handler
   if dirty:  # don't want to try to update harddrive firmware if the HBA/RAID card's firmware hasn't been rebooted
+    handler.afterUpdates()  # only running if something was updated, aka dirty
     break
 
 if dirty:

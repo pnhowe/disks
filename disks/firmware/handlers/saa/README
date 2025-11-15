@@ -1,0 +1,4 @@
+SSA is a tool from supermicro to do managment of SuperMicro servers X12/H12 and later, it can require a software key in the machine to use
+see https://www.supermicro.com/en/solutions/management-software/superserver-automation-assistant
+
+This handler will atempt to download and extract SSA from SMC's webside

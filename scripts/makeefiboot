@@ -35,7 +35,7 @@ EFI_STUB64="/usr/lib/systemd/boot/efi/linuxx64.efi.stub"
 
 if [ ! -f "$EFI_BIN64" ] || [ ! -f "$EFI_STUB64" ];
 then
-  echo "systemd-bootx64.efi not found install systemd"
+  echo "systemd-bootx64.efi not found install systemd-boot-efi"
   exit 1
 fi
 

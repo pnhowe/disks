@@ -227,6 +227,7 @@ templates:
 # clean up
 
 clean: clean-deps clean-images clean-src respkg-clean pkg-clean resource-clean
+	./disks/firmware/clean
 
 dist-clean: clean-deps clean-images clean-src clean-downloads respkg-clean pkg-dist-clean resource-clean
 
@@ -243,14 +244,10 @@ contractor/linux-installer-profiles.touch: $(shell find disks/linux-installer/pr
 respkg-blueprints:
 	echo ubuntu-focal-large
 
-#  sudo dpkg --add-architecture arm64
-# deb http://ports.ubuntu.com/ubuntu-ports bionic main universe multiverse
-# qemu-user-static
 respkg-requires:
 	echo respkg fakeroot bc gperf python3-dev python3-setuptools pkg-config gettext python3-pip bison flex gawk netpbm caca-utils locales
 ifeq ($(ARCH),x86_64)
 	echo build-essential
-# uuid-dev libblkid-dev libudev-dev libgpg-error-dev liblzma-dev zlib1g-dev libxml2-dev libreadline-dev libsqlite3-dev libbz2-dev libgcrypt-dev libelf-dev libassuan-dev libksba-dev libnpth0-dev
 endif
 ifeq ($(ARCH),arm64)
 	echo crossbuild-essential-arm64

@@ -134,6 +134,30 @@ else
   PING_HOST=$CONTRACTOR_NAME
 fi
 
+# a udev script runs and checks this file, if an interface name it is in it, it will be auto dhcped
+# handy for interface that like to disaapear on us (probaby due to firmware updates)
+touch /tmp/auto-dhcp-interfaces
+
+if grep -q bmc_idrac /proc/net/dev
+then
+  echo "Brinning up iDRAC interface..."
+  /sbin/ip link set bmc_idrac up
+  /sbin/udhcpc --interface=bmc_idrac --syslog --now
+  NO_PROXY=$(ip route | grep bmc_idrac | cut -d ' ' -f1 )
+  # just incase the interface and re-appears
+  echo bmc_idrac >> /tmp/auto-dhcp-interfaces
+fi
+
+if grep -q bmc_rhi /proc/net/dev
+then
+  echo "Brinning up Redfish Host Interface interface..."
+  /sbin/ip link set bmc_rhi up
+  /sbin/udhcpc --interface=bmc_rhi --syslog --now
+  NO_PROXY=$(ip route | grep bmc_rhi | cut -d ' ' -f1 )
+  # just incase the interface and re-appears
+  echo bmc_rhi >> /tmp/auto-dhcp-interfaces
+fi
+
 if [ "$NET_DEBUG" == "1" ]
 then
   /bin/cttyhack /bin/sh -l
@@ -144,7 +168,7 @@ if [ "x$INTERFACE_MAC" != "x" ]
 then
   INTERFACE=
 
-  for iface in $( ls /sys/class/net | grep -v bond | grep -v lo );
+  for iface in $( ls /sys/class/net | grep -v bond | grep -v lo | grep -v bmc_ );
   do
     if [ "$INTERFACE_MAC" == "$( cat /sys/class/net/$iface/address )" ];
     then
@@ -351,7 +375,7 @@ then
           continue
         fi
         echo "DHCPing on '$iface'..."
-        RECORD_INTERFACE=yes /sbin/udhcpc --interface=$iface -x:hostname $HOSTNAME --vendorclass=t3ktondisk --timeout=10 --syslog --arping --release
+        RECORD_INTERFACE=yes /sbin/udhcpc --interface=$iface -x:hostname $HOSTNAME --vendorclass=t3ktondisk --timeout=10 --syslog --arping --release --now
         if [ -f /tmp/dhcp-interface ];
         then
           if [ "x$CONFIG_SRC" == "xremote" ]
@@ -379,7 +403,7 @@ then
             break
           fi
         fi
-        /bin/killall udhcpc
+        /bin/kill $(ps | grep udhcpc | grep "interface=$iface" | cut -F 2)
         /bin/sleep 1
         /sbin/ip addr flush dev $iface
         /sbin/ip link set $iface down
@@ -436,9 +460,15 @@ fi
 if [ "x$HTTP_PROXY" != "x" ]
 then
   echo "Setting 'http_proxy' to $HTTP_PROXY..."
+  echo "Setting 'no_proxy' to $NO_PROXY..."
   /bin/logger "http_proxy: $HTTP_PROXY"
+  /bin/logger "no_proxy: $NO_PROXY"
   export http_proxy=$HTTP_PROXY
   export https_proxy=$HTTP_PROXY
+  export HTTP_PROXY
+  export HTTPS_PROXY=$HTTP_PROXY
+  export no_proxy=$NO_PROXY
+  export NO_PROXY
 fi
 
 if [ "x$CONTRACTOR_PROXY" != "x" ]

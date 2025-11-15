@@ -108,6 +108,6 @@ def pciInfo():
 
       vpd_list.append( { 'id': safeCString( vpd.id ), 'value': safeCString( vpd.value ) } )
 
-    results[ '{0:04x}:{1:02x}:{2:02x}.{3:02x}'.format( entry.domain, entry.bus, entry.device, entry.function ) ] = { 'vendor': entry.vendor_id, 'device': entry.device_id, 'vpd': vpd_list }
+    results[ '{0:04x}:{1:02x}:{2:02x}.{3:01x}'.format( entry.domain, entry.bus, entry.device, entry.function ) ] = { 'vendor': entry.vendor_id, 'device': entry.device_id, 'vpd': vpd_list }
 
   return results

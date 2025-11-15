@@ -1,0 +1,7 @@
+# this gives predictible names to the BMC host networks
+# Supermicro Hosts with RHI (Redfish Host Interface) enabled
+ACTION=="add", DRIVERS=="rndis_host", NAME="bmc_rhi"
+ACTION=="add", DRIVERS=="cdc_subset", NAME="bmc_rhi"
+ACTION=="add", DRIVERS=="cdc_ether", NAME="bmc_rhi"
+# Dell iDRAC7 and later
+ACTION=="add", SUBSYSTEM="net", SUBSYSTEMS=="usb", ATTRS{idVendor}=="413c", ATTRS{idProduct}=="a102", NAME="bmc_idrac"

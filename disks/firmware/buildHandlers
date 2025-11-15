@@ -30,10 +30,11 @@ do
   cp -a "handlers/$handler/plugin/"* build/firmware/plugins
   cd "handlers/$handler/tools"
   make install
-  make clean
   cd "$cwd"
 done
 
 echo "Building Handler Export...."
 tar -C build -czf firmware-handlers.tar.gz .
+rm -fr build
+
 echo "Done!"

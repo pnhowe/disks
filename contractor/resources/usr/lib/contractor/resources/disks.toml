@@ -231,9 +231,14 @@ boot
 '''
   template = '''# Firmware
 
-RESOURCE_URL_LIST=" "
+RESOURCE_URL_LIST=
 for resource in {{ firmware_handler_resources|join( ' ' ) }}
 do
   RESOURCE_URL_LIST="$RESOURCE_URL_LIST {{ firmware_resource_location }}${resource}"
 done
+
+{% if __connection_paramaters %}
+export BMC_USERNAME='{{ __connection_paramaters[ 'credentials' ][ 'username' ] }}'
+export BMC_PASSWORD='{{ __connection_paramaters[ 'credentials' ][ 'password' ] }}'
+{% endif %}
 '''

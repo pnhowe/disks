@@ -1,0 +1,27 @@
+#!/bin/sh
+#SOURCE: https://sourceforge.net/projects/hdparm/files/hdparm/hdparm-9.65.tar.gz
+#HASH: 3bc0916493f2f485c6371ec0fd16418d0e1fa636
+
+set -e
+#set -x
+
+build()
+{
+  if [ "x$1" = "xx86_64" ]
+  then
+    make $2
+  elif [ "x$1" = "xarm64" ]
+  then
+    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- $2
+  fi
+}
+
+install()
+{
+  cp -f hdparm $1/bin
+}
+
+binaries()
+{
+  ls hdparm
+}

@@ -13,6 +13,10 @@ then
   done
 fi
 
+# just incase a handler brought in libs/modules
+ldconfig
+depmod -a
+
 /bin/postMessage "Starting Firmware Update..."
 
 ./firmware.py && rc=0 || rc=$?
