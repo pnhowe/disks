@@ -122,7 +122,7 @@ class CInP():
     if verb in ( 'GET', 'LIST', 'UPDATE', 'CREATE', 'DELETE', 'CALL' ) and not model:
       raise InvalidRequest( 'Verb "{0}" requires model'.format( verb ) )
 
-  def _request( self, verb, uri, data=None, header_map=None, timeout=30 ):
+  def _request( self, verb, uri, data=None, header_map=None, timeout=30, no_parse=False ):
     logging.debug( 'cinp: making "{0}" request to "{1}"'.format( verb, uri ) )
     if header_map is None:
       header_map = {}
@@ -188,6 +188,8 @@ class CInP():
     buff = str( resp.read(), 'utf-8' ).strip()
     if not buff:
       data = None
+    elif no_parse:
+      data = buff
     else:
       try:
         data = json.loads( buff )

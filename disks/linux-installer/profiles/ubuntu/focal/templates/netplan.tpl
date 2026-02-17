@@ -29,7 +29,7 @@
   {% endif %}
 {% endif %}
 
-{%- target '/etc/netplan/01-netcfg.yaml' -%}
+{%- target '/etc/netplan/01-netcfg.yaml', 'root.root', '0600' -%}
 # Auto Generated During Install
 
 network:

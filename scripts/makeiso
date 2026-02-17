@@ -7,9 +7,8 @@ set -e
 # $2 - path to kernel
 # $3 - path to initrd
 # $4 - path to boot config file
-# $5 - path config-init (optional)
-# $6 - path config.json (optional)
-# $7 - path to extras dir (optional)
+# $5 - path config.json (optional)
+# $6 - path to extras dir (optional)
 
 ISO_BOOT="/usr/lib/ISOLINUX/isohdpfx.bin"
 
@@ -38,7 +37,7 @@ mkdir -p $WORK_DIR
 
 echo "Copying in kernel and image..."
 cp $2 $WORK_DIR/vmlinuz.img
-scripts/inject_initrd $3 $WORK_DIR/initrd.img $5 $6 $7
+scripts/inject_initrd $3 $WORK_DIR/initrd.img $5 $6
 
 echo "Setting up Legacy Boot..."
 scripts/makelegacyboot $WORK_DIR "iso" $4

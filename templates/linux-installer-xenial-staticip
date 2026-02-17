@@ -7,10 +7,6 @@ DESC_LIST=( "Ip Address" "Prefix" "Gateway" "DNS Server" "Mirror Server" "Hostna
 TYPE_LIST=( "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "yesno" "inputbox" "yesno" "menu:single_Single Disk_mirror_Mirror Two Disks_raid10_All disks into RAID 10_raid6_All disks into RAID 6_single-lvm_Single Disk LVM_dual-lvm_Two Disk LVM" )
 DEFAULT_LIST=( "192.168.1.100" "24" "192.168.1.1" "192.168.1.1" "us.archive.ubuntu.com" "xenial" "local" "2048" "yes" "http://proxy:3128/" "no" "single"  )
 
-INIT='#!/bin/sh
-
-sed s/--MAC--/$( cat /sys/class/net/eth0/address )/ -i /config.json'
-
 CONFIG='{
   "distro": "ubuntu",
   "distro_version": "xenial",
@@ -30,7 +26,7 @@ CONFIG='{
   "dns_search": [ "__DOMAIN__" ],
   "_domain_name": "__DOMAIN__",
   "id": 0,
-  "uuid": "00000000-0000-0000-0000-000000000000",
+  "_structure_config_uuid": "00000000-0000-0000-0000-000000000000",
   "_interface_map": { "eth0": {
       "physical_location": "eth0",
       "address_list": [
@@ -46,13 +42,13 @@ CONFIG='{
           "auto": true
         }
       ],
-      "mac": "--MAC--",
+      "mac": "**MAC**",
       "name": "eth0"
     }
   }
 }'
 
-CMDLINE="install	Install Ubuntu Xenial - Static Network __HOSTNAME__	local_config __BOOT_PROXY__ ip_address=__IP_ADDRESS__ netmask=__NETMASK__ gateway=__GATEWAY__ dns_server=__DNS_SERVER__ hostname=__HOSTNAME__ dns_search_zone=__DOMAIN__ interface=eth0 __KERNEL_CONSOLE__"
+CMDLINE="install	Install Ubuntu Xenial - Static Network - __HOSTNAME__	local_config __BOOT_PROXY__ ip_address=__IP_ADDRESS__ netmask=__NETMASK__ gateway=__GATEWAY__ dns_server=__DNS_SERVER__ hostname=__HOSTNAME__ dns_search_zone=__DOMAIN__ interface=eth0 __KERNEL_CONSOLE__"
 
 EXTRA_LIST='contractor/linux-installer-profiles/var/www/static/disks/ubuntu-bionic-profile.tar.gz'
 

@@ -12,7 +12,7 @@ class Manager( object ):
         continue
 
       handler_name = os.path.splitext( os.path.basename( item.name ) )[0]
-      module = importlib.import_module( f'firmware.plugins.{handler_name}' )
+      module = importlib.import_module( f'firmware.plugins.{ handler_name }' )
       self.handler_priority_map[ handler_name ] = module.PRIORITY
       self.handler_module_map[ handler_name ] = module
 

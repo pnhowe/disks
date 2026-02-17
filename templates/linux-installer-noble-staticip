@@ -5,11 +5,11 @@
 QUESTION_LIST=( "IP_ADDRESS" "PREFIX" "GATEWAY" "DNS_SERVER" "MIRROR_SERVER" "HOSTNAME" "DOMAIN" "SWAP_SIZE" "USE_PROXY" "PROXY" "IS_VM" "RAID_TYPE"  )
 DESC_LIST=( "Ip Address" "Prefix" "Gateway" "DNS Server" "Mirror Server" "Hostname" "Domain Name" "Swap Size" "Use HTTP Proxy" "HTTP Proxy (ignored if use proxy is n)" "Is VM" "RAID Type (ignored if VM)" )
 TYPE_LIST=( "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "inputbox" "yesno" "inputbox" "yesno" "menu:single_Single Disk_mirror_Mirror Two Disks_raid10_All disks into RAID 10_raid6_All disks into RAID 6_single-lvm_Single Disk LVM_dual-lvm_Two Disk LVM" )
-DEFAULT_LIST=( "192.168.1.100" "24" "192.168.1.1" "192.168.1.1" "us.archive.ubuntu.com" "bionic" "local" "2048" "yes" "http://proxy:3128/" "no" "single"  )
+DEFAULT_LIST=( "192.168.1.100" "24" "192.168.1.1" "192.168.1.1" "us.archive.ubuntu.com" "noble" "local" "2048" "yes" "http://proxy:3128/" "no" "single"  )
 
 CONFIG='{
   "distro": "ubuntu",
-  "distro_version": "bionic",
+  "distro_version": "noble",
   "bootstrap_source": "http://__MIRROR_SERVER__/ubuntu",
   "_hostname": "__HOSTNAME__",
   "_console": "__CONFIG_CONSOLE__",
@@ -18,9 +18,9 @@ CONFIG='{
   "http_proxy": "__PROXY__",
   "partition_scheme": "__PART_SCHEME__",
   "repo_list": [
-    { "distribution": "bionic", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": [ "main", "universe", "multiverse" ], "proxy": "__PROXY__" },
-    { "distribution": "bionic-updates", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": [ "main", "universe", "multiverse" ], "proxy": "__PROXY__" },
-    { "distribution": "bionic-security", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": [ "main", "universe", "multiverse" ], "proxy": "__PROXY__" }
+    { "distribution": "noble", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": [ "main", "universe", "multiverse" ], "proxy": "__PROXY__" },
+    { "distribution": "noble-updates", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": [ "main", "universe", "multiverse" ], "proxy": "__PROXY__" },
+    { "distribution": "noble-security", "type": "apt", "uri": "http://__MIRROR_SERVER__/ubuntu/", "components": [ "main", "universe", "multiverse" ], "proxy": "__PROXY__" }
   ],
   "dns_servers": [ "__DNS_SERVER__" ],
   "dns_search": [ "__DOMAIN__" ],
@@ -48,9 +48,9 @@ CONFIG='{
   }
 }'
 
-CMDLINE="install	Install UbuntU Bionic - Static Network - __HOSTNAME__	local_config __BOOT_PROXY__ ip_address=__IP_ADDRESS__ netmask=__NETMASK__ gateway=__GATEWAY__ dns_server=__DNS_SERVER__ hostname=__HOSTNAME__ dns_search_zone=__DOMAIN__ interface=eth0 __KERNEL_CONSOLE__"
+CMDLINE="install	Install Ubuntu Noble - Static Network - __HOSTNAME__	local_config __BOOT_PROXY__ ip_address=__IP_ADDRESS__ netmask=__NETMASK__ gateway=__GATEWAY__ dns_server=__DNS_SERVER__ hostname=__HOSTNAME__ dns_search_zone=__DOMAIN__ interface=eth0 __KERNEL_CONSOLE__"
 
-EXTRA_LIST='contractor/linux-installer-profiles/var/www/static/disks/ubuntu-bionic-profile.tar.gz'
+EXTRA_LIST='contractor/linux-installer-profiles/var/www/static/disks/ubuntu-noble-profile.tar.gz'
 
 post_process()
 {

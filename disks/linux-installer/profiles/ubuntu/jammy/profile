@@ -12,6 +12,7 @@ extra_mount_3=:/dev:/dev:bind
 extra_mount_4=devpts:devpts:/dev/pts
 extra_mount_5=binfmt_misc:binfmt_misc:/proc/sys/fs/binfmt_misc
 extra_mount_6=efivarfs:efivarfs:/sys/firmware/efi/efivars
+mkfs_ext4_options=-O ^metadata_csum,^orphan_file
 
 [fstab]
 prefix_1=# <file system> <mount point>   <type>  <options>       <dump>  <pass>

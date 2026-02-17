@@ -4,7 +4,7 @@ import json
 import time
 import random
 import math
-from datetime import datetime
+from datetime import datetime, timezone
 from .cinp.client import CInP, Timeout, ResponseError
 
 
@@ -17,15 +17,16 @@ DELAY_MULTIPLIER = 15
 
 def getClient( job_config=None ):
   host = os.environ.get( 'contractor_host', 'http://contractor' )
+  config_uuid = os.environ.get( 'config_uuid', None )
 
   if host.startswith( 'none://' ):
-    client = NoConfigClient()
+    client = NoConfigClient( config_uuid )
 
-  elif host.startswith( 'file://' ):
-    client = LocalFileClient( host[ 7: ] )
+  elif host.startswith( 'http://' ) or host.startswith( 'https://' ):
+    client = HTTPClient( host, os.environ.get( 'contractor_proxy', None ), config_uuid )
 
   else:
-    client = HTTPClient( host=host, proxy=os.environ.get( 'contractor_proxy', None ) )  # TODO: have do_task put on the http
+    client = LocalFileClient( host, config_uuid )
 
   if job_config is not None:
     job = json.loads( open( job_config, 'r' ).read() )[ 'job' ]
@@ -55,11 +56,15 @@ def _backOffDelay( count ):
 
 
 class Client():
-  def __init__( self ):
+  def __init__( self, config_uuid=None ):
     super().__init__()
+    self.config_uuid = config_uuid
 
-  def getConfig( self, config_uuid=None ):
+  def getConfig( self ):
     return {}
+
+  def getDiskTemplate( self ):
+    return ''
 
   def login( self ):
     pass
@@ -79,19 +84,20 @@ class NoConfigClient( Client ):
 
 
 class HTTPClient( Client ):
-  def __init__( self, host, proxy ):
-    super().__init__()
+  def __init__( self, host, proxy, config_uuid ):
+    super().__init__( config_uuid )
     self.cinp = CInP( host=host, root_path='/api/v1/', proxy=proxy )
     self.job_id = None
+
     # self.cinp.opener.addheaders[ 'User-Agent' ] += ' - config agent'
 
-  def request( self, method, uri, data=None, filter=None, timeout=30, retry_count=0 ):
+  def request( self, method, uri, data=None, filter=None, timeout=30, retry_count=0, no_parse=False ):
     retry = 0
     while True:
       logging.debug( 'contractor: request: retry {0} of {1}, timeout: {2}'.format( retry, retry_count, timeout ) )
       try:
         if method == 'raw get':
-          ( http_code, values, _ ) = self.cinp._request( 'RAWGET', uri, header_map={}, timeout=timeout )
+          ( http_code, values, _ ) = self.cinp._request( 'RAWGET', uri, header_map={}, timeout=timeout, no_parse=no_parse )
           if http_code != 200:
             logging.warning( 'cinp: Unexpected HTTP Code "{0}" for GET'.format( http_code ) )
             raise ResponseError( 'Unexpected HTTP Code "{0}" for GET'.format( http_code ) )
@@ -144,32 +150,52 @@ class HTTPClient( Client ):
     if resp != 'Recieved':
       print( 'WARNING! Complete Signaling Failed: "{0}"'.format( resp ) )
 
-  def getConfig( self, config_uuid=None, foundation_locator=None ):  # TODO: Cache this, also preload the cache from "job_config" (see getClient) if it exists
-    if config_uuid is None:
-      config_uuid = os.environ.get( 'config_uuid', None )
-      if not config_uuid:
-        config_uuid = None
-
-    if config_uuid is not None:
-      return self.request( 'raw get', '/config/config/c/{0}'.format( config_uuid ), timeout=10, retry_count=2 )
+  def getConfig( self, foundation_locator=None ):
+    if self.config_uuid is not None:
+      return self.request( 'raw get', '/config/config/c/{0}'.format( self.config_uuid ), timeout=10, retry_count=2 )
     elif foundation_locator is not None:
       return self.request( 'raw get', '/config/config/f/{0}'.format( foundation_locator ), timeout=10, retry_count=2 )
     else:
       return self.request( 'raw get', '/config/config/', timeout=10, retry_count=2 )  # the defaults cause libconfig to hang to a long time when it can't talk to contractor
 
+  def getDiskTemplate( self ):
+    if self.config_uuid is not None:
+      return self.request( 'raw get', '/config/pxe_template/c/{0}'.format( self.config_uuid ), timeout=10, retry_count=2, no_parse=True )
+    else:
+      return self.request( 'raw get', '/config/pxe_template/', timeout=10, retry_count=2, no_parse=True )
+
+
+def staticConfigValues():
+  result = {}
+  try:
+    result[ '**MAC**' ] = open( '/sys/class/net/eth0/address', 'r' ).read().strip()
+  except OSError:
+    result[ '**MAC**' ] = '00:00:00:00:00:00'
+
+  return result
+
+
+def replaceStaticConfigValues( config ):
+  for key, value in staticConfigValues().items():
+    config = config.replace( key, value )
+
+  return config
+
 
 class LocalFileClient( Client ):
-  def __init__( self, config_file ):
-    self.config = json.loads( open( config_file, 'r' ).read() )
-    self.config[ 'last_modified' ] = datetime.fromtimestamp( os.path.getctime( config_file ) ).strftime( '%Y-%m-%d %H:%M:%S' )
+  def __init__( self, config_file, config_uuid ):
+    super().__init__( config_uuid )
+    self.config = json.loads( replaceStaticConfigValues( open( config_file, 'r' ).read() ) )
+    self.config[ '__last_modified' ] = datetime.fromtimestamp( os.path.getctime( config_file ) ).replace( tzinfo=timezone.utc ).isoformat()
 
-  def getConfig( self, config_uuid=None ):
+  def getConfig( self ):
     return self.config.copy()
 
 
 class StaticConfigClient( Client ):
-  def __init__( self, config_values ):
+  def __init__( self, config_values, config_uuid ):
+    super().__init__( config_uuid )
     self.config = config_values
 
-  def getConfig( self, config_uuid=None ):
+  def getConfig( self ):
     return self.config.copy()

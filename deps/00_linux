@@ -33,7 +33,7 @@ build()
   mkdir -p /lib_firmware
   PWD="$(pwd)"
   # intel ICE driver
-  if grep -q "CONFIG_ICE=" .config
+  if grep -q "_CONFIG_ICE=" .config
   then
     mkdir -p /lib_firmware/intel/ice
     cd /lib_firmware/intel/ice

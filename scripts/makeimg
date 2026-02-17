@@ -6,9 +6,8 @@ set -e
 # $2 - path to kernel
 # $3 - path to initrd
 # $4 - path to boot config file
-# $5 - path config-init (optional)
-# $6 - path config.json (optional)
-# $7 - path to extras dir (optional)
+# $5 - path config.json (optional)
+# $6 - path to extras dir (optional)
 
 # size in 1k blocks, default is 60k ie 60meg disk
 DISK_SIZE="68k"
@@ -72,7 +71,7 @@ mount $partition_loop $MOUNT_POINT
 
 echo "Copying in kernel and image..."
 cp $2 $MOUNT_POINT/vmlinuz.img
-scripts/inject_initrd $3 $MOUNT_POINT/initrd.img $5 $6 $7
+scripts/inject_initrd $3 $MOUNT_POINT/initrd.img $5 $6
 
 scripts makelegacyboot $MOUNT_POINT "img" $4
 

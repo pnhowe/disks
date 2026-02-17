@@ -4,7 +4,8 @@ import base64
 import os
 import hashlib
 import pwd
-from datetime import datetime
+from datetime import datetime, timezone
+from dateutil import parser as datetimeparser
 from libconfig.jinja2 import FileSystemLoader, Environment, nodes, TemplateSyntaxError
 from libconfig.jinja2.ext import Extension, do as do_ext
 
@@ -79,16 +80,14 @@ class TargetWriter( Extension ):
 
 
 class Config():
-  def __init__( self, provider, template_dir, config_db, root_dir, configurator ):  # root_dir should not affect template nor config_db paths
+  def __init__( self, contractor, template_dir, config_db, root_dir ):  # root_dir should not affect template nor config_db paths
     super().__init__()
-    self.provider = provider
+    self.contractor = contractor
     self.template_dir = template_dir
     self.root_dir = root_dir
-    self.configurator = configurator
     self.extra_values = {}
     self.conn = sqlite3.connect( config_db, detect_types=sqlite3.PARSE_DECLTYPES )
     self._checkDB( self.conn )
-    self.config_uuid = None
 
   def __del__( self ):
     self.conn.close()
@@ -163,8 +162,8 @@ class Config():
       conn.execute( 'UPDATE "control" SET "version" = 1, "modified" = CURRENT_TIMESTAMP;' )
       conn.commit()
 
-  def updateCacheFromMaster( self ):
-    new_values, last_modified = self._getMasterValues()
+  def updateCacheFromContractor( self ):
+    new_values, last_modified = self._getContractorValues()
 
     values = self.getValues( no_extra=True )
     for name in new_values:
@@ -240,26 +239,23 @@ class Config():
     tmpl.render( value_map )
     return eng.globals[ '_target_list' ]
 
-  def setConfigUUID( self, uuid ):
-    if uuid is None:
-      raise Exception( 'Can Not set uuid to None' )
-
-    self.config_uuid = uuid
-
-  def _getMasterValues( self ):
-    values = self.provider.getValues( self.config_uuid )
+  def _getContractorValues( self ):
+    values = self.contractor.getConfig()
     if not values:
-      raise Exception( 'Provider returned empty config' )
+      raise Exception( 'Contractor returned empty config' )
 
-    if self.provider.uuid is None:
+    if not values[ '_structure_config_uuid' ]:
       raise Exception( 'Retrieved config is not valid' )
 
-    if self.config_uuid is None:
-      self.config_uuid = self.provider.uuid
-    elif self.config_uuid != self.provider.uuid:
+    if self.contractor.config_uuid is None:
+      self.contractor.config_uuid = values[ '_structure_config_uuid' ]
+
+    elif self.contractor.config_uuid != values[ '_structure_config_uuid' ]:
       raise Exception( 'config uuid mismatch' )
 
-    return values, self.provider.last_modified
+    self.contractor.config_uuid = values[ '_structure_config_uuid' ]
+
+    return values, datetimeparser.parse( values[ '__last_modified' ] )
 
   def setOverlayValues( self, values ):
     self.extra_values.update( values )
@@ -285,9 +281,8 @@ class Config():
     if not no_extra:
       result.update( self.extra_values )
 
-    result[ '__timestamp__' ] = datetime.now().isoformat()
-    result[ '__configurator__' ] = self.configurator
-    result[ '__uuid__' ] = self.config_uuid
+    result[ '__uuid__' ] = self.contractor.config_uuid
+    result[ '__timestamp__' ] = datetime.now( timezone.utc ).isoformat()
     result[ '__last_modified__' ] = self.getLastModified()
 
     return result
@@ -458,7 +453,7 @@ class Config():
           else:
             print( 'Target "{0}" for Template "{1}" in package "{2}" {3}, old file saved.'.format( target, template, package, msg ) )
             if not dry_run:
-              os.rename( target_file, '{0}.{1}-{2}'.format( target_file, self.configurator, datetime.utcnow().strftime( '%Y-%m-%d-%H-%M' ) ) )
+              os.rename( target_file, '{0}.{1}'.format( target_file, datetime.now().strftime( '%Y-%m-%d-%H-%M-%S' ) ) )
 
       if no_build:
         print( 'Template "{0}" skipped.'.format( template ) )

@@ -16,7 +16,6 @@ install: build/mstflint/flint/mstflint
 	mkdir -p $(DESTDIR)/lib
 	cp /lib/x86_64-linux-gnu/libstdc++.so.6 $(DESTDIR)/lib
 	cp /lib/x86_64-linux-gnu/libgcc_s.so.1 $(DESTDIR)/lib
-#make install -C build/mstflint
 
 clean:
 	$(RM) -r build

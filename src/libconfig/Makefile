@@ -8,7 +8,6 @@ install:
 	cp libconfig.py $(DESTDIR)/libconfig
 	cp -a jinja2 $(DESTDIR)/libconfig
 	cp -a markupsafe $(DESTDIR)/libconfig
-	cp -a providers $(DESTDIR)/libconfig
 
 test-requires:
 	echo flake8

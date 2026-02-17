@@ -445,18 +445,6 @@ then
   fi
 fi
 
-if [ -x /config-init ]
-then
-  echo "Executing /config-init..."
-  /config-init
-fi
-
-if [ -x /media/config-init ]
-then
-  echo "Executing /media/config-init..."
-  /media/config-init
-fi
-
 if [ "x$HTTP_PROXY" != "x" ]
 then
   echo "Setting 'http_proxy' to $HTTP_PROXY..."
@@ -489,10 +477,10 @@ then
   echo "Using Local Config..."
   if [ -r /media/config.json ]
   then
-    export contractor_host="file://media/config.json"
+    export contractor_host="/media/config.json"
   elif [ -r /config.json ]
   then
-    export contractor_host="file://config.json"
+    export contractor_host="/config.json"
   else
     echo "No Local Config!"
     error_happened
@@ -521,34 +509,6 @@ if ! initJobConfig
 then
   echo "Error getting Job Config!"
   error_happened
-fi
-
-if [ "x$CONFIG_SRC" == "xremote" ]
-then
-  CONFIG_REMOTE_URL="$(grep __pxe_template_location /etc/job.config | cut -d \" -f4)"
-  echo "Getting Remote Config from '$CONFIG_REMOTE_URL'..."
-
-  set +e
-  wget -q -O /config $CONFIG_REMOTE_URL
-  rc=$?
-  set -e
-
-  if [ "$rc" -ne "0" ]
-  then
-    set +e
-    echo "Error getting config from '$CONFIG_REMOTE_URL'."
-    read -t 1 IGNORE  #clear out any garbage that might of been entered
-    read -t 30 -n 1 -p "Press \"D\" to enter Debug, any other key to reboot (30 second timeout)..." tmp_DEBUG
-    set -e
-    if [ "x$tmp_DEBUG" == "xd" ] || [ "x$tmp_DEBUG" == "xD" ]
-    then
-        echo -e "\nType \"exit\" to continue exit and reboot...\n"
-        /bin/cttyhack /bin/sh -l
-    fi
-    echo -e "\Rebooting...\n"
-    /sbin/reboot
-    exit 0
-  fi
 fi
 
 if [ "x$DEBUG" != "x1" ]

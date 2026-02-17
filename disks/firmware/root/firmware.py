@@ -37,7 +37,7 @@ if not firmware_targets:
   print( 'firmware_targets not defined.' )
   sys.exit( 1 )
 
-print( f'Using "{resource_location}" for firmware resource via proxy "{proxy}"' )
+print( f'Using "{ resource_location }" for firmware resource via proxy "{ proxy }"' )
 
 if proxy:
   print( 'Using Proxy "{0}" for getting resources'.format( proxy ) )
@@ -53,7 +53,7 @@ filename_cache = {}
 #   except ( TypeError, ValueError ):
 #     count = 0
 
-#   print( f'Boot Count: {count}' )
+#   print( f'Boot Count: { count }' )
 
 #   if count > 5:
 #     print 'Rebooted more than 5 times, something is wrong.'
@@ -67,7 +67,7 @@ dirty = False
 
 contractor.postMessage( 'Setting up handlers...' )
 for ( name, handler ) in handler_list:
-  print( f'Setting Up Handler "{name}"...' )
+  print( f'Setting Up Handler "{ name }"...' )
   handler.setup()
 
 contractor.postMessage( 'Checking for Updates....' )
@@ -75,33 +75,33 @@ for ( name, handler ) in handler_list:
   try:
     version_map = firmware_targets[ name ]
   except KeyError:
-    print( f'No Firmware Target for Handler "{name}", skipping...' )
+    print( f'No Firmware Target for Handler "{ name }", skipping...' )
     continue
 
   try:
     firmware_map = firmware[ name ]
   except KeyError:
-    print( f'Error: No Firmware for Handler, however there is a version for it "{name}".' )
+    print( f'Error: No Firmware for Handler, however there is a version for it "{ name }".' )
     sys.exit( 1 )
 
-  print( f'Checking Handler "{name}"...' )
+  print( f'Checking Handler "{ name }"...' )
   try:
     target_list = handler.getTargets()
   except Exception as e:
-    print( f'Error getting Target list: {e}' )
+    print( f'Error getting Target list: { e }' )
     print( traceback.format_exc() )
     sys.exit( 1 )
 
   for ( target, model, version ) in target_list:
-    print( f'Checking for update for target "{target}"...' )
-    print( f'  model "{model}" version "{version}"...' )
+    print( f'Checking for update for target "{ target }"...' )
+    print( f'  model "{ model }" version "{ version }"...' )
     try:
       target_version = version_map[ model ]
     except KeyError:
-      print( f'Model {model} not found in version_map' )
+      print( f'Model "{ model }" not found in version_map' )
       continue
 
-    print( f'    Want "{target_version}"...' )
+    print( f'    Want "{ target_version }"...' )
     if version == target_version:
       print( '    All Good Skipping...' )
       continue
@@ -112,7 +112,7 @@ for ( name, handler ) in handler_list:
     try:
       model_map = firmware_map[ model ]
     except KeyError:
-      print( f'Error getting Model "{model}" from firmware_map' )
+      print( f'Error getting Model "{ model }" from firmware_map' )
       sys.exit( 1 )
 
     filename = findStep( version, target_version, model_map )
@@ -121,11 +121,11 @@ for ( name, handler ) in handler_list:
       sys.exit( 1 )
 
     if filename not in filename_cache:
-      url = f'{resource_location}{filename}'
+      url = f'{ resource_location }{ filename }'
       try:
         resp = opener.open( url )
       except request.HTTPError as e:
-        print( f'error retreiving "{url}": {e}' )
+        print( f'error retreiving "{ url }": { e }' )
         sys.exit( 1 )
 
       ( fd, local_filename ) = tempfile.mkstemp()
@@ -136,10 +136,10 @@ for ( name, handler ) in handler_list:
 
       resp.close()
       os.close( fd )
-      print( f'Downloaded "{filename}" to "{local_filename}"' )
+      print( f'Downloaded "{ filename }" to "{ local_filename }"' )
       filename_cache[ filename ] = local_filename
 
-    contractor.postMessage( f'Updating "{target}" with "{filename}"' )
+    contractor.postMessage( f'Updating "{ target }" with "{ filename }"' )
     if not handler.updateTarget( target, filename_cache[ filename ] ):
       print( 'Firmware update Failed' )
       sys.exit( 1 )

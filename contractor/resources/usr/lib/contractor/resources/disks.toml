@@ -16,7 +16,7 @@
   bootstrap_source = 'http://{{ mirror_server }}/ubuntu'
   distro = 'ubuntu'
   repo_components = [ 'main' ]
-  >repo_list = [
+  '>repo_list' = [
     { distribution = '{{ distro_version }}', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
     { distribution = '{{ distro_version }}-updates', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
     { distribution = '{{ distro_version }}-security', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' }
@@ -81,15 +81,14 @@
   'azure_image:Azure' = { 'publisher' = 'Canonical', 'offer' = 'UbuntuServer', 'sku' = '24.04-LTS', 'version' = 'latest' }
   'packet_os:Packet' = 'ubuntu_24_04'
 
-[ structure.ubuntu-noble-base-cloutinit ]
-  description = 'Base Ubuntu Noble Numbat (24.04 LTS)'
+[ structure.ubuntu-noble-cloudinit-base ]
+  description = 'Base Ubuntu Noble Numbat (cloudinit) (24.04 LTS)'
   parents = [ 'ubuntu-base' ]
-[ structure.ubuntu-noble-base-cloutinit.config_values ]
+[ structure.ubuntu-noble-cloudinit-base.config_values ]
   distro_version = 'noble'
   profile_url = 'http://static/disks/cloudinit-noble-profile.tar.gz'
   mirror_server = 'cloud-images.ubuntu.com'
   bootstrap_source = 'http://{{mirror_server}}/noble/current/'
-
 
 # Debian
 [ structure.debian-base ]
@@ -104,7 +103,7 @@
   bootstrap_source = 'http://{{ mirror_server }}/debian'
   distro = 'debian'
   repo_components = [ 'main' ]
-  >repo_list = [
+  '>repo_list' = [
     { distribution = '{{ distro_version }}', type = 'apt', uri = 'http://{{ mirror_server }}/debian/', components = [ 'main', 'contrib', 'non-free' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
     { distribution = '{{ distro_version }}-updates', type = 'apt', uri = 'http://{{ mirror_server }}/debian/', components = [ 'main', 'contrib', 'non-free' ], proxy = '{{ mirror_proxy|default( "local" ) }}' }
   ]
@@ -132,7 +131,7 @@
   config_host = 'http://contractor'
   bootstrap_source = 'https://{{ mirror_server }}/centos/'
   distro = 'centos'
-  >repo_list = [
+  '>repo_list' = [
     { type = 'yum', name = 'base', uri = 'http://{{ mirror_server }}/centos-{{ distro_version }}/{{ distro_version }}/os/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-{{ distro_version }}', proxy = '{{ mirror_proxy|default( "local" ) }}' },
     { type = 'yum', name = 'updates', uri = 'http://{{ mirror_server }}/centos-{{ distro_version }}/{{ distro_version }}/updates/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-{{ distro_version }}', proxy = '{{ mirror_proxy|default( "local" ) }}' },
     { type = 'yum', name = 'extras', uri = 'http://{{ mirror_server }}/centos-{{ distro_version }}/{{ distro_version }}/extras/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-{{ distro_version }}', proxy = '{{ mirror_proxy|default( "local" ) }}' },
