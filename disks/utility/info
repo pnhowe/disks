@@ -2,7 +2,7 @@
 
 set -e
 
-DEP_LIST="ssh lldp mdadm lvm2 parted e2fsprogs xfsprogs dosfstools libgpg-error libgcrypt gpgv squashfs ipmitool ntp bcache-tools pciutils"
+DEP_LIST="ssh lldp mdadm lvm2 parted e2fsprogs xfsprogs dosfstools libgpg-error libgcrypt gpgv squashfs ipmitool ntp bcache-tools pciutils efivar efibootmgr hdparm"
 SRC_LIST="libdrive"
 
 # add EFI tools

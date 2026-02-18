@@ -1,10 +1,9 @@
 #!/bin/bash
 
 # $1 - template
-# $2 - output config-init filename
-# $3 - output for config.json filename
-# $4 - output for boot config file
-# $5 - output directory name for extras
+# $2 - output for config.json filename
+# $3 - output for boot config file
+# $4 - output directory name for extras
 
 set -e
 #set -x
@@ -16,7 +15,7 @@ WIDTH=60
 
 . templates/$1
 
-DIALOG_TITLE="Questions for template $2"
+DIALOG_TITLE="Questions for template $1"
 
 NEED_CLEAR=
 
@@ -85,23 +84,17 @@ do
   CMDLINE="${CMDLINE//__${VAR}__/$(eval echo '$'${VAR})}"
 done
 
-if [ ! -z "$INIT" ]
-then
-  echo "$INIT" > "$2"
-  chmod +x $2
-fi
-
 if [ ! -z "$CONFIG" ]
 then
-  echo "$CONFIG" > "$3"
+  echo "$CONFIG" > "$2"
 fi
 
-echo "#!/bin/bash" > "$4"
-echo "CMDLINE_LIST=(\"$CMDLINE\")" >> "$4"
+echo "#!/bin/bash" > "$3"
+echo "CMDLINE_LIST=(\"$CMDLINE\")" >> "$3"
 
-if [ ! -d "$5" ]
+if [ ! -d "$4" ]
 then
-  echo "extra directory '$5' not a directory"
+  echo "extra directory '$4' not a directory"
   exit 1
 fi
 
@@ -110,10 +103,10 @@ do
   type=${item#*.}
   case $type in
     tar.gz)
-      tar -xzf $item -C $5
+      tar -xzf $item -C $4
       ;;
     *)
-      cp $item $5
+      cp $item $4
       ;;
   esac
 

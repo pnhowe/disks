@@ -47,7 +47,7 @@ case "$1" in
   deconfig)
     /sbin/ip addr flush dev $interface
     /sbin/ip link set $interface up
-    if [ "x$(cat /tmp/dhcp-interface )" == "x$interface" ]
+    if [ -f /tmp/dhcp-interface ] && [ "x$(cat /tmp/dhcp-interface )" == "x$interface" ]
     then
       rm -f /tmp/dhcp-interface
     fi
@@ -57,17 +57,10 @@ case "$1" in
     /sbin/ip addr flush dev $interface
     /sbin/ip addr add ${ip}/${mask} dev $interface
     [ -n "$router" ] && /sbin/ip route add default via ${router%% *} dev $interface
+    [ -n "$mtu" ] && /sbin/ip link set $interface mtu $mtu
+    [ -n "$vlanid" ] && vconfig add $interface $vlanid
 
-    if [ "x$mtu" != "x" ]
-    then
-      ip link set $interface mtu $mtu
-    fi
-    if [ "x$vlanid" != "x" ]
-    then
-      vconfig add $interface $vlanid
-    fi
-
-    if [ "x$dns" != "x" ]
+    if [ -n "$dns" ]
     then
       echo "# auto generated at `date`" > $RESOLV_CONF
       echo "domain ${domain%% *}" >> $RESOLV_CONF
@@ -78,10 +71,7 @@ case "$1" in
       done
     fi
 
-    if [ "x$RECORD_INTERFACE" == "xyes" ]
-    then
-      echo "$interface" > /tmp/dhcp-interface
-    fi
+    [ "x$RECORD_INTERFACE" == "xyes" ] && echo "$interface" > /tmp/dhcp-interface
     ;;
 
   renew)

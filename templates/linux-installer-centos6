@@ -7,10 +7,6 @@ DESC_LIST=( "Mirror Server" "Hostname" "Swap Size" "Use HTTP Proxy" "HTTP Proxy 
 TYPE_LIST=( "inputbox" "inputbox" "inputbox" "yesno" "inputbox" "yesno" "menu:single_Single Disk_mirror_Mirror Two Disks_raid10_All disks into RAID 10_raid6_All disks into RAID 6_single-lvm_Single Disk LVM_dual-lvm_Two Disk LVM" )
 DEFAULT_LIST=( "mirror.centos.org" "centos6" "2048" "yes" "http://proxy:3128/" "no" "single"  )
 
-INIT='#!/bin/sh
-
-sed s/--MAC--/$( cat /sys/class/net/eth0/address )/ -i /config.json'
-
 CONFIG='{
   "distro": "centos",
   "distro_version": "6",
@@ -27,7 +23,7 @@ CONFIG='{
     { "type":"yum", "name": "extras", "uri": "http://__MIRROR_SERVER__/centos-6/6/extras/\$basearch/", "key_file": "/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6", "proxy": "__PROXY__" }
   ],
   "id": 0,
-  "uuid": "00000000-0000-0000-0000-000000000000",
+  "_structure_config_uuid": "00000000-0000-0000-0000-000000000000",
   "_interface_map": { "eth0": {
       "physical_location": "eth0",
       "address_list": [
@@ -40,7 +36,7 @@ CONFIG='{
           "auto": true
         }
       ],
-      "mac": "--MAC--",
+      "mac": "**MAC**",
       "name": "eth0"
     }
   }

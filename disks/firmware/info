@@ -2,8 +2,8 @@
 
 set -e
 
-DEP_LIST=""
-SRC_LIST=""
+DEP_LIST="hdparm ipmitool"
+SRC_LIST="libdrive libhardware"
 
 image_extra()
 {

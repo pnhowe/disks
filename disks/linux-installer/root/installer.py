@@ -15,7 +15,7 @@ from installer.users import setupUsers
 
 STDOUT_OUTPUT = '/dev/instout'
 
-contractor = getClient( '/etc/job.config', )
+contractor = getClient( '/etc/job.config' )
 contractor.login()
 
 config = contractor.getConfig()

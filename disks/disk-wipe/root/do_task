@@ -23,7 +23,8 @@ then
   diskwipe_mode="mbr"
 fi
 
-wrk_list=`for i in /sys/block/[hs]d* /sys/block/nvme* ; do echo $i | awk '{ split( $0, a, "/" ); print a[4] }'; done`
+# the -e suppresses the wild card expression if it dosen't match
+wrk_list=`for i in /sys/block/[hs]d* /sys/block/nvme* ; do [ -e "$i" ] && echo $i | awk '{ split( $0, a, "/" ); print a[4] }'; done`
 drive_list=""
 
 for drive in $wrk_list;
@@ -78,12 +79,18 @@ then
   exit 10
 fi
 
+# TODO: need a better way to find items that are on the local drives
+if [ -d /sys/firmware/efi ]
+then
+  /bin/postMessage "Cleaning up EFI Boot."
+  for item in `efibootmgr | awk '/HD/ { gsub( /Boot|\*/, "", $1 ); print $1 }'`;
+  do
+    echo "Deleting EFI Boot Item $item"
+    efibootmgr -q -B -b $item
+  done
+fi
+
 /bin/postMessage "Disk Wipe Complete."
 /bin/signalComplete
 
 exit 0
-
-
-
-# single_pass -> wipe
-# multi_pass -> sanitize

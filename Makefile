@@ -74,14 +74,15 @@ clean-downloads:
 
 # external dependancy building
 
-# do not install package list: libgcrypt-dev libgpg-error-dev libassuan-dev libksba-dev
 build/host.build:
 	mkdir -p build/host
 # https://bugs.launchpad.net/ubuntu/+source/mawk/+bug/2052392
+# --exclude=libgcrypt20,libassuan0,libgpg-error0,libksba-dev --no-resolve-deps
 	fakechroot fakeroot debootstrap --variant=fakechroot noble build/host
 	fakechroot fakeroot chroot build/host sed 's/ main/ main universe multiverse/' -i /etc/apt/sources.list
 	fakechroot fakeroot chroot build/host apt update
-	fakechroot fakeroot chroot build/host apt -y install build-essential less bison flex bc gawk python3 pkg-config uuid-dev libblkid-dev libudev-dev liblzma-dev zlib1g-dev libxml2-dev libreadline-dev libsqlite3-dev libbz2-dev libelf-dev libksba-dev libnpth0-dev gperf rsync autoconf automake libtool curl libsmartcols-dev libaio-dev libinih-dev liburcu-dev liblz4-dev libffi-dev unzip
+# do not install package list: libgcrypt-dev libgpg-error-dev libassuan-dev libksba-dev
+	fakechroot fakeroot chroot build/host apt -y install build-essential less bison flex bc gawk python3 pkg-config uuid-dev libblkid-dev libudev-dev liblzma-dev zlib1g-dev libxml2-dev libreadline-dev libsqlite3-dev libbz2-dev libelf-dev libksba-dev libnpth0-dev gperf rsync autoconf automake libtool curl libsmartcols-dev libaio-dev libinih-dev liburcu-dev liblz4-dev libffi-dev unzip mandoc libpopt-dev
 	touch $@
 
 $(DEPS_BUILD_FS)/.mount: build/host.build
@@ -183,13 +184,13 @@ images/img-$(ARCH)/%.img: images/img-$(ARCH) $$(shell scripts/img_iso_deps $(ARC
 	then                                                                                                                                \
 	  mkdir -p build.images/templates/$*/extras ;                                                                                       \
 		DISK=$$( grep -m 1 '#DISK:' templates/$* | sed s/'#DISK: '// );                                                                   \
-	  scripts/build_template $* build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/config.boot build.images/templates/$*/extras && \
-	  sudo scripts/makeimg $@ images/pxe-$(ARCH)/$$DISK.vmlinuz images/pxe-$(ARCH)/$$DISK.initrd build.images/templates/$*/config.boot build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/extras; \
+	  scripts/build_template $* build.images/templates/$*/config.json build.images/templates/$*/config.boot build.images/templates/$*/extras && \
+	  sudo scripts/makeimg $@ images/pxe-$(ARCH)/$$DISK.vmlinuz images/pxe-$(ARCH)/$$DISK.initrd build.images/templates/$*/config.boot build.images/templates/$*/config.json build.images/templates/$*/extras; \
 	elif [ -f $(FILE).config_file ];                                                                                                    \
 	then                                                                                                                                \
-	  sudo scripts/makeimg $@ images/pxe-$(ARCH)/$*.vmlinuz images/pxe-$(ARCH)/$*.initrd $(FILE) $(FILE).config_file;                                   \
+	  sudo scripts/makeimg $@ images/pxe-$(ARCH)/$*.vmlinuz images/pxe-$(ARCH)/$*.initrd $(FILE) $(FILE).config_file;                   \
 	else                                                                                                                                \
-	  sudo scripts/makeimg $@ images/pxe-$(ARCH)/$*.vmlinuz images/pxe-$(ARCH)/$*.initrd $(FILE);                                                       \
+	  sudo scripts/makeimg $@ images/pxe-$(ARCH)/$*.vmlinuz images/pxe-$(ARCH)/$*.initrd $(FILE);                                       \
 	fi
 
 # iso targets
@@ -210,13 +211,13 @@ images/iso-$(ARCH)/%.iso: images/iso-$(ARCH) $$(shell scripts/img_iso_deps $(ARC
 	then                                                                                                                                \
 	  mkdir -p build.images/templates/$*/extras ;                                                                                       \
 		DISK=$$( grep -m 1 '#DISK:' templates/$* | sed s/'#DISK: '// );                                                                   \
-		scripts/build_template $* build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/config.boot build.images/templates/$*/extras && \
-	  scripts/makeiso $@ images/pxe-$(ARCH)/$$DISK.vmlinuz images/pxe-$(ARCH)/$$DISK.initrd build.images/templates/$*/config.boot build.images/templates/$*/config-init build.images/templates/$*/config.json build.images/templates/$*/extras; \
+		scripts/build_template $* build.images/templates/$*/config.json build.images/templates/$*/config.boot build.images/templates/$*/extras && \
+	  scripts/makeiso $@ images/pxe-$(ARCH)/$$DISK.vmlinuz images/pxe-$(ARCH)/$$DISK.initrd build.images/templates/$*/config.boot build.images/templates/$*/config.json build.images/templates/$*/extras; \
 	elif [ -f $(FILE).config_file ];                                                                                                    \
 	then                                                                                                                                \
-	  scripts/makeiso $@ images/pxe-$(ARCH)/$*.vmlinuz images/pxe-$(ARCH)/$*.initrd $(FILE) $(FILE).config_file;                                        \
+	  scripts/makeiso $@ images/pxe-$(ARCH)/$*.vmlinuz images/pxe-$(ARCH)/$*.initrd $(FILE) $(FILE).config_file;                        \
 	else                                                                                                                                \
-	  scripts/makeiso $@ images/pxe-$(ARCH)/$*.vmlinuz images/pxe-$(ARCH)/$*.initrd $(FILE);                                                            \
+	  scripts/makeiso $@ images/pxe-$(ARCH)/$*.vmlinuz images/pxe-$(ARCH)/$*.initrd $(FILE);                                            \
 	fi
 
 # templates
@@ -227,6 +228,7 @@ templates:
 # clean up
 
 clean: clean-deps clean-images clean-src respkg-clean pkg-clean resource-clean
+	cd disks/firmware && ./clean
 
 dist-clean: clean-deps clean-images clean-src clean-downloads respkg-clean pkg-dist-clean resource-clean
 
@@ -243,14 +245,10 @@ contractor/linux-installer-profiles.touch: $(shell find disks/linux-installer/pr
 respkg-blueprints:
 	echo ubuntu-focal-large
 
-#  sudo dpkg --add-architecture arm64
-# deb http://ports.ubuntu.com/ubuntu-ports bionic main universe multiverse
-# qemu-user-static
 respkg-requires:
 	echo respkg fakeroot bc gperf python3-dev python3-setuptools pkg-config gettext python3-pip bison flex gawk netpbm caca-utils locales
 ifeq ($(ARCH),x86_64)
 	echo build-essential
-# uuid-dev libblkid-dev libudev-dev libgpg-error-dev liblzma-dev zlib1g-dev libxml2-dev libreadline-dev libsqlite3-dev libbz2-dev libgcrypt-dev libelf-dev libassuan-dev libksba-dev libnpth0-dev
 endif
 ifeq ($(ARCH),arm64)
 	echo crossbuild-essential-arm64

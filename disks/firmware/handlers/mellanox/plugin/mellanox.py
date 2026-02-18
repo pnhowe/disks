@@ -1,0 +1,38 @@
+
+from ..handler import Handler
+from libhardware.libhardware import pciInfo
+
+PRIORITY = 80
+NAME = 'Mellanox'
+
+
+class Mellanox( Handler ):
+  def __init__( self ):
+    super().__init__()
+
+  def getTargets( self ):
+    result = []
+    for address, entry in pciInfo().items():
+      if not address.endswith( '.0' ):  # we don't want to deal with the other "functions", they share with the primary
+        continue
+
+      if entry[ 'vendor' ] == 5555:  # 0x15B3
+        ( rc, line_list ) = self._execute( f'mstflint_query_{address}', f'mstflint -d {address} q' )
+        if rc != 0:
+          raise Exception( f'Error getting info from Mellanox card at "{address}"' )
+
+        value_map = {}
+        for line in line_list:
+          try:
+            ( key, value ) = line.split( ':' )
+            value_map[ key.strip() ] = value.strip()
+          except ValueError:
+            continue
+
+        result.append( ( address, value_map[ 'PSID' ], value_map[ 'FW Version' ] ) )
+
+    return result
+
+  def updateTarget( self, target, filename ):
+    ( rc, _ ) = self._execute( f'mstflint_flash_{target}', f'mstflint -d {target} -i {filename} -y burn' )
+    return rc == 0

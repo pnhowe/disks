@@ -1,6 +1,7 @@
 #TODO: rename these something with unique, with the standard aliases to override the contractor-resources ones.  this way some things can depend the enhanced installers here?
 #TODO: find a way for a blueprint to provide a config template?
 #TODO: find a way for a bluepriont to provide static config files?
+#TODO: reqork linux-installer urls to prefix them with "linux_installer"
 
 #Ubuntu
 [ structure.ubuntu-base ]
@@ -15,7 +16,7 @@
   bootstrap_source = 'http://{{ mirror_server }}/ubuntu'
   distro = 'ubuntu'
   repo_components = [ 'main' ]
-  >repo_list = [
+  '>repo_list' = [
     { distribution = '{{ distro_version }}', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
     { distribution = '{{ distro_version }}-updates', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
     { distribution = '{{ distro_version }}-security', type = 'apt', uri = 'http://{{ mirror_server }}/ubuntu/', components = [ 'main', 'universe', 'multiverse' ], proxy = '{{ mirror_proxy|default( "local" ) }}' }
@@ -80,15 +81,14 @@
   'azure_image:Azure' = { 'publisher' = 'Canonical', 'offer' = 'UbuntuServer', 'sku' = '24.04-LTS', 'version' = 'latest' }
   'packet_os:Packet' = 'ubuntu_24_04'
 
-[ structure.ubuntu-noble-base-cloutinit ]
-  description = 'Base Ubuntu Noble Numbat (24.04 LTS)'
+[ structure.ubuntu-noble-cloudinit-base ]
+  description = 'Base Ubuntu Noble Numbat (cloudinit) (24.04 LTS)'
   parents = [ 'ubuntu-base' ]
-[ structure.ubuntu-noble-base-cloutinit.config_values ]
+[ structure.ubuntu-noble-cloudinit-base.config_values ]
   distro_version = 'noble'
   profile_url = 'http://static/disks/cloudinit-noble-profile.tar.gz'
   mirror_server = 'cloud-images.ubuntu.com'
   bootstrap_source = 'http://{{mirror_server}}/noble/current/'
-
 
 # Debian
 [ structure.debian-base ]
@@ -103,7 +103,7 @@
   bootstrap_source = 'http://{{ mirror_server }}/debian'
   distro = 'debian'
   repo_components = [ 'main' ]
-  >repo_list = [
+  '>repo_list' = [
     { distribution = '{{ distro_version }}', type = 'apt', uri = 'http://{{ mirror_server }}/debian/', components = [ 'main', 'contrib', 'non-free' ], proxy = '{{ mirror_proxy|default( "local" ) }}' },
     { distribution = '{{ distro_version }}-updates', type = 'apt', uri = 'http://{{ mirror_server }}/debian/', components = [ 'main', 'contrib', 'non-free' ], proxy = '{{ mirror_proxy|default( "local" ) }}' }
   ]
@@ -131,7 +131,7 @@
   config_host = 'http://contractor'
   bootstrap_source = 'https://{{ mirror_server }}/centos/'
   distro = 'centos'
-  >repo_list = [
+  '>repo_list' = [
     { type = 'yum', name = 'base', uri = 'http://{{ mirror_server }}/centos-{{ distro_version }}/{{ distro_version }}/os/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-{{ distro_version }}', proxy = '{{ mirror_proxy|default( "local" ) }}' },
     { type = 'yum', name = 'updates', uri = 'http://{{ mirror_server }}/centos-{{ distro_version }}/{{ distro_version }}/updates/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-{{ distro_version }}', proxy = '{{ mirror_proxy|default( "local" ) }}' },
     { type = 'yum', name = 'extras', uri = 'http://{{ mirror_server }}/centos-{{ distro_version }}/{{ distro_version }}/extras/$basearch/', key_file = '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-{{ distro_version }}', proxy = '{{ mirror_proxy|default( "local" ) }}' },
@@ -206,7 +206,7 @@ PROFILE_URL_LIST="{{ profile_url }} {{ extra_template_list|join( ' ' ) }}"
 [ pxe.disk-wipe ]
   description = 'T3kton Disks - Disk Wipe'
   boot_script = '''echo Linux Installer
-kernel {{ __pxe_location }}disks/disk-wipe.vmlinuz initrd=disk-wipe.initrd interface_mac={{ _provisioning_interface_mac }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ _hostname }} config_uuid={{ _structure_config_uuid }} job_id={{ _foundation_job_id|default( _structure_job_id ) }}{% if __contractor_host != 'http://contractor' %} contractor_host={{ __contractor_host }}{% endif %}{% if _console.startswith("ttyS") %} console={{ _console }},115200 console=tty1{% endif %}
+kernel {{ __pxe_location }}disks/disk-wipe.vmlinuz initrd=disk-wipe.initrd mode=mbr interface_mac={{ _provisioning_interface_mac }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ _hostname }} config_uuid={{ _structure_config_uuid }} job_id={{ _foundation_job_id|default( _structure_job_id ) }}{% if __contractor_host != 'http://contractor' %} contractor_host={{ __contractor_host }}{% endif %}{% if _console.startswith("ttyS") %} console={{ _console }},115200 console=tty1{% endif %}
 initrd {{ __pxe_location }}disks/disk-wipe.initrd
 boot
 '''
@@ -220,3 +220,24 @@ initrd {{ __pxe_location }}disks/disk-wipe.initrd
 boot
 '''
   template = '# Disk Wipe - Single Pass'
+
+[ pxe.firmware ]
+  description = 'T3kton Disks - Firmware'
+  boot_script = '''echo Firmware Update
+kernel {{ __pxe_location }}disks/firmware.vmlinuz initrd=firmware.initrd interface_mac={{ _provisioning_interface_mac }} {% if mirror_proxy %} http_proxy={{ mirror_proxy }}{% endif %} hostname={{ _hostname }} config_uuid={{ _structure_config_uuid }} job_id={{ _foundation_job_id|default( _structure_job_id ) }}{% if __contractor_host != 'http://contractor' %} contractor_host={{ __contractor_host }}{% endif %}{% if _console.startswith("ttyS") %} console={{ _console }},115200 console=tty1{% endif %}
+initrd {{ __pxe_location }}disks/firmware.initrd
+boot
+'''
+  template = '''# Firmware
+
+RESOURCE_URL_LIST=
+for resource in {{ firmware_handler_resources|join( ' ' ) }}
+do
+  RESOURCE_URL_LIST="$RESOURCE_URL_LIST {{ firmware_resource_location }}${resource}"
+done
+
+{% if __connection_paramaters %}
+export BMC_USERNAME='{{ __connection_paramaters[ 'credentials' ][ 'username' ] }}'
+export BMC_PASSWORD='{{ __connection_paramaters[ 'credentials' ][ 'password' ] }}'
+{% endif %}
+'''

@@ -44,7 +44,7 @@ class UnknownPlatform:
     return False
 
   def getNetwork( self ):
-    pass
+    return []
 
   def prep( self ):
     pass

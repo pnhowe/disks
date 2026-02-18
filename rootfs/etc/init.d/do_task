@@ -134,6 +134,30 @@ else
   PING_HOST=$CONTRACTOR_NAME
 fi
 
+# a udev script runs and checks this file, if an interface name it is in it, it will be auto dhcped
+# handy for interface that like to disaapear on us (probaby due to firmware updates)
+touch /tmp/auto-dhcp-interfaces
+
+if grep -q bmc_idrac /proc/net/dev
+then
+  echo "Brinning up iDRAC interface..."
+  /sbin/ip link set bmc_idrac up
+  /sbin/udhcpc --interface=bmc_idrac --syslog --now
+  NO_PROXY=$(ip route | grep bmc_idrac | cut -d ' ' -f1 )
+  # just incase the interface and re-appears
+  echo bmc_idrac >> /tmp/auto-dhcp-interfaces
+fi
+
+if grep -q bmc_rhi /proc/net/dev
+then
+  echo "Brinning up Redfish Host Interface interface..."
+  /sbin/ip link set bmc_rhi up
+  /sbin/udhcpc --interface=bmc_rhi --syslog --now
+  NO_PROXY=$(ip route | grep bmc_rhi | cut -d ' ' -f1 )
+  # just incase the interface and re-appears
+  echo bmc_rhi >> /tmp/auto-dhcp-interfaces
+fi
+
 if [ "$NET_DEBUG" == "1" ]
 then
   /bin/cttyhack /bin/sh -l
@@ -144,7 +168,7 @@ if [ "x$INTERFACE_MAC" != "x" ]
 then
   INTERFACE=
 
-  for iface in $( ls /sys/class/net | grep -v bond | grep -v lo );
+  for iface in $( ls /sys/class/net | grep -v bond | grep -v lo | grep -v bmc_ );
   do
     if [ "$INTERFACE_MAC" == "$( cat /sys/class/net/$iface/address )" ];
     then
@@ -310,7 +334,7 @@ then
     echo "Getting ip address..."
     if [ "x$INTERFACE" == "xany" ]
     then
-      INTERFACE_LIST="$( ls /sys/class/net/ | grep -v bond | grep -v lo | grep -v sit )"
+      INTERFACE_LIST="$( ls /sys/class/net/ | grep -v bond | grep -v lo | grep -v sit | sort)"
     elif [ "x$INTERFACE" != "x" ]
     then
       INTERFACE_LIST=$INTERFACE
@@ -346,12 +370,12 @@ then
         then
           echo "Interface '$iface' didn't come up, skipping..."
           echo "Random delay before trying next interface..."
-          /bin/sleep $(( $RANDOM % 120 ))
+          /bin/sleep $(( $RANDOM % 60 ))
           /sbin/ip link set $iface down
           continue
         fi
         echo "DHCPing on '$iface'..."
-        RECORD_INTERFACE=yes /sbin/udhcpc --interface=$iface -x:hostname $HOSTNAME --vendorclass=t3ktondisk --timeout=10 --syslog --arping --release
+        RECORD_INTERFACE=yes /sbin/udhcpc --interface=$iface -x:hostname $HOSTNAME --vendorclass=t3ktondisk --timeout=10 --syslog --arping --release --now
         if [ -f /tmp/dhcp-interface ];
         then
           if [ "x$CONFIG_SRC" == "xremote" ]
@@ -379,7 +403,7 @@ then
             break
           fi
         fi
-        /bin/killall udhcpc
+        /bin/kill $(ps | grep udhcpc | grep "interface=$iface" | cut -F 2)
         /bin/sleep 1
         /sbin/ip addr flush dev $iface
         /sbin/ip link set $iface down
@@ -421,24 +445,18 @@ then
   fi
 fi
 
-if [ -x /config-init ]
-then
-  echo "Executing /config-init..."
-  /config-init
-fi
-
-if [ -x /media/config-init ]
-then
-  echo "Executing /media/config-init..."
-  /media/config-init
-fi
-
 if [ "x$HTTP_PROXY" != "x" ]
 then
   echo "Setting 'http_proxy' to $HTTP_PROXY..."
+  echo "Setting 'no_proxy' to $NO_PROXY..."
   /bin/logger "http_proxy: $HTTP_PROXY"
+  /bin/logger "no_proxy: $NO_PROXY"
   export http_proxy=$HTTP_PROXY
   export https_proxy=$HTTP_PROXY
+  export HTTP_PROXY
+  export HTTPS_PROXY=$HTTP_PROXY
+  export no_proxy=$NO_PROXY
+  export NO_PROXY
 fi
 
 if [ "x$CONTRACTOR_PROXY" != "x" ]
@@ -459,10 +477,10 @@ then
   echo "Using Local Config..."
   if [ -r /media/config.json ]
   then
-    export contractor_host="file://media/config.json"
+    export contractor_host="/media/config.json"
   elif [ -r /config.json ]
   then
-    export contractor_host="file://config.json"
+    export contractor_host="/config.json"
   else
     echo "No Local Config!"
     error_happened
@@ -491,34 +509,6 @@ if ! initJobConfig
 then
   echo "Error getting Job Config!"
   error_happened
-fi
-
-if [ "x$CONFIG_SRC" == "xremote" ]
-then
-  CONFIG_REMOTE_URL="$(grep __pxe_template_location /etc/job.config | cut -d \" -f4)"
-  echo "Getting Remote Config from '$CONFIG_REMOTE_URL'..."
-
-  set +e
-  wget -q -O /config $CONFIG_REMOTE_URL
-  rc=$?
-  set -e
-
-  if [ "$rc" -ne "0" ]
-  then
-    set +e
-    echo "Error getting config from '$CONFIG_REMOTE_URL'."
-    read -t 1 IGNORE  #clear out any garbage that might of been entered
-    read -t 30 -n 1 -p "Press \"D\" to enter Debug, any other key to reboot (30 second timeout)..." tmp_DEBUG
-    set -e
-    if [ "x$tmp_DEBUG" == "xd" ] || [ "x$tmp_DEBUG" == "xD" ]
-    then
-        echo -e "\nType \"exit\" to continue exit and reboot...\n"
-        /bin/cttyhack /bin/sh -l
-    fi
-    echo -e "\Rebooting...\n"
-    /sbin/reboot
-    exit 0
-  fi
 fi
 
 if [ "x$DEBUG" != "x1" ]

@@ -30,6 +30,8 @@ install()
   # for now we are going to stick with the old network Interaface names
   rm $1/lib/udev/rules.d/80-net-name-slot.rules
   rm $1/lib/udev/rules.d/81-net-dhcp.rules
+  # don't need the systemd stuff either
+  rm $1/lib/udev/rules.d/99-systemd.rules
 }
 
 binaries()

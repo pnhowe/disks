@@ -26,3 +26,5 @@ config[ 'job' ] = {
 config[ 'config' ] = contractor_config
 
 open( '/etc/job.config', 'w' ).write( json.dumps( config, indent=2 ) )
+
+open( '/config', 'w' ).write( contractor.getDiskTemplate() )

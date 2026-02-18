@@ -120,7 +120,7 @@ int main( int argc, char **argv )
 
     for( i = 0; i < rc; i++ )
     {
-      printf( "%04x:%02x:%02x.%02x  %04x %04x\n", pci_list[i].domain, pci_list[i].bus, pci_list[i].device, pci_list[i].function, pci_list[i].vendor_id, pci_list[i].device_id );
+      printf( "%04x:%02x:%02x.%01x  %04x %04x\n", pci_list[i].domain, pci_list[i].bus, pci_list[i].device, pci_list[i].function, pci_list[i].vendor_id, pci_list[i].device_id );
 
       memset( vpd_list, 0, sizeof( vpd_list ) );
       rc2 = getVPDInfo( &pci_list[i], vpd_list, VPD_LIST_SIZE );
@@ -129,7 +129,7 @@ int main( int argc, char **argv )
         fprintf( stderr, "Error Getting VPDInfo, errno %i.\n", errno );
         exit( 1 );
       }
-  
+
       if( rc2 >= VPD_LIST_SIZE )
       {
         fprintf( stderr, "Error Getting VPDInfo, got %i entries.\n", rc2 );

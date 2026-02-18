@@ -6,7 +6,8 @@ set -e
 #set -x
 
 build()
-{  if [ "x$1" = "xx86_64" ]
+{
+  if [ "x$1" = "xx86_64" ]
   then
     ./configure --prefix=/ --disable-doc
   elif [ "x$1" = "xarm64" ]
@@ -14,6 +15,7 @@ build()
     ./configure --prefix=/ --disable-doc --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
   make $2
+  rm -f $(find /usr/lib/ -name libgpg-error.so.*)
   make install
 }
 

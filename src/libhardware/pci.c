@@ -87,7 +87,7 @@ int getPCIList( struct pci_entry list[], const int list_size )
 }
 
 // https://ics.uci.edu/~iharris/ics216/pci/PCI_22.pdf
-// https://github.com/pciutils/pciutils/blob/master/ls-vpd.c 
+// https://github.com/pciutils/pciutils/blob/master/ls-vpd.c
 
 int getVPDInfo( struct pci_entry *entry, struct vpd_entry list[], const int list_size )
 {
@@ -99,8 +99,8 @@ int getVPDInfo( struct pci_entry *entry, struct vpd_entry list[], const int list
   unsigned char id;
   unsigned int len;
 
-  //  Domain:Bus:Device.Function 
-  snprintf( filename, sizeof( filename ), "/sys/bus/pci/devices/%04x:%02x:%02x.%x/vpd", entry->domain, entry->bus, entry->device, entry->function );
+  //  Domain:Bus:Device.Function
+  snprintf( filename, sizeof( filename ), "/sys/bus/pci/devices/%04x:%02x:%02x.%01x/vpd", entry->domain, entry->bus, entry->device, entry->function );
 
   memset( list, 0, sizeof( *list ) ); // make sure all the strings are \0 teminated, just in case
 

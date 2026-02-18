@@ -15,12 +15,12 @@ partition_map = {}
 boot_drives = []
 
 mkfs_map = {}
-mkfs_map[ 'ext2' ] = '/sbin/mkfs.ext2 -F -text2 {block_device}'
-mkfs_map[ 'ext3' ] = '/sbin/mkfs.ext2 -F -text3 {block_device}'
-mkfs_map[ 'ext4' ] = '/sbin/mkfs.ext2 -F -text4 {block_device}'
-mkfs_map[ 'xfs' ] = '/sbin/mkfs.xfs -f {block_device}'
-mkfs_map[ 'vfat' ] = '/sbin/mkfs.vfat {block_device}'
-mkfs_map[ 'swap' ] = '/sbin/mkswap {block_device}'
+mkfs_map[ 'ext2' ] = '/sbin/mkfs.ext2 -F {mkfs_options} -text2 {block_device}'
+mkfs_map[ 'ext3' ] = '/sbin/mkfs.ext2 -F {mkfs_options} -text3 {block_device}'
+mkfs_map[ 'ext4' ] = '/sbin/mkfs.ext2 -F {mkfs_options} -text4 {block_device}'
+mkfs_map[ 'xfs' ] = '/sbin/mkfs.xfs {mkfs_options} -f {block_device}'
+mkfs_map[ 'vfat' ] = '/sbin/mkfs.vfat {mkfs_options} {block_device}'
+mkfs_map[ 'swap' ] = '/sbin/mkswap {mkfs_options} {block_device}'
 
 FS_WITH_TRIM = ( 'ext4', 'xfs' )
 
@@ -374,9 +374,9 @@ def partition( profile, value_map ):
   print( 'Target Block Devices: "{0}"'.format( '", "'.join( target_drives ) ) )
 
   if partition_type == 'gpt':
-    boot_rsvd_size = 5
+    boot_rsvd_size = 100
   else:
-    boot_rsvd_size = 1
+    boot_rsvd_size = 5
 
   swap_size = 512
   try:
@@ -392,10 +392,10 @@ def partition( profile, value_map ):
   except KeyError:
     pass
 
-  mounting_options = []
+  default_mounting_options = []
   try:
-    if value_map[ 'mounting_options' ] and value_map[ 'mounting_options' ] != 'defaults':
-      mounting_options = value_map[ 'mounting_options' ].split( ',' )
+    if value_map[ 'default_mounting_options' ] and value_map[ 'default_mounting_options' ] != 'defaults':
+      default_mounting_options = value_map[ 'default_mounting_options' ].split( ',' )
   except KeyError:
     pass
 
@@ -450,9 +450,9 @@ def partition( profile, value_map ):
     for drive in boot_drives:
       grub_partition = _addPartition( drive, 'bios_grub', boot_rsvd_size )
       if os.path.exists( '/sys/firmware/efi' ):
-        filesystem_list.append( { 'mount_point': '/boot/efi', 'options': mounting_options, 'type': 'vfat', 'block_device': grub_partition } )
+        filesystem_list.append( { 'mount_point': '/boot/efi', 'mount_options': default_mounting_options, 'type': 'vfat', 'block_device': grub_partition, 'mkfs_options': profile.get( 'filesystem', 'mkfs_vfat_options', fallback='' ) } )
       else:
-        filesystem_list.append( { 'type': 'vfat', 'block_device': grub_partition } )
+        filesystem_list.append( { 'type': 'vfat', 'block_device': grub_partition, 'mkfs_options': profile.get( 'filesystem', 'mkfs_vfat_options', fallback='' ) } )
 
   else:  # give room for MBR Boot sector
     for drive in boot_drives:
@@ -470,7 +470,7 @@ def partition( profile, value_map ):
     elif item[ 'ref_size' ] == 'swap':
       swap_size = tmp
 
-  # { 'target': < drive # >, [ 'type': '<swap|fs type|md|pv|blank>' if not specified, fs will be used], [ 'group': <md group> (if type == 'md') ][ 'group': <bcache group> (if type == 'bcache') ][ 'group': <volume group group> (if type == 'pv') ][ 'options': '<mounting options other than the default>' (for type == 'fs') | 'priority': <swap memer priority other then 0> (for type == 'swap') ] [ 'mount_point': '< mount point >' if type is a fs type, set to None to not mount], 'size': '<see if statement>' }
+  # { 'target': < drive # >, [ 'type': '<swap|fs type|md|pv|blank>' if not specified, fs will be used], [ 'group': <md group> (if type == 'md') ][ 'group': <bcache group> (if type == 'bcache') ][ 'group': <volume group group> (if type == 'pv') ][ 'mount_options': '<mounting options other than the default>' (for type == 'fs') | 'priority': <swap memer priority other then 0> (for type == 'swap') ] [ 'mount_point': '< mount point >' if type is a fs type, set to None to not mount], 'size': '<see if statement>' }
   for item in [ i for i in recipe if 'target' in i ]:
     target = int( item[ 'target' ] )
     target_drive = target_drives[ target ]
@@ -514,10 +514,15 @@ def partition( profile, value_map ):
         part_type = fs_type
 
     try:
-      if item[ 'options' ] != 'defaults':
-        options = item[ 'options' ].split( ',' )
+      if item[ 'mount_options' ] != 'defaults':
+        mount_options = item[ 'mount_options' ].split( ',' )
     except KeyError:
-      options = list( mounting_options )
+      mount_options = list( default_mounting_options )
+
+    try:
+      mkfs_options = '{0} {1}'.format( profile.get( 'filesystem', 'mkfs_{0}_options'.format( part_type ), fallback='' ), item[ 'mkfs_options' ] )
+    except KeyError:
+      mkfs_options = profile.get( 'filesystem', 'mkfs_{0}_options'.format( part_type ), fallback='' )
 
     try:
       priority = int( item[ 'priority' ] )
@@ -552,22 +557,22 @@ def partition( profile, value_map ):
         pv_list[ int( item[ 'group' ] ) ] = [ ( block_device, drive_map[ target_drive ] ) ]
 
     elif part_type == 'swap':
-      filesystem_list.append( { 'type': 'swap', 'priority': priority, 'block_device': block_device } )
+      filesystem_list.append( { 'type': 'swap', 'priority': priority, 'block_device': block_device, 'mkfs_options': mkfs_options } )
 
     elif part_type in ( 'blank', 'empty' ):
       pass
 
     else:
       if drive_map[ target_drive ].supportsTrim and part_type in FS_WITH_TRIM:
-        options.append( 'discard' )
+        mount_options.append( 'discard' )
 
-      filesystem_list.append( { 'mount_point': item[ 'mount_point' ], 'type': part_type, 'options': options, 'block_device': block_device } )
+      filesystem_list.append( { 'mount_point': item[ 'mount_point' ], 'type': part_type, 'mount_options': mount_options, 'block_device': block_device, 'mkfs_options': mkfs_options } )
 
   for target in parted_task_map:
     print( 'Setting up partitions on "{0}"...'.format( target ) )
     _parted( target, parted_task_map[ target ] )
 
-  # { 'md': <group #>, [ 'type': '<fs type>' if not specified, default fs will be used], 'level': <raid level> [ 'options': '<mounting options other than the default>' ], [ 'meta_version': <md meta version if not default ], 'mount_point': '<mount point>' }
+  # { 'md': <group #>, [ 'type': '<fs type>' if not specified, default fs will be used], 'level': <raid level> [ 'mount_options': '<mounting options other than the default>' ], [ 'meta_version': <md meta version if not default ], 'mount_point': '<mount point>' }
   for item in [ i for i in recipe if 'md' in i ]:
     try:
       part_type = item[ 'type' ]
@@ -580,10 +585,15 @@ def partition( profile, value_map ):
       meta_version = md_meta_version
 
     try:
-      if item[ 'options' ] != 'defaults':
-        options = item[ 'options' ].split( ',' )
+      if item[ 'mount_options' ] != 'defaults':
+        mount_options = item[ 'mount_options' ].split( ',' )
     except KeyError:
-      options = list( mounting_options )
+      mount_options = list( default_mounting_options )
+
+    try:
+      mkfs_options = '{0} {1}'.format( profile.get( 'filesystem', 'mkfs_{0}_options'.format( part_type ), fallback='' ), item[ 'mkfs_options' ] )
+    except KeyError:
+      mkfs_options = profile.get( 'filesystem', 'mkfs_{0}_options'.format( part_type ), fallback='' )
 
     block_list = []
     supportsTrim = True
@@ -594,7 +604,7 @@ def partition( profile, value_map ):
     block_device = _addRAID( int( item[ 'md' ] ), block_list, int( item[ 'level' ] ), meta_version )
 
     if part_type == 'swap':
-        filesystem_list.append( { 'type': 'swap', 'priority': priority, 'block_device': block_device } )
+        filesystem_list.append( { 'type': 'swap', 'priority': priority, 'block_device': block_device, 'mkfs_options': mkfs_options } )
 
     elif part_type == 'bcache':
       if item[ 'as' ] == 'cache':
@@ -604,11 +614,11 @@ def partition( profile, value_map ):
 
     elif 'mount_point' in item:
       if supportsTrim and part_type in FS_WITH_TRIM:
-        options.append( 'discard' )
+        mount_options.append( 'discard' )
 
-      filesystem_list.append( { 'mount_point': item[ 'mount_point' ], 'type': part_type, 'options': options, 'block_device': block_device, 'members': block_list } )
+      filesystem_list.append( { 'mount_point': item[ 'mount_point' ], 'type': part_type, 'mount_options': mount_options, 'block_device': block_device, 'mkfs_options': mkfs_options, 'members': block_list } )
 
-  # { 'bcache': <group #>, 'backing': <list of block device>, [ 'type': '<fs type>' if not specified, default fs will be used], [ 'options': '<mounting options other than the default>' ], 'mount_point': '<mount point>' }
+  # { 'bcache': <group #>, 'backing': <list of block device>, [ 'type': '<fs type>' if not specified, default fs will be used], [ 'mount_options': '<mounting options other than the default>' ], 'mount_point': '<mount point>' }
   for item in [ i for i in recipe if 'bcache' in i ]:
     try:
       part_type = item[ 'type' ]
@@ -616,17 +626,22 @@ def partition( profile, value_map ):
       part_type = fs_type
 
     try:
-      if item[ 'options' ] != 'defaults':
-        options = item[ 'options' ].split( ',' )
+      if item[ 'mount_options' ] != 'defaults':
+        mount_options = item[ 'mount_options' ].split( ',' )
     except KeyError:
-      options = list( mounting_options )
+      mount_options = list( default_mounting_options )
+
+    try:
+      mkfs_options = '{0} {1}'.format( profile.get( 'filesystem', 'mkfs_{0}_options'.format( part_type ), fallback='' ), item[ 'mkfs_options' ] )
+    except KeyError:
+      mkfs_options = profile.get( 'filesystem', 'mkfs_{0}_options'.format( part_type ), fallback='' )
 
     block_device = _addBCache( int( item[ 'bcache' ] ), bcache_backing_list[ int( item[ 'bcache' ] ) ], bcache_cache_list[ int( item[ 'bcache' ] ) ], item.get( 'mode', None ) )
 
     if part_type == 'swap':
-      filesystem_list.append( { 'type': 'swap', 'priority': priority, 'block_device': block_device } )
+      filesystem_list.append( { 'type': 'swap', 'priority': priority, 'block_device': block_device, 'mkfs_options': mkfs_options } )
     elif 'mount_point' in item:
-      filesystem_list.append( { 'mount_point': item[ 'mount_point' ], 'type': part_type, 'options': options, 'block_device': block_device } )  # 'members' could recursivly include the members of the backing, for now this will prevent support from booting from a bcache
+      filesystem_list.append( { 'mount_point': item[ 'mount_point' ], 'type': part_type, 'mount_options': mount_options, 'block_device': block_device } )  # 'members' could recursivly include the members of the backing, for now this will prevent support from booting from a bcache
 
   if pv_list:
     vg_names = {}
@@ -658,7 +673,7 @@ def partition( profile, value_map ):
       if vg not in vg_extents or not vg_extents[ vg ]:
         raise Exception( 'Unable to get Size/Extents of VG "{0}"'.format( vg_names[ vg ] ) )
 
-    # { 'lv': < volume group #>, 'name': <lv name>, 'mount_point': <mount point>, 'size': < integer size>, [ 'type': '<fs type>' if not specified, default fs will be used][ 'options': '<mounting options other than the default>' ] }
+    # { 'lv': < volume group #>, 'name': <lv name>, 'mount_point': <mount point>, 'size': < integer size>, [ 'type': '<fs type>' if not specified, default fs will be used][ 'mount_options': '<mounting options other than the default>' ] }
     for item in [ i for i in recipe if 'lv' in i ]:
       vg = int( item[ 'lv' ] )
       size = item[ 'size' ]
@@ -686,10 +701,15 @@ def partition( profile, value_map ):
         part_type = fs_type
 
       try:
-        if item[ 'options' ] != 'defaults':
-          options = item[ 'options' ].split( ',' )
+        if item[ 'mount_options' ] != 'defaults':
+          mount_options = item[ 'mount_options' ].split( ',' )
       except KeyError:
-        options = list( mounting_options )
+        mount_options = list( default_mounting_options )
+
+    try:
+      mkfs_options = '{0} {1}'.format( profile.get( 'filesystem', 'mkfs_{0}_options'.format( part_type ), fallback='' ), item[ 'mkfs_options' ] )
+    except KeyError:
+      mkfs_options = profile.get( 'filesystem', 'mkfs_{0}_options'.format( part_type ), fallback='' )
 
       block_device = '/dev/mapper/{0}-{1}'.format( vg_names[ vg ], item[ 'name' ] )
 
@@ -701,13 +721,13 @@ def partition( profile, value_map ):
         supportsTrim &= drive.supportsTrim
 
       if part_type == 'swap':
-          filesystem_list.append( { 'type': 'swap', 'priority': priority, 'block_device': block_device } )
+          filesystem_list.append( { 'type': 'swap', 'priority': priority, 'block_device': block_device, 'mkfs_options': mkfs_options } )
 
       else:
         if supportsTrim and part_type in FS_WITH_TRIM:
-          options.append( 'discard' )
+          mount_options.append( 'discard' )
 
-        filesystem_list.append( { 'mount_point': item[ 'mount_point' ], 'type': fs_type, 'options': options, 'block_device': block_device } )
+        filesystem_list.append( { 'mount_point': item[ 'mount_point' ], 'type': fs_type, 'mount_options': mount_options, 'block_device': block_device, 'mkfs_options': mkfs_options } )
 
   for fs in filesystem_list:
     try:
@@ -793,7 +813,7 @@ def mount( mount_point, profile ):
 
   for fs in filesystem_list:
     if 'mount_point' in fs and fs[ 'mount_point' ] is not None:
-      mount_points[ fs[ 'mount_point' ] ] = ( fs[ 'type' ], fs[ 'block_device' ], fs[ 'options' ] )
+      mount_points[ fs[ 'mount_point' ] ] = ( fs[ 'type' ], fs[ 'block_device' ], fs[ 'mount_options' ] )
 
   mount_order = list( mount_points.keys() )
   mount_order.sort( key=lambda x: len( x )  )  # no need to do any fancy trees, we know that the string length of a dependant mount point is allways longer than it's parent
@@ -878,11 +898,11 @@ def writefstab( mount_point, profile ):
       tmp.write( 'UUID={0}\tnone\tswap\tsw,pri={1}\t0\t0\n'.format( fs[ 'uuid' ], fs[ 'priority' ] ) )
 
   for mount in mount_order:
-    options = ','.join( mount_points[ mount ][ 'options' ] )
-    if not options:
-      options = 'defaults'
+    mount_options = ','.join( mount_points[ mount ][ 'mount_options' ] )
+    if not mount_options:
+      mount_options = 'defaults'
 
-    tmp.write( 'UUID={0}\t{1}\t{2}\t{3}\t0\t{4}\n'.format( mount_points[ mount ][ 'uuid' ], mount_points[ mount ][ 'mount_point' ], mount_points[ mount ][ 'type' ], options, 1 if mount_points[ mount ][ 'mount_point' ] == '/' else 2 ) )
+    tmp.write( 'UUID={0}\t{1}\t{2}\t{3}\t0\t{4}\n'.format( mount_points[ mount ][ 'uuid' ], mount_points[ mount ][ 'mount_point' ], mount_points[ mount ][ 'type' ], mount_options, 1 if mount_points[ mount ][ 'mount_point' ] == '/' else 2 ) )
 
   tmp.close()
 

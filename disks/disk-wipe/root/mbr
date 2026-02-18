@@ -2,6 +2,8 @@
 
 echo "Doing MBR"
 
+/bin/postMessage "Wiping MBRs"
+
 for item in $@;
 do
   drive="$( echo $item | cut -d ':' -f 1 )"

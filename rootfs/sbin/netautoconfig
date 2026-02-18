@@ -1,0 +1,12 @@
+#!/bin/sh
+
+INTERFACE=$1
+
+grep -q $INTERFACE /tmp/auto-dhcp-interfaces || exit 0
+
+/sbin/ip link set $INTERFACE up
+
+# we are just best efforting things, don't have any ability to do anything about failure here
+/sbin/udhcpc --interface=$INTERFACE --syslog --background
+
+exit 0

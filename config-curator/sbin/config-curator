@@ -8,8 +8,7 @@ import logging
 from optparse import OptionParser
 import configparser
 import tempfile
-from config_curator.contractor.client import HTTPClient  # TODO: make a simplifed and embeded version, this thing has a bunch of stuff only for jobs in it
-from libconfig.providers import ContractorProvider
+from config_curator.contractor.client import HTTPClient
 from libconfig.libconfig import Config
 
 # TODO!!!! add pre/post run to @index, optionall, what to run after doing templates... ie /etc/init.d/networking restart, only run if that template changes
@@ -32,7 +31,7 @@ from libconfig.libconfig import Config
 
 oparser = OptionParser( description='Config Curator', usage='%prog [options] <package> [<package> ...]\n-l/--list, -d/--diff, -c/--config, and -p/--update-config are mutually exclusive, only one of the will process' )
 
-oparser.add_option( '-p', '--update-config', help='Download latest config from master and update local db only.', dest='update_config', default=False, action='store_true' )
+oparser.add_option( '-p', '--update-config', help='Download latest config from contractor and update local db only.', dest='update_config', default=False, action='store_true' )
 
 oparser.add_option( '-l', '--list', help='List last known config values, known templates and their status, tracked packages and their status, (-a assumed unless packages are specified)', dest='list', default=False, action='store_true' )
 
@@ -44,7 +43,7 @@ oparser.add_option( '-f', '--force', help='Build Configuration file even if loca
 oparser.add_option( '-n', '--no-change', help='Don\'t change anything, just print what would be done (dry-run) (only applies to -c and -i/-u)', dest='no_change', default=False, action='store_true' )
 oparser.add_option( '-b', '--no-backups', help='Don\'t create backups of files changed by something else', dest='no_backups', default=False, action='store_true' )
 oparser.add_option( '-g', '--re-generate', help='Re-Generate all files, regardless of if they need it or not, --force is still needed to overwrite local changes', dest='re_generate', default=False, action='store_true' )
-oparser.add_option( '-o', '--local-cache', help='Use the Local Cached config values, ie. don\'t try to talk to master, use with -c/--config', dest='local_cache', default=False, action='store_true' )
+oparser.add_option( '-o', '--local-cache', help='Use the Local Cached config values, ie. don\'t try to talk to contractor, use with -c/--config', dest='local_cache', default=False, action='store_true' )
 
 oparser.add_option( '-a', '--all', help='Target All Packages, use with -l/--list, -c/--config, or -d/--diff', dest='all', default=False, action='store_true' )
 oparser.add_option( '-t', '--template', help='Build Configuration for the specified template in the specified package(s), use with -l/--list, -c/--config, or -d/--diff (can be used more than once)', action='append', dest='template' )
@@ -86,26 +85,23 @@ if not ( options.config_host and options.config_uuid ):  # don't even parse the 
     sys.exit( 1 )
 
 if options.config_host:
-  provider = ContractorProvider( HTTPClient( host=options.config_host, proxy=options.config_proxy ) )
-  # plato.allow_config_change = True
+  if options.config_uuid:
+    contractor = HTTPClient( host=options.config_host, proxy=options.config_proxy, uuid=options.config_uuid )
+  else:
+    contractor = HTTPClient( host=options.config_host, proxy=options.config_proxy )
 
 else:
-  config_host = config_file.get( 'config', 'config_host' )  # TODO: catch non existant entries, need to add the uuid checking
+  config_host = config_file.get( 'config', 'config_host' )
   config_proxy = config_file.get( 'config', 'config_proxy' )
-  provider = ContractorProvider( HTTPClient( host=config_host, proxy=config_proxy ) )
+  config_uuid = config_file.get( 'config', 'uuid' )
+  provider = HTTPClient( host=config_host, proxy=config_proxy, uuid=config_uuid )
 
-config = Config( provider, '/var/lib/config-curator/templates/', '{0}/var/lib/config-curator/config.db'.format( options.root ), options.root, 'config-curator' )
-
-if options.config_uuid:
-  if options.config_uuid != '_new_':
-    config.setConfigUUID( options.config_uuid )
-else:
-  config.setConfigUUID( config_file.get( 'config', 'uuid' ) )
+config = Config( contractor, '/var/lib/config-curator/templates/', '{0}/var/lib/config-curator/config.db'.format( options.root ), options.root )
 
 if options.update_config:
   if options.verbose:
-    print( 'Updating Config from Master...' )
-  config.updateCacheFromMaster()
+    print( 'Updating Config from Contractor...' )
+  config.updateCacheFromContractor()
   sys.exit( 0 )
 
 # build list of packages
@@ -198,17 +194,16 @@ if options.diff:
 
   if options.local_cache:
     if options.verbose:
-      print( 'Using Cache as Master Config...' )
+      print( 'Using Cache as Contractor Config...' )
     cur_values = config.getValues()
     cur_values[ '__timestamp__' ] = cached_values[ '__timestamp__' ]
 
   else:
     if options.verbose:
-      print( 'Getting Master Config...' )
-    cur_values, _ = config._getMasterValues()
-    cur_values[ '__timestamp__' ] = cached_values[ '__timestamp__' ]
-    cur_values[ '__configurator__' ] = cached_values[ '__configurator__' ]
+      print( 'Getting Contractor Config...' )
+    cur_values, _ = config._getContractorValues()
     cur_values[ '__uuid__' ] = cached_values[ '__uuid__' ]
+    cur_values[ '__timestamp__' ] = cached_values[ '__timestamp__' ]
     cur_values[ '__last_modified__' ] = cached_values[ '__last_modified__' ]
 
   if options.verbose:
@@ -260,8 +255,8 @@ if options.diff:
 if options.config:
   if not options.no_change and not options.local_cache:
     if options.verbose:
-      print( 'Updating Config from Master...' )
-    config.updateCacheFromMaster()
+      print( 'Updating Config from Contractor...' )
+    config.updateCacheFromContractor()
 
   for package in template_list:
     if options.verbose:

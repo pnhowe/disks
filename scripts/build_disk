@@ -164,6 +164,7 @@ done
 # these are allready installed by setup_base, as a part of libc
 lib_list="$(echo $lib_list | sed -r 's/[^ ]*(libutil|libc|libm|libdl|libpthread|libnsl|libnss_compat|libnss_files|libnss_dns|libresolv|librt)\.so[^ ]* //g')"
 
+# we need to prioritise the libs from the build fs
 lib_list="$(fakechroot fakeroot chroot $3 readlink -f $lib_list | sort -u)"
 
 for LIB in $lib_list

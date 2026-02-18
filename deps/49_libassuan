@@ -15,6 +15,7 @@ build()
     ./configure --prefix= --disable-doc --host aarch64-linux-gnu --build x86_64-pc-linux-gnu
   fi
   make $2
+  rm -f $(find /usr/lib/ -name libassuan.so.*)
   make install
 }
 

@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -e
+set -x
+
+if [ -d build ]
+then
+  rm -fr build
+fi
+
+cwd="$(pwd)"
+
+for handler in $(ls handlers/*/tools/Makefile)
+do
+  cd "$(dirname $handler)"
+  make clean
+  cd "$cwd"
+done

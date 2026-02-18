@@ -1,6 +1,8 @@
 #!/bin/sh
 
-echo "Doing zeros"
+echo "Doing Zeros"
+
+/bin/postMessage "Wiping With Zeros"
 
 for item in $@;
 do
