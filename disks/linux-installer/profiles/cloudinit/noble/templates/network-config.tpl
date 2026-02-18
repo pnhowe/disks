@@ -29,28 +29,12 @@
   {% endif %}
 {% endif %}
 
+{%- target '/var/lib/cloud/seed/nocloud-net/network-config' -%}
+# Auto Generated During Install
 
-
-{% target '/etc/cloudinit' %}# Auto Generated During Install
-# network info
-hostname: {{ _hostname }}
-create_hostname_file: true
-fqdn: {{ _hostname }}.{{ _domain_name }}
-preserve_hostname: true
-
-# users/password
-password: {{ root_password_hash }}
-chpasswd:
-  expire: False
-
-# ssh
-allow_public_ssh_keys: true
-# TODO: this should be true
-disable_root: false
-
-# network
 network:
   version: 2
+  renderer: networkd
 {%- for loop_type in loop_type_list %}
   {{ loop_type }}:
   {%- for interface_name in _interface_map -%}
@@ -59,7 +43,7 @@ network:
     {{ interface_name }}:
       {%- if loop_type == 'ethernets' and interface.mac %}
       match:
-        macaddress: '{{ interface.mac }}'
+        macaddress: {{ interface.mac }}
       set-name: {{ interface_name }}
       {%- endif %}
       {%- if loop_type == 'bonds' %}
@@ -101,7 +85,7 @@ network:
       addresses: [ {% for tmpaddr in interface.address_list %}{{ tmpaddr.address }}/{{ tmpaddr.prefix }} {% endfor %} ]
           {%- if has_primary -%}
             {%- if default_gateway %}
-      gateway4: {{ default_gateway }}
+      gateway: {{ default_gateway }}
             {%- endif -%}
           {%- endif -%}
           {%- if do_pbr -%}
@@ -141,7 +125,4 @@ network:
     {%- endif -%}
   {%- endfor %}
 {%- endfor %}
-
-#
-
 {% endtarget %}
