@@ -15,7 +15,7 @@ teamplate values
   :mounting_options:
   :partition_scheme:
   :partition_recipe:
-  :repo_list: [ { distribution = 'stable', type = 'apt', uri = 'http://dl.google.com/linux/chrome/deb/', components = [ 'main' ], key_uri = 'https://dl-ssl.google.com/linux/linux_signing_key.pub', proxy = '{{ mirror_proxy|default( "local" ) }}' } ]
+  :repo_list: [ { distribution = 'stable', type = 'apt', uri = 'http://dl.google.com/linux/chrome/deb/', components = [ 'main' ], key_uri = 'https://dl-ssl.google.com/linux/linux_signing_key.pub', proxy = '{{ http_proxy|default( "local" ) }}' } ]
   :root_password_hash:  hashed root password
   :user_list: [ { name = 'jbuser', group = 'jbgroup', password_hash = '', sudo_list = [ 'ALL=(ALL) ALL' ] }  ]
   :package_list:  list of packages to install, each item can be prefixed with a 'apt:'. 'yum:', or 'zypper:' if that package name is specific to a package manager
