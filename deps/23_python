@@ -7,7 +7,7 @@ set -e
 
 # we don't need everything, so only these subdirs
 # lib2to3 is there b/c the install will not work with out it, going to remove that during the install function
-SUBDIRS="re encodings serial json config ctypes logging sqlite3 collections urllib email http asyncio concurrent concurrent/futures multiprocessing multiprocessing/dummy importlib importlib/metadata lib2to3 time zoneinfo xml xml/dom xml/parses xml/sax xml/etree"
+SUBDIRS="re encodings serial json config ctypes logging sqlite3 collections urllib email http asyncio concurrent concurrent/futures multiprocessing multiprocessing/dummy importlib importlib/metadata importlib/resources lib2to3 time zoneinfo xml xml/dom xml/parses xml/sax xml/etree"
 
 build()
 {
