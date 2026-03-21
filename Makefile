@@ -70,7 +70,9 @@ build/%.download: deps/*_% downloads
 clean-downloads:
 	$(RM) -r downloads
 
-.PHONY:: clean-downloads
+download-all: $(DEP_DOWNLOADS)
+
+.PHONY:: clean-downloads download-all
 
 # external dependancy building
 
@@ -83,7 +85,7 @@ build/host.build:
 	fakechroot fakeroot chroot build/host apt update
 	fakechroot fakeroot chroot build/host apt upgrade
 # do not install package list: libgcrypt-dev libgpg-error-dev libassuan-dev libksba-dev
-	fakechroot fakeroot chroot build/host apt -y install build-essential less bison flex bc gawk python3 pkg-config uuid-dev libblkid-dev libudev-dev liblzma-dev zlib1g-dev libxml2-dev libreadline-dev libsqlite3-dev libbz2-dev libelf-dev libksba-dev libnpth0-dev gperf rsync autoconf automake libtool curl libsmartcols-dev libaio-dev libinih-dev liburcu-dev liblz4-dev libffi-dev unzip mandoc libpopt-dev
+	fakechroot fakeroot chroot build/host apt -y install build-essential less bison flex bc gawk python3 pkg-config uuid-dev libblkid-dev libudev-dev liblzma-dev zlib1g-dev libxml2-dev libreadline-dev libsqlite3-dev libbz2-dev libelf-dev libksba-dev libnpth0-dev gperf rsync autoconf automake libtool curl libsmartcols-dev libaio-dev libinih-dev liburcu-dev liblz4-dev libffi-dev unzip mandoc libpopt-dev wget
 	touch $@
 
 $(DEPS_BUILD_FS)/.mount: build/host.build
