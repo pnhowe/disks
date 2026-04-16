@@ -16,7 +16,7 @@ MOUNT_POINT="build.images/mnt"
 
 if ! which sfdisk parted extlinux > /dev/null
 then
-  print "sfdisk, parted, and/or extlinux is missing, please install"
+  echo "sfdisk, parted, and/or extlinux is missing, please install"
   exit 1
 fi
 
@@ -73,7 +73,7 @@ echo "Copying in kernel and image..."
 cp $2 $MOUNT_POINT/vmlinuz.img
 scripts/inject_initrd $3 $MOUNT_POINT/initrd.img $5 $6
 
-scripts makelegacyboot $MOUNT_POINT "img" $4
+scripts/makelegacyboot $MOUNT_POINT "img" $4
 
 echo "Copying command line..."
 cp -f $4 $MOUNT_POINT/cmdline

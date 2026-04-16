@@ -14,7 +14,7 @@ MOUNT_POINT="build.images/mnt"
 
 if ! which sfdisk parted mkfs.fat > /dev/null
 then
-  print "sfdisk, parted, and/or dosfstools is missing, please install"
+  echo "sfdisk, parted, and/or dosfstools is missing, please install"
   exit 1
 fi
 

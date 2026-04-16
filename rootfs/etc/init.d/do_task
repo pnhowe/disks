@@ -6,6 +6,7 @@ DEBUG=0
 NET_DEBUG=0
 CONFIG_SRC="remote"
 HTTP_PROXY=
+NO_PROXY=127.0.0.0/8,localhost,.local
 INTERFACE="any"
 INTERFACE_MAC=
 IP_PROMPT=0
@@ -55,6 +56,9 @@ do
   case $x in
     http_proxy=*)
       HTTP_PROXY=${x#http_proxy=}
+      ;;
+    no_proxy=*)
+      NO_PROXY=$NO_PROXY,${x#no_proxy=}
       ;;
     interface=*)
       INTERFACE=${x#interface=}
@@ -138,12 +142,18 @@ fi
 # handy for interface that like to disaapear on us (probaby due to firmware updates)
 touch /tmp/auto-dhcp-interfaces
 
+# the iDRAC and RedFish interfaces can get a little funny, we will make a best effort
 if grep -q bmc_idrac /proc/net/dev
 then
   echo "Brinning up iDRAC interface..."
   /sbin/ip link set bmc_idrac up
-  /sbin/udhcpc --interface=bmc_idrac --syslog --now
-  NO_PROXY=$(ip route | grep bmc_idrac | cut -d ' ' -f1 )
+  rc=$(/sbin/udhcpc --interface=bmc_idrac --syslog --now --timeout=10 --release; echo $?)
+  if [ "$rc" -ne "0" ]
+  then
+    echo "Error getting ip for iDRAC, continuing anyway..."
+  else
+    NO_PROXY=$NO_PROXY,$(ip route | grep bmc_idrac | cut -d ' ' -f1 )
+  fi
   # just incase the interface and re-appears
   echo bmc_idrac >> /tmp/auto-dhcp-interfaces
 fi
@@ -152,13 +162,18 @@ if grep -q bmc_rhi /proc/net/dev
 then
   echo "Brinning up Redfish Host Interface interface..."
   /sbin/ip link set bmc_rhi up
-  /sbin/udhcpc --interface=bmc_rhi --syslog --now
-  NO_PROXY=$(ip route | grep bmc_rhi | cut -d ' ' -f1 )
+  rc=$(/sbin/udhcpc --interface=bmc_rhi --syslog --now --timeout=10 --release; echo $?)
+  if [ "$rc" -ne "0" ]
+  then
+    echo "Error getting ip for Redfish Host Interface, continuing anyway..."
+  else
+    NO_PROXY=$NO_PROXY,$(ip route | grep bmc_rhi | cut -d ' ' -f1 )
+  fi
   # just incase the interface and re-appears
   echo bmc_rhi >> /tmp/auto-dhcp-interfaces
 fi
 
-if [ "$NET_DEBUG" == "1" ]
+if [ "$NET_DEBUG" -eq "1" ]
 then
   /bin/cttyhack /bin/sh -l
   /sbin/poweroff
@@ -314,18 +329,17 @@ then
     echo "nameserver $DNS_SERVER" >> /etc/resolv.conf
     rc=1
     counter=1
-    while [ "x$rc" != "x0" ]
+    while [ "$rc" -ne "0" ]
     do
       echo "Pinging Gateway '$GATEWAY', ($counter/10)...."
-      ping -q -c4 $GATEWAY > /dev/null 2> /dev/null
-      rc=$?
+      rc=$(ping -q -c4 $GATEWAY > /dev/null 2> /dev/null; echo $?)
       counter=$(( counter + 1 ))
-      if [ "x$rc" != "x0" ] && [ "$counter" -gt "10" ]
+      if [ "$rc" -ne "0" ] && [ "$counter" -gt "10" ]
       then
         echo "Error trying to ping Gateway."
         error_happened
       fi
-      if [ "x$rc" != "x0" ]
+      if [ "$rc" -ne "0" ]
       then
         sleep 10
       fi
@@ -381,14 +395,12 @@ then
           if [ "x$CONFIG_SRC" == "xremote" ]
           then
             echo "Resolving '$PING_HOST'..."
-            nslookup $PING_HOST > /dev/null #TODO: find another way to do this, and remove nslookup from busybox.... it's the only thing with _res in busybox
-            rc=$?
-            if [ "x$rc" == "x0" ]
+            rc=$(nslookup $PING_HOST > /dev/null; echo $?) #TODO: find another way to do this, and remove nslookup from busybox.... it's the only thing with _res in busybox
+            if [ "$rc" -eq "0" ]
             then
               echo "Ping test to '$PING_HOST'..."
-              ping -q -c2 $PING_HOST > /dev/null 2> /dev/null
-              rc=$?
-              if [ "x$rc" == "x0" ]
+              rc=$(ping -q -c2 $PING_HOST > /dev/null 2> /dev/null; echo $?)
+              if [ "$rc" -eq "0" ]
               then # we have a winner, let's get out of here
                 break
               else
@@ -425,8 +437,8 @@ then
   mkdir /media
   /sbin/udevadm trigger
   /sbin/udevadm settle
-  mount UUID=$MEDIA_UUID /media
-  if [ "$?" -ne "0" ];
+  rc=$(mount UUID=$MEDIA_UUID /media; echo $?)
+  if [ "$rc" -ne "0" ];
   then
     echo "Error mounting media by UUID"
     error_happened
@@ -437,8 +449,8 @@ then
   mkdir /media
   /sbin/udevadm trigger
   /sbin/udevadm settle
-  mount LABEL=$MEDIA_LABEL /media
-  if [ "$?" -ne "0" ];
+  rc=$(mount LABEL=$MEDIA_LABEL /media; echo $?)
+  if [ "$rc" -ne "0" ];
   then
     echo "Error mounting media by Label"
     error_happened
@@ -453,10 +465,10 @@ then
   /bin/logger "no_proxy: $NO_PROXY"
   export http_proxy=$HTTP_PROXY
   export https_proxy=$HTTP_PROXY
-  export HTTP_PROXY
+  export HTTP_PROXY=$HTTP_PROXY
   export HTTPS_PROXY=$HTTP_PROXY
   export no_proxy=$NO_PROXY
-  export NO_PROXY
+  export NO_PROXY=$NO_PROXY
 fi
 
 if [ "x$CONTRACTOR_PROXY" != "x" ]
@@ -511,7 +523,7 @@ then
   error_happened
 fi
 
-if [ "x$DEBUG" != "x1" ]
+if [ "$DEBUG" -ne "1" ]
 then
   set +e
   read -t 1 IGNORE  #clear out any garbage that might of been entered
@@ -525,7 +537,7 @@ then
   fi
 fi
 
-if [ "x$DEBUG" == "x1" ]
+if [ "$DEBUG" -eq "1"]
 then
   echo -e "\nType \"exit\" to continue to the task...\n"
   /bin/cttyhack /bin/sh -l
