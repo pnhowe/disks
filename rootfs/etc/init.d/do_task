@@ -140,7 +140,7 @@ else
 fi
 
 # a udev script runs and checks this file, if an interface name it is in it, it will be auto dhcped
-# handy for interface that like to disaapear on us (probaby due to firmware updates)
+# handy for interface that like to disappear on us (probably due to firmware updates)
 touch /tmp/auto-dhcp-interfaces
 
 # the iDRAC and RedFish interfaces can get a little funny, we will make a best effort
@@ -148,14 +148,18 @@ if grep -q bmc_idrac /proc/net/dev
 then
   echo "Bringing up iDRAC interface..."
   /sbin/ip link set bmc_idrac up
-  rc=$( /sbin/udhcpc --interface=bmc_idrac --syslog --now --timeout=10 --release; echo $? )
+  rc=$( /sbin/udhcpc --interface bmc_idrac --syslog --now --timeout=10 --release 1>&2; echo $? )
   if [ "$rc" -ne "0" ]
   then
     echo "Error getting ip for iDRAC, continuing anyway..."
   else
-    NO_PROXY=$NO_PROXY,$( ip route | grep bmc_idrac | cut -d ' ' -f1 )
+    tmp_route=$( ip route | grep bmc_idrac | head -n1 | cut -d ' ' -f1 )
+    if [ "x$tmp_route" != "x" ]
+    then
+      NO_PROXY=$NO_PROXY,$tmp_route
+    fi
   fi
-  # just incase the interface and re-appears
+  # just incase the interface re-appears
   echo bmc_idrac >> /tmp/auto-dhcp-interfaces
 fi
 
@@ -163,14 +167,18 @@ if grep -q bmc_rhi /proc/net/dev
 then
   echo "Bringing up Redfish Host Interface interface..."
   /sbin/ip link set bmc_rhi up
-  rc=$( /sbin/udhcpc --interface=bmc_rhi --syslog --now --timeout=10 --release; echo $? )
+  rc=$( /sbin/udhcpc --interface bmc_rhi --syslog --now --timeout=10 --release 1>&2; echo $? )
   if [ "$rc" -ne "0" ]
   then
     echo "Error getting ip for Redfish Host Interface, continuing anyway..."
   else
-    NO_PROXY=$NO_PROXY,$( ip route | grep bmc_rhi | cut -d ' ' -f1 )
+    tmp_route=$( ip route | grep bmc_rhi | head -n1 | cut -d ' ' -f1 )
+    if [ "x$tmp_route" != "x" ]
+    then
+      NO_PROXY=$NO_PROXY,$tmp_route
+    fi
   fi
-  # just incase the interface and re-appears
+  # just incase the interface re-appears
   echo bmc_rhi >> /tmp/auto-dhcp-interfaces
 fi
 
@@ -184,7 +192,7 @@ if [ "x$INTERFACE_MAC" != "x" ]
 then
   INTERFACE=
 
-  for iface in $( ls /sys/class/net | grep -v bond | grep -v lo | grep -v bmc_ )
+  for iface in $( ls /sys/class/net | grep -v bond | grep -v lo | grep -v sit | grep -v bmc_ )
   do
     if [ "x$INTERFACE_MAC" == "x$( cat /sys/class/net/$iface/address )" ]
     then
@@ -295,7 +303,7 @@ then
     if [ "x$INTERFACE" == "xany" ]
     then
       HOSTNAME="mac$( cat /sys/class/net/e*/address | head -n1 | sed s/://g )" # make sure bond0 nor lo isn't included, lo's mac is 0 and bond*'s mac is usless without any members
-      if [ "x$HOSTNAME" == "x" ]
+      if [ "x$HOSTNAME" == "xmac" ]
       then
         HOSTNAME="nonet"
       fi
@@ -305,7 +313,7 @@ then
   fi
   echo "Hostname is '$HOSTNAME'"
   /bin/logger "hostname: $HOSTNAME"
-  hostname $HOSTNAME
+  hostname "$HOSTNAME"
   echo "127.0.1.1 $HOSTNAME" >> /etc/hosts
   echo "$HOSTNAME" > /etc/hostname
 
@@ -317,15 +325,15 @@ then
   if [ "x$IP_ADDRESS" != "x" ]
   then
     if [ "x$INTERFACE" == "xany" ]
-    then # mabey at some time just pick the first interface and put it on, or something else more deterministic
+    then # maybe at some time just pick the first interface and put it on, or something else more deterministic
       echo "Can't use 'any' for interface for statically assigned ip"
       exit 1
     fi
     /bin/logger "Setting Ip to $IP_ADDRESS, netmask $NETMASK, gateway $GATEWAY on $INTERFACE"
-    /sbin/ip addr flush dev $INTERFACE
-    /sbin/ip link set $INTERFACE up
-    /sbin/ip addr add $IP_ADDRESS/$NETMASK dev $INTERFACE
-    /sbin/ip route add default via $GATEWAY dev $INTERFACE
+    /sbin/ip addr flush dev "$INTERFACE"
+    /sbin/ip link set "$INTERFACE" up
+    /sbin/ip addr add "$IP_ADDRESS/$NETMASK" dev "$INTERFACE"
+    /sbin/ip route add default via "$GATEWAY" dev "$INTERFACE"
     echo "domain $DNS_SEARCH_ZONE" > /etc/resolv.conf
     echo "nameserver $DNS_SERVER" >> /etc/resolv.conf
     rc=1
@@ -349,7 +357,7 @@ then
     echo "Getting ip address..."
     if [ "x$INTERFACE" == "xany" ]
     then
-      INTERFACE_LIST="$( ls /sys/class/net/ | grep -v bond | grep -v lo | grep -v sit | sort )"
+      INTERFACE_LIST="$( ls /sys/class/net/ | grep -v bond | grep -v lo | grep -v sit | grep -v bmc_ | sort )"
     elif [ "x$INTERFACE" != "x" ]
     then
       INTERFACE_LIST=$INTERFACE
@@ -371,7 +379,7 @@ then
       for iface in $INTERFACE_LIST
       do
         echo "Bringing up '$iface'..."
-        /sbin/ip link set $iface up
+        /sbin/ip link set "$iface" up
         echo -n "  Waiting ."
         counter=1
         while [ "x$(cat /sys/class/net/$iface/operstate)" != "xup" ] && [ "$counter" -lt "30" ]
@@ -386,11 +394,11 @@ then
           echo "Interface '$iface' didn't come up, skipping..."
           echo "Random delay before trying next interface..."
           /bin/sleep $(( $RANDOM % 60 ))
-          /sbin/ip link set $iface down
+          /sbin/ip link set "$iface" down
           continue
         fi
         echo "DHCPing on '$iface'..."
-        RECORD_INTERFACE=yes /sbin/udhcpc --interface=$iface -x:hostname $HOSTNAME --vendorclass=t3ktondisk --timeout=10 --syslog --arping --release --now
+        RECORD_INTERFACE=yes /sbin/udhcpc --interface $iface -x hostname:$HOSTNAME --vendorclass t3ktondisk --timeout=10 --syslog --arping --release --now
         if [ -f /tmp/dhcp-interface ]
         then
           if [ "x$CONFIG_SRC" == "xremote" ]
@@ -416,10 +424,10 @@ then
             break
           fi
         fi
-        /bin/kill $( ps | grep udhcpc | grep "interface=$iface" | awk '{print $2}') || true
+        /bin/kill $( ps | grep udhcpc | grep "interface $iface" | awk '{print $2}') || true
         /bin/sleep 1
-        /sbin/ip addr flush dev $iface
-        /sbin/ip link set $iface down
+        /sbin/ip addr flush dev "$iface"
+        /sbin/ip link set "$iface" down
         echo "Random delay before trying next interface...."
         /bin/sleep $(( $RANDOM % 120 ))
       done
@@ -555,12 +563,12 @@ rc=$?
 # 0 - All good
 # anything else - Had Error, no notification has happened yet
 
+set -e
+
 # echo "----- Log -----" >> /tmp/output.log
 # /sbin/logread >> /tmp/output.log
 # push /tmp/output.log to $OUTPUT_UPLOAD_URL
 # file name is <hostname>-<endtime>-<uptime>.log
-
-set -e
 
 if [ "$rc" -eq "20" ]
 then
