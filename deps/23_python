@@ -1,6 +1,6 @@
 #!/bin/sh
-#SOURCE: https://www.python.org/ftp/python/3.14.7/Python-3.14.7.tar.xz
-#HASH: 1239d153c968b5fa1958963acd350a42b73d895b
+#SOURCE: https://www.python.org/ftp/python/3.14.10/Python-3.14.10.tar.xz
+#HASH: 5b66b69732cd99929643817cf0e1b470445d2794
 # when updating python, make sure to update the version number in the paths below
 
 set -e
@@ -15,6 +15,42 @@ build()
   # site is techinically only for arm/arm64
   echo "ac_cv_file__dev_ptmx=yes
 ac_cv_file__dev_ptc=yes" > config.site
+
+# patching to support openssl 4, remove when moving past python version 3.14
+  cat <<PATCH | patch -p1
+--- a/Modules/_ssl.c
++++ b/Modules/_ssl.c
+@@ -136,6 +136,13 @@ static void _PySSLFixErrno(void) {
+ #error Unsupported OpenSSL version
+ #endif
+
++#if (OPENSSL_VERSION_NUMBER >= 0x40000000L)
++#  define OPENSSL_NO_SSL3
++#  define OPENSSL_NO_TLS1
++#  define OPENSSL_NO_TLS1_1
++#  define OPENSSL_NO_TLS1_2
++#endif
++
+ /* OpenSSL API 1.1.0+ does not include version methods */
+ #ifndef OPENSSL_NO_SSL3_METHOD
+ extern const SSL_METHOD *SSLv3_method(void);
+@@ -6606,9 +6613,15 @@ sslmodule_init_constants(PyObject *m)
+     ADD_INT_CONST("PROTOCOL_TLS", PY_SSL_VERSION_TLS);
+     ADD_INT_CONST("PROTOCOL_TLS_CLIENT", PY_SSL_VERSION_TLS_CLIENT);
+     ADD_INT_CONST("PROTOCOL_TLS_SERVER", PY_SSL_VERSION_TLS_SERVER);
++#ifndef OPENSSL_NO_TLS1
+     ADD_INT_CONST("PROTOCOL_TLSv1", PY_SSL_VERSION_TLS1);
++#endif
++#ifndef OPENSSL_NO_TLS1_1
+     ADD_INT_CONST("PROTOCOL_TLSv1_1", PY_SSL_VERSION_TLS1_1);
++#endif
++#ifndef OPENSSL_NO_TLS1_2
+     ADD_INT_CONST("PROTOCOL_TLSv1_2", PY_SSL_VERSION_TLS1_2);
++#endif
+
+ #define ADD_OPTION(NAME, VALUE) if (sslmodule_add_option(m, NAME, (VALUE)) < 0) return -1
+PATCH
+
   export CONFIG_SITE=config.site
   if [ "x$1" = "xx86_64" ]
   then

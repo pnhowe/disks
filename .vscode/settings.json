@@ -1,0 +1,36 @@
+{
+  "C_Cpp.files.exclude": {
+    "build/**": true,
+    "images/**": true,
+    "resource/**": true,
+    "src.build/**": true,
+    "build.images/**": true,
+    "downloads/**": true
+  },
+  "search.exclude": {
+    "build/**": true,
+    "images/**": true,
+    "resource/**": true,
+    "src.build/**": true,
+    "build.images/**": true,
+    "downloads/**": true
+  },
+  "files.watcherExclude": {
+    "build/**": true,
+    "images/**": true,
+    "resource/**": true,
+    "src.build/**": true,
+    "build.images/**": true,
+    "downloads/**": true
+  },
+  "python.analysis.exclude": [
+    "build/**",
+    "images/**",
+    "resource/**",
+    "src.build/**",
+    "build.images/**",
+    "downloads/**"
+  ],
+  "explorer.excludeGitIgnore": false,
+  "npm.autoDetect": "off"
+}

@@ -1,0 +1,3 @@
+# Intentionally empty marker file.
+# VS Code's Python Environments extension scans the whole workspace (including
+# build/ and build.images/) looking for a Python file; this lets it stop at once.

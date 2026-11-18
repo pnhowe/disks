@@ -1,6 +1,6 @@
 #!/bin/sh
-#SOURCE: https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.0.12.tar.xz
-#HASH: 180e3b106ea9e19913e885d27eea5566f9741e42
+#SOURCE: https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.0.14.tar.xz
+#HASH: c4e4573ab5ff4cd2a5bf646ce24ac1902f02d6c1
 
 # NOTE: check glibc when updating kernel, might need to update ./configure parameter
 

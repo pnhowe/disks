@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(/build/**)",
+      "Grep(/build/**)",
+      "Glob(/build/**)",
+      "Edit(/build/**)",
+      "Read(/source.build/**)",
+      "Grep(/source.build/**)",
+      "Glob(/source.build/**)",
+      "Edit(/source.build/**)",
+      "Read(/build.images/**)",
+      "Grep(/build.images/**)",
+      "Glob(/build.images/**)",
+      "Edit(/build.images/**)",
+      "Read(/resource/**)",
+      "Grep(/resource/**)",
+      "Glob(/resource/**)",
+      "Edit(/resource/**)"
+    ]
+  }
+}

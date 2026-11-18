@@ -19,7 +19,7 @@ case $4 in
   *.tar.gz | *.tgz)
     tar --strip-components=1 -xzf $4
     ;;
-  *.tar.xz) 
+  *.tar.xz)
     tar --strip-components=1 -xJf $4
     ;;
   *)
@@ -27,7 +27,7 @@ case $4 in
     ;;
 esac
 
-fakechroot fakeroot chroot $3 /bin/bash -l -c "/build_dep_chroot $(realpath --relative-to=$3 $1) $(realpath --relative-to=$3 $2) $5 '$6'"
+fakechroot -s fakeroot chroot $3 /bin/bash -l -c "/build_dep_chroot $(realpath --relative-to=$3 $1) $(realpath --relative-to=$3 $2) $5 '$6'"
 
 # build_dep_chroot parameters
 # $1 - name of dep
@@ -35,4 +35,4 @@ fakechroot fakeroot chroot $3 /bin/bash -l -c "/build_dep_chroot $(realpath --re
 # $3 - arch
 # $4 - make parameters
 
-fakechroot fakeroot chroot $3 /bin/bash -l -c "ldconfig.real -C $3/etc/ld.so.cache"
+fakechroot -s fakeroot chroot $3 /bin/bash -l -c "ldconfig.real -C $3/etc/ld.so.cache"

@@ -1,6 +1,6 @@
 #!/bin/sh
-#SOURCE: https://github.com/openssl/openssl/releases/download/openssl-3.4.0/openssl-3.4.0.tar.gz
-#HASH: 5c2f33c3f3601676f225109231142cdc30d44127
+#SOURCE: https://github.com/openssl/openssl/releases/download/openssl-4.1.0/openssl-4.1.0.tar.gz
+#HASH: 44d07584cca891b042c38478255228ac4bd379a6
 
 set -e
 #set -x
